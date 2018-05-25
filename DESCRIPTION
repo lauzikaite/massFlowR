@@ -1,9 +1,18 @@
 Package: massflowR
-Version: 0.0.0.9000
-Title: What the Package Does (One Line, Title Case)
-Description: What the package does (one paragraph).
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
-License: What license is it under?
+Version: 0.1
+Title: LC-MS Data Pre-Processing
+Description: massflowR performs peak-picking, feature grouping and retention time correction for high-throughput LC-MS experiments.
+Authors@R: person("Elzbieta", "Lauzikaite", email = "e.lauzikaite14@imperial.ac.uk", role = c("aut", "cre"))
+License: GPL-2
 Encoding: UTF-8
 LazyData: true
 ByteCompile: true
+Depends:
+    R (>= 3.4.3),
+    dplyr
+Imports:
+    xcms (>= 3.0.0),
+    igraph,
+    MSnbase,
+    ggplot2
+RoxygenNote: 6.0.1
