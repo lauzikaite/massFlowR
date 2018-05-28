@@ -2,13 +2,21 @@
 % Please edit documentation in R/functions-buildCOMPS.R
 \name{buildCOMPS}
 \alias{buildCOMPS}
-\title{Title}
+\title{Component building using correlation estimation between co-eluting peaks}
 \usage{
 buildCOMPS(Pearson, match, thr = 0.95, plot = FALSE, pks, clean = TRUE)
 }
 \arguments{
-\item{pks}{}
+\item{Pearson}{logical whether correlation between co-eluting peaks should be estimated using Pearson Correlation. If FALSE, Spearman will be used.}
+
+\item{match}{numeric defining the number of scans for co-eluting peaks extraction.}
+
+\item{thr}{numeric defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
+
+\item{plot}{logical. If TRUE, a png plot for each peak and all of its co-eluting peaks will be saved.}
+
+\item{pks}{a data.frame object, provided by pickPEAKS() function.}
 }
-\description{
-Title
+\seealso{
+\code{\link{pickPEAKS}}
 }

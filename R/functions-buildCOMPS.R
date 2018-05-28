@@ -1,15 +1,16 @@
-#' Title
+#' @title Component building using correlation estimation between co-eluting peaks
 #'
-#' @param Pearson
-#' @param match
-#' @param thr
-#' @param plot
-#' @param pks
+#' @param Pearson logical whether correlation between co-eluting peaks should be estimated using Pearson Correlation. If FALSE, Spearman will be used.
+#' @param match numeric defining the number of scans for co-eluting peaks extraction.
+#' @param thr numeric defining correlation coefficient threshold, above which peak pairs will be considered as correlated.
+#' @param plot logical. If TRUE, a png plot for each peak and all of its co-eluting peaks will be saved.
+#' @param pks a data.frame object, provided by pickPEAKS() function.
 #'
 #' @return
 #' @export
 #'
 #' @examples
+#' @seealso  \code{\link{pickPEAKS}}
 buildCOMPS <- function(Pearson, match, thr = 0.95, plot = FALSE, pks, clean = TRUE) {
 
   print(paste0("Apex match by scpos window: ", match))
@@ -17,26 +18,24 @@ buildCOMPS <- function(Pearson, match, thr = 0.95, plot = FALSE, pks, clean = TR
 
   start <- Sys.time()
 
-  ## make a duplicate reduced peaks table which will be used in building of the final output df all_poi
-  pks_sel <- pks %>%
-    select(pid, mz:maxo, poi_name)
-
   ## make a duplicate reduced peaks table, where componenents will be stored for every peak
   pkscomps <- pks %>%
     mutate(comp = NA) %>%
     select(pid = pid, mz, scpos, into, comp) %>%
     data.frame
 
-  # all_poi <- data.frame()
-
-  ####--- (A) while there is still a peak that was not assigned to component yet ----
-  # while(any(is.na(pkscomps$comp))) { p <- pkscomps %>% filter(is.na(comp)) %>% slice(1) %>% pull(pid)
-
   pids <- pkscomps %>%
     pull(pid)
 
+  ## set progress bar
+  pb <- txtProgressBar(min = 0, max = nrow(pks), style = 3)
+
+  ####--- (A) for every peak in the table ----
   for (p in pids) {
     if (is.na(pkscomps[p, "comp"])) {
+
+      ## update progress bar
+      setTxtProgressBar(pb = pb, value = p)
 
       ####---- (A1) find all co-eluting peaks which are not asigned to a component yet and match by their scpos being in the POI scpos ----
       if (match == 0) {
@@ -57,8 +56,6 @@ buildCOMPS <- function(Pearson, match, thr = 0.95, plot = FALSE, pks, clean = TR
       ####--- if POI has any co-eluting peaks in the peak table ----
       if (length(co_ind) > 1 & p %in% co_ind) {
 
-        print(paste0("Checking p: ", p))
-
         ####--- build correlation matrix for all co-eluting peaks ----
 
         ## build a cor mat between all co-eluting feature pairs, correlate each pair separately by leaving only common scans
@@ -74,45 +71,36 @@ buildCOMPS <- function(Pearson, match, thr = 0.95, plot = FALSE, pks, clean = TR
 
           pkscomps <- buildNETWORK(poi_co_cor = poi_co_cor, pkscomps = pkscomps, co_ind = co_ind, thr = thr, pks = pks, p = p, plot = plot)
 
+
           } else next
         } else next
       } else next
   }
 
-  ## assign component id to every remaining peak, which was not correlated to anything else
-  pkscomps <- merge(pks, pkscomps[, c("pid", "comp")],
-                    by = c("pid"), all = T)
-  pkscomps[which(is.na(pkscomps$comp)), "comp"] <- seq(
-    from = (max(na.omit(pkscomps$comp)) + 1),
-    length.out = length(which(is.na(pkscomps$comp))),
-    by = 1)
+  message(max(na.omit(pkscomps$comp)), " components built.")
 
   if (clean == TRUE) {
-    message("'clean' set to TRUE. Removing 1-peak components")
-    pkscomps <- removeCOMPS(pkscomps = pkscomps)
+    message("'clean' set to TRUE. Removing un-grouped peaks ...")
+    message(length(which(is.na(pkscomps$comp))), " peaks removed.")
+    pkscomps <- pkscomps %>%
+      filter(!is.na(comp))
+  } else {
+    message("'clean' set to FALSE. Returning un-grouped peaks as 1-peak components.")
+    message(length(which(is.na(pkscomps$comp))), " 1-peak components built.")
+    pkscomps[which(is.na(pkscomps$comp)), "comp"] <- seq(
+        from = (max(na.omit(pkscomps$comp)) + 1),
+        length.out = length(which(is.na(pkscomps$comp))),
+        by = 1)
   }
 
+  pkscomps <- merge(pks, pkscomps[, c("pid", "comp")],
+                    by = c("pid"), all = T)
   print(Sys.time() - start)
   return(pkscomps)
 }
 
 
 ####---- helper functions, not to export ----
-removeCOMPS <- function(pkscomps) {
-
-  comps1 <- pkscomps %>%
-    group_by(comp) %>%
-    summarise(n = n()) %>%
-    filter(n == 1) %>%
-    pull(comp)
-
-  pkscomps <- pkscomps %>%
-    filter(!comp %in% comps1) %>%
-    mutate(order_ID = row_number())
-
-  return(pkscomps)
-
-}
 
 getCOR <- function(x, y) {
 
@@ -200,33 +188,7 @@ buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, thr, pks, p, plot, out_di
   members <- which(mem == 2 | mem == 1)
 
   if (length(members) >= 2) {
-
     component <- co_ind[members]
-
-    ####---- save components metadata: feature pairs, their cor and peak info ----
-    # gg <- igraph::delete.vertices(gg, c(which(mem == 3)))
-    #
-    # pairs <- setNames(
-    #   data.frame(igraph::as_edgelist(gg, names = F)), c("x", "y")) %>%
-    #   mutate(
-    #     xind = co_ind[members[x]], yind = co_ind[members[y]],
-    #     pair_ID = paste(xind, yind, sep = "_"))
-    # co_pairs <- poi_co_cor %>%
-    #   filter(cor >= thr) %>%
-    #   filter(paste(x, y, sep = "_") %in% pairs$pair_ID) %>% ## add component number to each feature: redundant, but helps to spot if component asignment is correct
-    #   left_join(
-    #     pkscomps %>%
-    #       select(pid, comp_x = comp),
-    #     by = c(x = "pid")) %>%
-    #   left_join(
-    #     pkscomps %>%
-    #       select(pid, comp_y = comp),
-    #     by = c(y = "pid")) %>%
-    #   ## add remaining peaks information, e.g. mz, rt ...
-    #   left_join(pks_sel, by = c(x = "pid")) %>%
-    #   left_join(pks_sel, by = c(y = "pid"), suffix = c("_x", "_y"))
-
-    # all_poi <- co_pairs %>% data.frame %>% rbind(all_poi)
 
     ####---- update table with assigned component IDs ----
     comp <- ifelse(all(is.na(pkscomps$comp)), 1, max(pkscomps$comp, na.rm = T) + 1)
