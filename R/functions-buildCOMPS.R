@@ -11,7 +11,7 @@
 #'
 #' @examples
 #' @seealso  \code{\link{pickPEAKS}}
-buildCOMPS <- function(Pearson, match, thr = 0.95, plot = FALSE, pks, clean = TRUE) {
+buildCOMPS <- function(Pearson, match = 1, pks, thr = 0.95, plot = FALSE, clean = TRUE) {
 
   print(paste0("Apex match by scpos window: ", match))
   print(paste0("Pearson correlation: ", Pearson))
@@ -30,47 +30,54 @@ buildCOMPS <- function(Pearson, match, thr = 0.95, plot = FALSE, pks, clean = TR
   ## set progress bar
   pb <- txtProgressBar(min = 0, max = nrow(pks), style = 3)
 
-  ####--- (A) for every peak in the table ----
+  ####--- (A) select POI (peak of interest) from the table ----
   for (p in pids) {
     if (is.na(pkscomps[p, "comp"])) {
 
       ## update progress bar
       setTxtProgressBar(pb = pb, value = p)
 
-      ####---- (A1) find all co-eluting peaks which are not asigned to a component yet and match by their scpos being in the POI scpos ----
+      ####---- (A1) find co-eluting peaks not asigned to a component yet ----
       if (match == 0) {
         ## version(1) - exact scpos match
-        pkscomps_sel <- pkscomps %>%
+        pks_co <- pkscomps %>%
           filter(is.na(comp) & scpos == scpos[pid == p])
 
       } else {
         ## version(2) - scpos +- match
         mat <- c(pkscomps[p, "scpos"] - match, pkscomps[p, "scpos"] + match)
-        pkscomps_sel <- pkscomps %>%
+        pks_co <- pkscomps %>%
           filter(is.na(comp)) %>% filter(between(scpos, mat[1], mat[2]))
       }
 
-      co_ind <- pkscomps_sel %>%
+      ## store indeces of co-eluting peaks
+      co_ind <- pks_co %>%
         pull(pid)
 
-      ####--- if POI has any co-eluting peaks in the peak table ----
+      ####--- if POI has any co-eluting peaks ----
       if (length(co_ind) > 1 & p %in% co_ind) {
 
         ####--- build correlation matrix for all co-eluting peaks ----
 
+        poi_co_cor <- buildCOR(co_ind = co_ind, eic)
+
         ## build a cor mat between all co-eluting feature pairs, correlate each pair separately by leaving only common scans
-        poi_co_cor <- expand.grid(x = co_ind, y = co_ind) %>%
-          group_by(x, y) %>%
-          mutate(cor = getCOR(x = x, y = y)) %>%
-          filter(x != y)
 
-        ####---- build interaction network with full co-eluting set ----
 
-        ## if there's at least one CO pair with cor above threshold
+        ####---- build interaction network between co-eluting peaks ----
+
+        ## if there's at least one pair with cor above threshold
         if (any(poi_co_cor$cor > thr)) {
 
-          pkscomps <- buildNETWORK(poi_co_cor = poi_co_cor, pkscomps = pkscomps, co_ind = co_ind, thr = thr, pks = pks, p = p, plot = plot)
-
+          pkscomps <- buildNETWORK(poi_co_cor = poi_co_cor,
+                                   pkscomps = pkscomps,
+                                   co_ind = co_ind,
+                                   thr = thr,
+                                   pks = pks,
+                                   p = p,
+                                   plot = plot,
+                                   out_dir_fname = out_dir_fname,
+                                   fname = fname)
 
           } else next
         } else next
@@ -85,7 +92,7 @@ buildCOMPS <- function(Pearson, match, thr = 0.95, plot = FALSE, pks, clean = TR
     pkscomps <- pkscomps %>%
       filter(!is.na(comp))
   } else {
-    message("'clean' set to FALSE. Returning un-grouped peaks as 1-peak components.")
+    message("'clean' set to FALSE. Returning un-grouped peaks as 1-peak components ...")
     message(length(which(is.na(pkscomps$comp))), " 1-peak components built.")
     pkscomps[which(is.na(pkscomps$comp)), "comp"] <- seq(
         from = (max(na.omit(pkscomps$comp)) + 1),
@@ -115,32 +122,6 @@ getCOR <- function(x, y) {
     cc <- 0
   }
   return(cc)
-}
-
-plotNETWORK <- function(gg, mem, out_dir_fname, fname, p) {
-
-  png(filename =
-        paste0(out_dir_fname, "/", fname, "_pks", p, "_and_CoPeaks.png"),
-      width = 10, height = 8, units = "in", res = 100)
-
-  ## PID of the peak of interest
-  pmain <- paste0("Main peak: ", round(pks[p, "mz"], digits = 4),
-                  ". Coeluting peaks: ",
-                  length(co_ind))
-  psub <- paste0("Features in POI component: ",
-                 length(which(mem == 1 | mem == 2)))
-
-  colors <- c("#9cc057", "#cad587", "grey")
-  igraph::plot.igraph(gg,
-                      main = pmain,
-                      sub = psub,
-                      layout = layout.fruchterman.reingold,
-                      vertex.color = colors[mem],
-                      vertex.size = 22,
-                      vertex.label.color = "black",
-                      edge.color = "black",
-                      edge.width = igraph::E(gg)$weight)
-  dev.off()
 }
 
 buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, thr, pks, p, plot, out_dir_fname, fname) {
@@ -181,18 +162,51 @@ buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, thr, pks, p, plot, out_di
     round(digits = 3)
 
   if (plot == TRUE) {
-    plotNETWORK(gg = gg, mem = mem, out_dir_fname = out_dir_fname, fname = fname, p = p)
+    plotNETWORK(gg = gg, mem = mem, out_dir_fname = out_dir_fname, fname = fname, p = p, co_ind = co_ind)
   }
 
-  ####---- if there is at least once community with more than one member, asign community's compounds to a component ----
+  ## if there is at least once community with more than one member, asign community's compounds to a component
   members <- which(mem == 2 | mem == 1)
 
   if (length(members) >= 2) {
     component <- co_ind[members]
 
-    ####---- update table with assigned component IDs ----
+    ## update table with assigned component IDs
     comp <- ifelse(all(is.na(pkscomps$comp)), 1, max(pkscomps$comp, na.rm = T) + 1)
     pkscomps[component, "comp"] <- rep(comp, length(component))
   }
   return(pkscomps)
+}
+
+plotNETWORK <- function(gg, mem, out_dir_fname, fname, p, co_ind) {
+
+  png(filename =
+        paste0(out_dir_fname, "/", fname, "_pks", p, "_and_CoPeaks.png"),
+      width = 10, height = 8, units = "in", res = 100)
+
+  ## PID of the peak of interest
+  pmain <- paste0("Main peak: ", round(pks[p, "mz"], digits = 4),
+                  ". Coeluting peaks: ",
+                  length(co_ind))
+  psub <- paste0("Features in POI component: ",
+                 length(which(mem == 1 | mem == 2)))
+
+  colors <- c("#9cc057", "#cad587", "grey")
+  igraph::plot.igraph(gg,
+                      main = pmain,
+                      sub = psub,
+                      layout = igraph::layout.fruchterman.reingold,
+                      vertex.color = colors[mem],
+                      vertex.size = 22,
+                      vertex.label.color = "black",
+                      edge.color = "black",
+                      edge.width = igraph::E(gg)$weight)
+  dev.off()
+}
+
+buildCOR <- function(co_ind, ...) {
+  poi_co_cor <- expand.grid(x = co_ind, y = co_ind) %>%
+    group_by(x, y) %>%
+    mutate(cor = getCOR(x = x, y = y)) %>%
+    filter(x != y)
 }

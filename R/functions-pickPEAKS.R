@@ -37,15 +37,13 @@ pickPEAKS <- function(raw, ppm, snthresh, noise, prefilter, peakwidth, integrate
   ## give each peak an ID based on its intensity order
   pks$pid <- 1:nrow(pks)
 
-  pks$poi_name <- paste0(round(pks[,c("mz")], digits = 4), "_", round(pks[,c("rt")], digits = 2))
-
   if(clean == TRUE) {
 
     ## clean-up unneccesary duplicating peaks
     message("'clean' set to TRUE. Removing duplicating peaks.")
 
     pks <- pks %>%
-      group_by(poi_name) %>%
+      group_by(rt, mz) %>%
       arrange(pid) %>%
       ## take only first of the two identical peaks which are in the same component
       filter(row_number()== 1) %>%
