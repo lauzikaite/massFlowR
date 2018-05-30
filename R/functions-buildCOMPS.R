@@ -1,24 +1,22 @@
-#' @title Component building using correlation estimation between co-eluting peaks
+#' @title Component building based on correlation between co-eluting peaks
 #'
 #' @param Pearson logical whether correlation between co-eluting peaks should be estimated using Pearson Correlation. If FALSE, Spearman will be used.
 #' @param match numeric defining the number of scans for co-eluting peaks extraction.
 #' @param thr numeric defining correlation coefficient threshold, above which peak pairs will be considered as correlated.
 #' @param plot logical. If TRUE, a png plot for each peak and all of its co-eluting peaks will be saved.
-#' @param pks a data.frame object, provided by pickPEAKS() function.
+#' @param pks \code{data.frame} object, provided by \emph{pickPEAKS()} function.
 #'
-#' @return
+#' @return Function returns a \code{data.frame} object with a column \code{"comp"}. Column contains component ID for each peak, which was correlated with any of its co-eluting peak(s).
 #' @export
 #'
 #' @examples
-#' @seealso  \code{\link{pickPEAKS}}
+#' @seealso  \emph{pickPEAKS}
 buildCOMPS <- function(Pearson, match = 1, pks, thr = 0.95, plot = FALSE, clean = TRUE) {
 
-  print(paste0("Apex match by scpos window: ", match))
-  print(paste0("Pearson correlation: ", Pearson))
+  message("Apex matching window: ", match, " SCPOS")
+  message("Correlation estimation: ", ifelse(Pearson == TRUE, "Pearson", "Spearman"))
 
-  start <- Sys.time()
-
-  ## make a duplicate reduced peaks table, where componenents will be stored for every peak
+  ## duplicate table for storing built componenents
   pkscomps <- pks %>%
     mutate(comp = NA) %>%
     select(pid = pid, mz, scpos, into, comp) %>%
@@ -102,7 +100,6 @@ buildCOMPS <- function(Pearson, match = 1, pks, thr = 0.95, plot = FALSE, clean 
 
   pkscomps <- merge(pks, pkscomps[, c("pid", "comp")],
                     by = c("pid"), all = T)
-  print(Sys.time() - start)
   return(pkscomps)
 }
 

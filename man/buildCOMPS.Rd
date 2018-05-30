@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions-buildCOMPS.R
 \name{buildCOMPS}
 \alias{buildCOMPS}
-\title{Component building using correlation estimation between co-eluting peaks}
+\title{Component building based on correlation between co-eluting peaks}
 \usage{
 buildCOMPS(Pearson, match = 1, pks, thr = 0.95, plot = FALSE,
   clean = TRUE)
@@ -12,12 +12,15 @@ buildCOMPS(Pearson, match = 1, pks, thr = 0.95, plot = FALSE,
 
 \item{match}{numeric defining the number of scans for co-eluting peaks extraction.}
 
-\item{pks}{a data.frame object, provided by pickPEAKS() function.}
+\item{pks}{\code{data.frame} object, provided by \emph{pickPEAKS()} function.}
 
 \item{thr}{numeric defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
 
 \item{plot}{logical. If TRUE, a png plot for each peak and all of its co-eluting peaks will be saved.}
 }
+\value{
+Function returns a \code{data.frame} object with a column \code{"comp"}. Column contains component ID for each peak, which was correlated with any of its co-eluting peak(s).
+}
 \seealso{
-\code{\link{pickPEAKS}}
+\emph{pickPEAKS}
 }
