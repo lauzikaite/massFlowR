@@ -1,0 +1,29 @@
+---
+output:
+  github_document
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(echo = FALSE, 
+                      collapse = TRUE,
+                      eval = FALSE, 
+                      message = FALSE,
+                      warning = FALSE, 
+                      fig.retina = TRUE)
+
+
+```
+
+# **massflowR** package
+*** 
+
+# Installation
+*** 
+
+```{r}
+# For devel version
+devtools::install_github("lauzikaite/massflowR")
+```
+
+
+
