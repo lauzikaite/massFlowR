@@ -1,20 +1,25 @@
 #' @title Component building based on correlation between co-eluting peaks
 #'
-#' @param Pearson logical whether correlation between co-eluting peaks should be estimated using Pearson Correlation. If FALSE, Spearman will be used.
-#' @param match numeric defining the number of scans for co-eluting peaks extraction.
-#' @param thr numeric defining correlation coefficient threshold, above which peak pairs will be considered as correlated.
-#' @param plot logical. If TRUE, a png plot for each peak and all of its co-eluting peaks will be saved.
-#' @param pks \code{data.frame} object, provided by \emph{pickPEAKS()} function.
+#' @param pks \code{DataFrame} object, provided by \emph{pickPEAKS} function.
+#' @param eic \code{list} containing extracted ion chromatograms for each peak in the \code{pks} table.
+#' @param match \code{numeric} defining the number of scans for co-eluting peaks extraction.
+#' @param thr \code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.
+#' @param plot \code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png in the out_dir directory.
+#' @param out_dir \code{character} object specifying directory where output data will be saved.
+#' @param fname \code{character} object specifying datafile name.
+#' @param pearson \code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.
+#' @param clean \code{logical} whether one-peak components should be removed (default is TRUE).
+#' @param write \code{logical} whether generated components tables should be written as text files in the \code{out_dir} directory (default is TRUE).
 #'
-#' @return Function returns a \code{data.frame} object with a column \code{"comp"}. Column contains component ID for each peak, which was correlated with any of its co-eluting peak(s).
+#' @return Function returns a \code{DataFrame} object with a column \code{"comp"}. \code{"comp"} contains component ID for each peak, which was correlated with any of its co-eluting peak(s).
 #' @export
 #'
 #' @examples
-#' @seealso  \emph{pickPEAKS}
-buildCOMPS <- function(Pearson, match = 1, pks, thr = 0.95, plot = FALSE, clean = TRUE) {
 
-  message("Apex matching window: ", match, " SCPOS")
-  message("Correlation estimation: ", ifelse(Pearson == TRUE, "Pearson", "Spearman"))
+buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr = 0.95, plot = FALSE, clean = TRUE, write = TRUE) {
+
+  if(write == TRUE) { if(missing(fname)) { stop("'fname' must be specified!") } }
+  if(write == TRUE) { if(missing(out_dir)) { stop("'out_dir' must be specified!") } }
 
   ## duplicate table for storing built componenents
   pkscomps <- pks %>%
@@ -25,24 +30,24 @@ buildCOMPS <- function(Pearson, match = 1, pks, thr = 0.95, plot = FALSE, clean 
   pids <- pkscomps %>%
     pull(pid)
 
-  ## set progress bar
-  pb <- txtProgressBar(min = 0, max = nrow(pks), style = 3)
+  # ## set progress bar
+  # pb <- txtProgressBar(min = 0, max = nrow(pks), style = 3)
 
   ####--- (A) select POI (peak of interest) from the table ----
   for (p in pids) {
     if (is.na(pkscomps[p, "comp"])) {
 
-      ## update progress bar
-      setTxtProgressBar(pb = pb, value = p)
+      # ## update progress bar
+      # setTxtProgressBar(pb = pb, value = p)
 
       ####---- (A1) find co-eluting peaks not asigned to a component yet ----
       if (match == 0) {
-        ## version(1) - exact scpos match
+        ## exact scpos match
         pks_co <- pkscomps %>%
           filter(is.na(comp) & scpos == scpos[pid == p])
 
       } else {
-        ## version(2) - scpos +- match
+        ## scpos +- match
         mat <- c(pkscomps[p, "scpos"] - match, pkscomps[p, "scpos"] + match)
         pks_co <- pkscomps %>%
           filter(is.na(comp)) %>% filter(between(scpos, mat[1], mat[2]))
@@ -57,10 +62,7 @@ buildCOMPS <- function(Pearson, match = 1, pks, thr = 0.95, plot = FALSE, clean 
 
         ####--- build correlation matrix for all co-eluting peaks ----
 
-        poi_co_cor <- buildCOR(co_ind = co_ind, eic)
-
-        ## build a cor mat between all co-eluting feature pairs, correlate each pair separately by leaving only common scans
-
+        poi_co_cor <- buildCOR(co_ind = co_ind, eic = eic)
 
         ####---- build interaction network between co-eluting peaks ----
 
@@ -74,7 +76,7 @@ buildCOMPS <- function(Pearson, match = 1, pks, thr = 0.95, plot = FALSE, clean 
                                    pks = pks,
                                    p = p,
                                    plot = plot,
-                                   out_dir_fname = out_dir_fname,
+                                   out_dir = out_dir,
                                    fname = fname)
 
           } else next
@@ -87,8 +89,7 @@ buildCOMPS <- function(Pearson, match = 1, pks, thr = 0.95, plot = FALSE, clean 
   if (clean == TRUE) {
     message("'clean' set to TRUE. Removing un-grouped peaks ...")
     message(length(which(is.na(pkscomps$comp))), " peaks removed.")
-    pkscomps <- pkscomps %>%
-      filter(!is.na(comp))
+    pkscomps <- pkscomps %>% filter(!is.na(comp))
   } else {
     message("'clean' set to FALSE. Returning un-grouped peaks as 1-peak components ...")
     message(length(which(is.na(pkscomps$comp))), " 1-peak components built.")
@@ -99,14 +100,20 @@ buildCOMPS <- function(Pearson, match = 1, pks, thr = 0.95, plot = FALSE, clean 
   }
 
   pkscomps <- merge(pks, pkscomps[, c("pid", "comp")],
-                    by = c("pid"), all = T)
+                    by = c("pid"), all = F)
+
+  if(write == T) {
+    message(fname, " . Writing components table to txt file ...")
+    write.table(pkscomps, file = paste0(out_dir, fname, "_match", match, "_pks-comps.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
+  }
+
   return(pkscomps)
 }
 
 
 ####---- helper functions, not to export ----
 
-getCOR <- function(x, y) {
+getCOR <- function(x, y, eic) {
 
   rx <- MSnbase::rtime(eic[[x]])
   ry <- MSnbase::rtime(eic[[y]])
@@ -114,14 +121,14 @@ getCOR <- function(x, y) {
   if (length(common_scan) > 3) {
     ix <- as.numeric(MSnbase::intensity(eic[[x]])[which(rx %in% common_scan)])
     iy <- as.numeric(MSnbase::intensity(eic[[y]])[which(ry %in% common_scan)])
-    cc <- ifelse(Pearson == FALSE, cor(ix, iy, method = "spearman"), cor(ix, iy, method = "pearson"))
+    cc <- ifelse(pearson == FALSE, cor(ix, iy, method = "spearman"), cor(ix, iy, method = "pearson"))
   } else {
     cc <- 0
   }
   return(cc)
 }
 
-buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, thr, pks, p, plot, out_dir_fname, fname) {
+buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, match, thr, pks, p, plot, out_dir, fname) {
 
   cormat <- poi_co_cor %>%
     tidyr::spread(y, cor) %>%
@@ -159,7 +166,7 @@ buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, thr, pks, p, plot, out_di
     round(digits = 3)
 
   if (plot == TRUE) {
-    plotNETWORK(gg = gg, mem = mem, out_dir_fname = out_dir_fname, fname = fname, p = p, co_ind = co_ind)
+    plotNETWORK(gg = gg, mem = mem, out_dir = out_dir, match = match, fname = fname, p = p, co_ind = co_ind)
   }
 
   ## if there is at least once community with more than one member, asign community's compounds to a component
@@ -175,10 +182,10 @@ buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, thr, pks, p, plot, out_di
   return(pkscomps)
 }
 
-plotNETWORK <- function(gg, mem, out_dir_fname, fname, p, co_ind) {
+plotNETWORK <- function(gg, mem, out_dir, fname, match, p, co_ind) {
 
   png(filename =
-        paste0(out_dir_fname, "/", fname, "_pks", p, "_and_CoPeaks.png"),
+        paste0(out_dir, "/", fname, "_match", match, "_peak", p, "_and_CoPeaks.png"),
       width = 10, height = 8, units = "in", res = 100)
 
   ## PID of the peak of interest
@@ -201,9 +208,9 @@ plotNETWORK <- function(gg, mem, out_dir_fname, fname, p, co_ind) {
   dev.off()
 }
 
-buildCOR <- function(co_ind, ...) {
+buildCOR <- function(co_ind, eic) {
   poi_co_cor <- expand.grid(x = co_ind, y = co_ind) %>%
     group_by(x, y) %>%
-    mutate(cor = getCOR(x = x, y = y)) %>%
+    mutate(cor = getCOR(x = x, y = y, eic = eic)) %>%
     filter(x != y)
 }

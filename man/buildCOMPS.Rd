@@ -4,23 +4,30 @@
 \alias{buildCOMPS}
 \title{Component building based on correlation between co-eluting peaks}
 \usage{
-buildCOMPS(Pearson, match = 1, pks, thr = 0.95, plot = FALSE,
-  clean = TRUE)
+buildCOMPS(pks, eic, out_dir, fname, pearson = TRUE, match = 1,
+  thr = 0.95, plot = FALSE, clean = TRUE, write = TRUE)
 }
 \arguments{
-\item{Pearson}{logical whether correlation between co-eluting peaks should be estimated using Pearson Correlation. If FALSE, Spearman will be used.}
+\item{pks}{\code{DataFrame} object, provided by \emph{pickPEAKS} function.}
 
-\item{match}{numeric defining the number of scans for co-eluting peaks extraction.}
+\item{eic}{\code{list} containing extracted ion chromatograms for each peak in the \code{pks} table.}
 
-\item{pks}{\code{data.frame} object, provided by \emph{pickPEAKS()} function.}
+\item{out_dir}{\code{character} object specifying directory where output data will be saved.}
 
-\item{thr}{numeric defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
+\item{fname}{\code{character} object specifying datafile name.}
 
-\item{plot}{logical. If TRUE, a png plot for each peak and all of its co-eluting peaks will be saved.}
+\item{pearson}{\code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.}
+
+\item{match}{\code{numeric} defining the number of scans for co-eluting peaks extraction.}
+
+\item{thr}{\code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
+
+\item{plot}{\code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png in the out_dir directory.}
+
+\item{clean}{\code{logical} whether one-peak components should be removed (default is TRUE).}
+
+\item{write}{\code{logical} whether generated components tables should be written as text files in the \code{out_dir} directory (default is TRUE).}
 }
 \value{
-Function returns a \code{data.frame} object with a column \code{"comp"}. Column contains component ID for each peak, which was correlated with any of its co-eluting peak(s).
-}
-\seealso{
-\emph{pickPEAKS}
+Function returns a \code{DataFrame} object with a column \code{"comp"}. \code{"comp"} contains component ID for each peak, which was correlated with any of its co-eluting peak(s).
 }

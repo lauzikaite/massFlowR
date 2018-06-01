@@ -2,4 +2,5 @@
 
 export(buildCOMPS)
 export(extractEIC)
+export(getCOMPS)
 export(pickPEAKS)

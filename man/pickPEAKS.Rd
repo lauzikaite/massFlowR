@@ -4,43 +4,26 @@
 \alias{pickPEAKS}
 \title{Peak detection using the centWave method}
 \usage{
-pickPEAKS(raw, ppm = xcms::CentWaveParam()@ppm,
-  snthresh = xcms::CentWaveParam()@snthresh,
-  noise = xcms::CentWaveParam()@noise,
-  prefilter = xcms::CentWaveParam()@prefilter,
-  peakwidth = xcms::CentWaveParam()@peakwidth,
-  integrate = xcms::CentWaveParam()@integrate,
-  fitGauss = xcms::CentWaveParam()@fitGauss)
+pickPEAKS(raw, cwt, fname, out_dir, write = TRUE)
 }
 \arguments{
-\item{raw}{\code{OnDiskMSnExp} class object.}
+\item{raw}{\code{OnDiskMSnExp} class object for the single datafile of interest.}
 
-\item{ppm}{numeric defining the maximal tolerated m/z deviation in consecutive scans in parts per million (ppm) for the initial ROI definition.}
+\item{cwt}{\code{CentWaveParam} class object with parameters for peak-picking.}
 
-\item{snthresh}{numeric defining the signal to noise ratio cutoff.}
+\item{fname}{\code{character} object specifying datafile name.}
 
-\item{noise}{numeric allowing to set a minimum intensity required for centroids to be considered in the first analysis step (centroids with intensity < noise are omitted from ROI detection).}
-
-\item{prefilter}{numeric: c(k, I) specifying the prefilter step for the first analysis step (ROI detection). Mass traces are only retained if they contain at least k peaks with intensity >= I.}
-
-\item{peakwidth}{numeric with the expected approximate peak width in chromatographic space. Given as a range (min, max) in seconds.}
-
-\item{integrate}{numeric for integration method. For integrate = 1 peak limits are found through descent on the mexican hat filtered data, for integrate = 2 the descent is done on the real data. The latter method is more accurate but prone to noise, while the former is more robust, but less exact.}
-
-\item{fitGauss}{logical whether or not a Gaussian should be fitted to each peak.}
+\item{out_dir}{\code{character} object specifying directory where output data will be saved.}
 }
 \value{
-Function returns a data.frame class object with picked-peaks and centWave results.
+Function returns a \code{DataFrame} object with picked-peaks and centWave details.
 }
 \description{
-High resolution LC/MS datafiles are pick-peaked using centWave algorithm, implemented by \emph{xcms} package [Tautenhahn 2008].
+High resolution, centroid LC/MS datafiles are pick-peaked using centWave algorithm, implemented by \emph{xcms} package [Tautenhahn 2008].
 
-Required input arguments are identical to the ones required by \emph{CentWaveParam()} function in \emph{xcms} package.
+Required input arguments are identical to the ones required by \emph{CentWaveParam} function in \emph{xcms} package.
 
-Object of class \code{XCMSnExp} is converted to data frame and un-nneccasary duplicating peaks are removed.
-}
-\examples{
-raw <- MSnbase::readMSData(dir(system.file("cdf", package = "faahKO"), full.names = TRUE, recursive = TRUE)[[1]], mode = "onDisk")
-pks <- pickPEAKS(raw = raw, ppm = 25, snthresh = 10, noise = 0, prefilter = c(3, 100), peakwidth = c(30, 80), integrate = F, fitGauss = F)
+Object of class \code{XCMSnExp} is converted to \code{DataFrame} and duplicating peaks with the same \code{rt} and \code{mz} are merged into one.
 
+\emph{pickPEAKS} is applied for a single datafile.
 }

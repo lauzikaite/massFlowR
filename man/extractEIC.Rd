@@ -2,13 +2,27 @@
 % Please edit documentation in R/functions-extractEIC.R
 \name{extractEIC}
 \alias{extractEIC}
-\title{Title}
+\title{Obtain extracted ion chromatograms for all picked peaks}
 \usage{
-extractEIC(raw = raw, pks = pks)
+extractEIC(raw, pks)
 }
 \arguments{
-\item{pks}{}
+\item{raw}{\code{OnDiskMSnExp} class object for the single datafile of interest.}
+
+\item{pks}{\code{DataFrame} object generated with picked peaks.}
+}
+\value{
+Function returns a \code{list} with an EIC for eack peak in the \code{pks} table.
 }
 \description{
-Title
+Obtain extracted ion chromatograms (EIC) for all picked peaks, provided by \emph{pickPEAKS} function.
+
+EICs are stored in a list of length equal to the number of peaks. Individual peaks' EICs can be plotted using base graphics.
+}
+\examples{
+raw <- MSnbase::readMSData(dir(system.file("cdf", package = "faahKO"), full.names = TRUE, recursive = TRUE)[[1]], mode = "onDisk")
+pks <- pickPEAKS(raw = raw, ppm = 25, snthresh = 10, noise = 0, prefilter = c(3, 100), peakwidth = c(30, 80), integrate = F, fitGauss = F)
+eic <- extractEIC(raw = raw, pks = pks)
+## now you can plot a single peak's EIC
+plot(eic[[1]])
 }

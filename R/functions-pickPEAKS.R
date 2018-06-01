@@ -1,46 +1,32 @@
 #' @title Peak detection using the centWave method
-#' @description High resolution LC/MS datafiles are pick-peaked using centWave algorithm, implemented by \emph{xcms} package [Tautenhahn 2008].
+#' @description High resolution, centroid LC/MS datafiles are pick-peaked using centWave algorithm, implemented by \emph{xcms} package [Tautenhahn 2008].
 #'
-#' Required input arguments are identical to the ones required by \emph{CentWaveParam()} function in \emph{xcms} package.
+#' Required input arguments are identical to the ones required by \emph{CentWaveParam} function in \emph{xcms} package.
 #'
-#' Object of class \code{XCMSnExp} is converted to data frame and un-nneccasary duplicating peaks are removed.
+#' Object of class \code{XCMSnExp} is converted to \code{DataFrame} and duplicating peaks with the same \code{rt} and \code{mz} are merged into one.
 #'
-#' @param raw \code{OnDiskMSnExp} class object.
-#' @param ppm numeric defining the maximal tolerated m/z deviation in consecutive scans in parts per million (ppm) for the initial ROI definition.
-#' @param snthresh numeric defining the signal to noise ratio cutoff.
-#' @param noise numeric allowing to set a minimum intensity required for centroids to be considered in the first analysis step (centroids with intensity < noise are omitted from ROI detection).
-#' @param prefilter numeric: c(k, I) specifying the prefilter step for the first analysis step (ROI detection). Mass traces are only retained if they contain at least k peaks with intensity >= I.
-#' @param peakwidth numeric with the expected approximate peak width in chromatographic space. Given as a range (min, max) in seconds.
-#' @param integrate numeric for integration method. For integrate = 1 peak limits are found through descent on the mexican hat filtered data, for integrate = 2 the descent is done on the real data. The latter method is more accurate but prone to noise, while the former is more robust, but less exact.
-#' @param fitGauss logical whether or not a Gaussian should be fitted to each peak.
+#' \emph{pickPEAKS} is applied for a single datafile.
 #'
-#' @return Function returns a data.frame class object with picked-peaks and centWave results.
+#' @param cwt \code{CentWaveParam} class object with parameters for peak-picking.
+#' @param raw \code{OnDiskMSnExp} class object for the single datafile of interest.
+#' @param fname \code{character} object specifying datafile name.
+#' @param out_dir \code{character} object specifying directory where output data will be saved.
+#'
+#' @return Function returns a \code{DataFrame} object with picked-peaks and centWave details.
 #' @export
 #'
 #' @examples
-#' raw <- MSnbase::readMSData(dir(system.file("cdf", package = "faahKO"), full.names = TRUE, recursive = TRUE)[[1]], mode = "onDisk")
-#' pks <- pickPEAKS(raw = raw, ppm = 25, snthresh = 10, noise = 0, prefilter = c(3, 100), peakwidth = c(30, 80), integrate = F, fitGauss = F)
-#'
 
-pickPEAKS <- function(raw,
-                      ppm = xcms::CentWaveParam()@ppm,
-                      snthresh = xcms::CentWaveParam()@snthresh,
-                      noise = xcms::CentWaveParam()@noise,
-                      prefilter = xcms::CentWaveParam()@prefilter,
-                      peakwidth = xcms::CentWaveParam()@peakwidth,
-                      integrate = xcms::CentWaveParam()@integrate,
-                      fitGauss = xcms::CentWaveParam()@fitGauss) {
+pickPEAKS <- function(raw, cwt, fname, out_dir, write = TRUE) {
 
   ## set centwave parameters and find peaks
-  CWParam <- xcms::CentWaveParam(ppm = ppm,
-                                 snthresh = snthresh,
-                                 noise = noise,
-                                 prefilter = prefilter,
-                                 peakwidth = peakwidth,
-                                 integrate = integrate,
-                                 verboseColumns = TRUE,
-                                 fitgauss = fitGauss)
-  res <- xcms::findChromPeaks(object = raw, param = CWParam)
+  if (missing(cwt)) { stop("'cwt' has to be specified!") }
+  if (class(cwt) != "CentWaveParam") { stop("'cwt' has to be 'CentWaveParam' object!") }
+
+  if(write == TRUE) { if(missing(fname)) { stop("'fname' must be specified!") } }
+  if(write == TRUE) { if(missing(out_dir)) { stop("'out_dir' must be specified!") } }
+
+  res <- xcms::findChromPeaks(object = raw, param = cwt)
   pks <- data.frame(xcms::chromPeaks(res))
 
   ## order by intensity
@@ -67,7 +53,13 @@ pickPEAKS <- function(raw,
     mutate(pid = row_number()) %>%
     data.frame()
 
+  if (write == T) {
+    message(fname, " . Writing peaks table to txt file ...")
+    write.table(pks, file = paste0(out_dir, fname, "_pks.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
+  }
+
   return(pks)
+
 }
 
 
