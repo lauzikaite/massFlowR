@@ -113,6 +113,16 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
 
 ####---- helper functions, not to export ----
 
+#' Title
+#'
+#' @param x
+#' @param y
+#' @param eic
+#'
+#' @return
+#' @export
+#'
+#' @examples
 getCOR <- function(x, y, eic) {
 
   rx <- MSnbase::rtime(eic[[x]])
@@ -208,6 +218,15 @@ plotNETWORK <- function(gg, mem, out_dir, fname, match, p, co_ind) {
   dev.off()
 }
 
+#' Title
+#'
+#' @param co_ind
+#' @param eic
+#'
+#' @return
+#' @export
+#'
+#' @examples
 buildCOR <- function(co_ind, eic) {
   poi_co_cor <- expand.grid(x = co_ind, y = co_ind) %>%
     group_by(x, y) %>%
