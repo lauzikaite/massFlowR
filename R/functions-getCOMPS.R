@@ -20,7 +20,7 @@ getCOMPS <- function(files, out_dir, cwt, match = 1, pearson = TRUE, thr = 0.95,
   message("Correlation estimation: ", ifelse(pearson == TRUE, "Pearson", "Spearman"))
 
   ## if paral workers are not defined, use the default backend
-  if (missing(bpparam)) { bpparam <- bpparam() }
+  if (missing(bpparam)) { bpparam <-  BiocParallel::bpparam() }
 
   BiocParallel::bplapply(X = files,
                          FUN = getCOMPS_paral,

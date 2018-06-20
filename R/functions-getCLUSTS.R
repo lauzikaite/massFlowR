@@ -13,7 +13,7 @@ getCLUSTS <- function(files, out_dir, bpparam) {
   if (missing(out_dir)) { stop("'out_dir' must be specified!") }
 
   ## if paral workers are not defined, use the default backend
-  if (missing(bpparam)) { bpparam <- bpparam() }
+  if (missing(bpparam)) { bpparam <-  BiocParallel::bpparam() }
 
   BiocParallel::bplapply(X = files,
                          FUN = buildCLUSTS,
