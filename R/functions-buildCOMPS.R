@@ -1,4 +1,4 @@
-#' @title Component building based on correlation between co-eluting peaks
+#' @title Component building based on correlation between co-eluting peaks.
 #'
 #' @param pks \code{DataFrame} object, provided by \emph{pickPEAKS} function.
 #' @param eic \code{list} containing extracted ion chromatograms for each peak in the \code{pks} table.
@@ -9,17 +9,17 @@
 #' @param fname \code{character} object specifying datafile name.
 #' @param pearson \code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.
 #' @param clean \code{logical} whether one-peak components should be removed (default is TRUE).
-#' @param write \code{logical} whether generated components tables should be written as text files in the \code{out_dir} directory (default is TRUE).
 #'
 #' @return Function returns a \code{DataFrame} object with a column \code{"comp"}. \code{"comp"} contains component ID for each peak, which was correlated with any of its co-eluting peak(s).
 #' @export
 #'
 #' @examples
 
-buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr = 0.95, plot = FALSE, clean = TRUE, write = TRUE) {
+buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr = 0.95, plot = FALSE, clean = TRUE) {
 
-  if(write == TRUE) { if(missing(fname)) { stop("'fname' must be specified!") } }
-  if(write == TRUE) { if(missing(out_dir)) { stop("'out_dir' must be specified!") } }
+  if (missing(fname)) { stop("'fname' must be specified!") }
+
+  message("Building components for file:", fname, "...")
 
   ## duplicate table for storing built componenents
   pkscomps <- pks %>%
@@ -101,28 +101,12 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
 
   pkscomps <- merge(pks, pkscomps[, c("pid", "comp")],
                     by = c("pid"), all = F)
-
-  if(write == T) {
-    message(fname, " . Writing components table to txt file ...")
-    write.table(pkscomps, file = paste0(out_dir, fname, "_match", match, "_pks-comps.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
-  }
-
+  write.table(pkscomps, file = paste0(out_dir, fname, "_pks-comps.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
   return(pkscomps)
 }
 
 
 ####---- helper functions, not to export ----
-
-#' Title
-#'
-#' @param x
-#' @param y
-#' @param eic
-#'
-#' @return
-#' @export
-#'
-#' @examples
 getCOR <- function(x, y, eic) {
 
   rx <- MSnbase::rtime(eic[[x]])
@@ -195,7 +179,7 @@ buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, match, thr, pks, p, plot,
 plotNETWORK <- function(gg, mem, out_dir, fname, match, p, co_ind) {
 
   png(filename =
-        paste0(out_dir, "/", fname, "_match", match, "_peak", p, "_and_CoPeaks.png"),
+        paste0(out_dir, "/", fname, "_peak", p, "_and_CoPeaks.png"),
       width = 10, height = 8, units = "in", res = 100)
 
   ## PID of the peak of interest
@@ -218,15 +202,6 @@ plotNETWORK <- function(gg, mem, out_dir, fname, match, p, co_ind) {
   dev.off()
 }
 
-#' Title
-#'
-#' @param co_ind
-#' @param eic
-#'
-#' @return
-#' @export
-#'
-#' @examples
 buildCOR <- function(co_ind, eic) {
   poi_co_cor <- expand.grid(x = co_ind, y = co_ind) %>%
     group_by(x, y) %>%

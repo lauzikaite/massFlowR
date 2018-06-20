@@ -2,10 +2,10 @@
 % Please edit documentation in R/functions-buildCOMPS.R
 \name{buildCOMPS}
 \alias{buildCOMPS}
-\title{Component building based on correlation between co-eluting peaks}
+\title{Component building based on correlation between co-eluting peaks.}
 \usage{
 buildCOMPS(pks, eic, out_dir, fname, pearson = TRUE, match = 1,
-  thr = 0.95, plot = FALSE, clean = TRUE, write = TRUE)
+  thr = 0.95, plot = FALSE, clean = TRUE)
 }
 \arguments{
 \item{pks}{\code{DataFrame} object, provided by \emph{pickPEAKS} function.}
@@ -25,8 +25,6 @@ buildCOMPS(pks, eic, out_dir, fname, pearson = TRUE, match = 1,
 \item{plot}{\code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png in the out_dir directory.}
 
 \item{clean}{\code{logical} whether one-peak components should be removed (default is TRUE).}
-
-\item{write}{\code{logical} whether generated components tables should be written as text files in the \code{out_dir} directory (default is TRUE).}
 }
 \value{
 Function returns a \code{DataFrame} object with a column \code{"comp"}. \code{"comp"} contains component ID for each peak, which was correlated with any of its co-eluting peak(s).

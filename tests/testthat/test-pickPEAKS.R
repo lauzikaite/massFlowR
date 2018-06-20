@@ -44,13 +44,13 @@ test_that("pickPEAKS returns correct table", {
 
   ## select one file
   f <- files[1]
-
+  fname <- strsplit(basename(f), split = "[.]")[[1]][1]
   ## test with defined helper functions
   out <- get_reduced_pks(files = f, cwt = paramCWT)
 
   ## test with package pickPEAKS() function
   raw <-  MSnbase::readMSData(files = f, mode = "onDisk")
-  pickPEAKS_out <- pickPEAKS(raw = raw, cwt = paramCWT, write = FALSE)
+  pickPEAKS_out <- pickPEAKS(raw = raw, fname =  fname, cwt = paramCWT, out_dir =  getwd())
 
   expect_equal(nrow(pickPEAKS_out), nrow(out))
 

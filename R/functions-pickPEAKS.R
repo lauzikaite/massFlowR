@@ -17,14 +17,9 @@
 #'
 #' @examples
 
-pickPEAKS <- function(raw, cwt, fname, out_dir, write = TRUE) {
+pickPEAKS <- function(raw, cwt, fname, out_dir) {
 
-  ## set centwave parameters and find peaks
-  if (missing(cwt)) { stop("'cwt' has to be specified!") }
-  if (class(cwt) != "CentWaveParam") { stop("'cwt' has to be 'CentWaveParam' object!") }
-
-  if(write == TRUE) { if(missing(fname)) { stop("'fname' must be specified!") } }
-  if(write == TRUE) { if(missing(out_dir)) { stop("'out_dir' must be specified!") } }
+  message("Peak-picking file: ", fname, " ...")
 
   res <- xcms::findChromPeaks(object = raw, param = cwt)
   pks <- data.frame(xcms::chromPeaks(res))
@@ -53,10 +48,8 @@ pickPEAKS <- function(raw, cwt, fname, out_dir, write = TRUE) {
     mutate(pid = row_number()) %>%
     data.frame()
 
-  if (write == T) {
-    message(fname, " . Writing peaks table to txt file ...")
-    write.table(pks, file = paste0(out_dir, fname, "_pks.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
-  }
+  write.table(pks, file = paste0(out_dir, fname, "_pks.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
+
 
   return(pks)
 

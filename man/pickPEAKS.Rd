@@ -4,7 +4,7 @@
 \alias{pickPEAKS}
 \title{Peak detection using the centWave method}
 \usage{
-pickPEAKS(raw, cwt, fname, out_dir, write = TRUE)
+pickPEAKS(raw, cwt, fname, out_dir)
 }
 \arguments{
 \item{raw}{\code{OnDiskMSnExp} class object for the single datafile of interest.}

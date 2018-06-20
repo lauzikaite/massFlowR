@@ -4,10 +4,10 @@
 \alias{getCLUSTS}
 \title{Obtain clusters of components for each datafile}
 \usage{
-getCLUSTS(files, out_dir, write = T, workers = 2)
+getCLUSTS(files, out_dir, bpparam)
 }
 \arguments{
-\item{workers}{}
+\item{bpparam}{}
 }
 \description{
 Obtain clusters of components for each datafile

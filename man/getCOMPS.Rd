@@ -5,7 +5,7 @@
 \title{Obtain components for all datafiles}
 \usage{
 getCOMPS(files, out_dir, cwt, match = 1, pearson = TRUE, thr = 0.95,
-  plot = FALSE, clean = TRUE, write = TRUE, workers = 2)
+  plot = FALSE, clean = TRUE, bpparam)
 }
 \arguments{
 \item{workers}{}
