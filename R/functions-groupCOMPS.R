@@ -17,16 +17,14 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
   message("Building first template from file: ", basename(files[[1]]))
 
   ## versionA - matching regions calculated using user defined mz_err and rt_err
-  tmp <- read.table(files[[1]], header = T, stringsAsFactors = F) %>% select(pid = pid, mz, rt, into, cid = comp, cls)
-  tmp <- tmp %>%
+  tmp <- read.table(files[[1]], header = T, stringsAsFactors = F) %>%
+    select(pid = pid, mz, rt, into, cid = comp, cls) %>%
     mutate(mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err) %>%
     mutate(tmp = NA)
-  # mutate(key = NA, key_max = NA, comp = NA, cos = NA)
 
   ## versionB - matching regions taken from xcms outputs
   # tmp <- read.table(files[[1]], header = T, stringsAsFactors = F) %>%
-  #   select(pid = pid, mz, rt, into, cid = comp, cls,mz_l = mzmin, mz_h = mzmax, rt_l = rtmin, rt_h = rtmax) %>%
-  #   mutate(key = NA, key_max = NA, comp = NA, cos = NA)
+  #   select(pid = pid, mz, rt, into, cid = comp, cls,mz_l = mzmin, mz_h = mzmax, rt_l = rtmin, rt_h = rtmax)
 
   ## order peaks by their components' complexity (components with more peaks go first)
   tmp_c <- tmp %>%
