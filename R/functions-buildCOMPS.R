@@ -62,7 +62,7 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
 
         ####--- build correlation matrix for all co-eluting peaks ----
 
-        poi_co_cor <- buildCOR(co_ind = co_ind, eic = eic)
+        poi_co_cor <- buildCOR(co_ind = co_ind, eic = eic, pearson = pearson)
 
         ####---- build interaction network between co-eluting peaks ----
 
@@ -107,7 +107,7 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
 
 
 ####---- helper functions, not to export ----
-getCOR <- function(x, y, eic) {
+getCOR <- function(x, y, eic, pearson) {
 
   rx <- MSnbase::rtime(eic[[x]])
   ry <- MSnbase::rtime(eic[[y]])
@@ -202,9 +202,9 @@ plotNETWORK <- function(gg, mem, out_dir, fname, match, p, co_ind) {
   dev.off()
 }
 
-buildCOR <- function(co_ind, eic) {
+buildCOR <- function(co_ind, eic, pearson) {
   poi_co_cor <- expand.grid(x = co_ind, y = co_ind) %>%
     group_by(x, y) %>%
-    mutate(cor = getCOR(x = x, y = y, eic = eic)) %>%
+    mutate(cor = massflowR::getCOR(x = x, y = y, eic = eic, pearson = pearson)) %>%
     filter(x != y)
 }
