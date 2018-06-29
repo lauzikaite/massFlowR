@@ -122,7 +122,7 @@ getCOR <- function(x, y, eic, pearson) {
   return(cc)
 }
 
-buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, match, thr, pks, p, plot, out_dir, fname) {
+buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, match, thr, pks, p, plot, out_dir, fname, return = TRUE) {
 
   cormat <- poi_co_cor %>%
     tidyr::spread(y, cor) %>%
@@ -173,13 +173,12 @@ buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, match, thr, pks, p, plot,
     comp <- ifelse(all(is.na(pkscomps$comp)), 1, max(pkscomps$comp, na.rm = T) + 1)
     pkscomps[component, "comp"] <- rep(comp, length(component))
   }
-  return(pkscomps)
+  if (return == TRUE) { return(pkscomps) } else { message("Network built was succesfull")}
 }
 
 plotNETWORK <- function(gg, mem, out_dir, fname, match, p, co_ind) {
 
-  png(filename =
-        paste0(out_dir, "/", fname, "_peak", p, "_and_CoPeaks.png"),
+  png(filename = paste0(out_dir, "/", fname, "_peak", p, "_and_CoPeaks.png"),
       width = 10, height = 8, units = "in", res = 100)
 
   ## PID of the peak of interest
@@ -189,16 +188,28 @@ plotNETWORK <- function(gg, mem, out_dir, fname, match, p, co_ind) {
   psub <- paste0("Features in POI component: ",
                  length(which(mem == 1 | mem == 2)))
 
-  colors <- c("#9cc057", "#cad587", "grey")
+  colors <- c("#ABDDA4", "#E6F598", "grey")
+
+  ## this could be used for alternating colors of edges
+  # edge_colors <- c("royalblue4" , "grey")
+  # edg <- ifelse(igraph::E(gg)$weight > thr, 1, 2)
+
+  ## make coordinates for vertices based on correlation: scale cor coef to maximise distance
+  ## using Fruchterman-Reingold layout algorithm to prevent overlap
+  coords <- igraph::layout_(gg, igraph::with_fr(weights = scaleEDGES(igraph::E(gg)$weight, from = 0.01, to = 10)))
+
   igraph::plot.igraph(gg,
                       main = pmain,
                       sub = psub,
-                      layout = igraph::layout.fruchterman.reingold,
+                      layout = coords,
                       vertex.color = colors[mem],
                       vertex.size = 22,
                       vertex.label.color = "black",
-                      edge.color = "black",
-                      edge.width = igraph::E(gg)$weight)
+                      # edge.color = edge_colors[edg],
+                      edge.color = "royalblue4",
+                      edge.label = round(igraph::E(gg)$weight, digits = 2),
+                      # edge.label.color = edge_colors[edg],
+                      edge.label.color = "royalblue4")
   dev.off()
 }
 
@@ -208,3 +219,9 @@ buildCOR <- function(co_ind, eic, pearson) {
     mutate(cor = massflowR::getCOR(x = x, y = y, eic = eic, pearson = pearson)) %>%
     filter(x != y)
 }
+
+scaleEDGES <- function(x, from, to) {
+  (x - min(x)) / max(x - min(x)) * (to - from) + from
+  }
+
+

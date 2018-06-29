@@ -9,13 +9,13 @@ LazyData: true
 ByteCompile: true
 Depends:
     R (>= 3.4.3),
-    dplyr
+    dplyr,
+    ggplot2
 Imports:
     xcms (>= 3.0.0),
     faahKO,
     igraph,
     MSnbase,
-    ggplot2
 RoxygenNote: 6.0.1
 Suggests: 
     testthat

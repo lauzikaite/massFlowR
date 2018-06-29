@@ -46,16 +46,6 @@ checkSPIKED <- function(fname, pks, raw, eic, spk, out_dir, prefilter, noise, rt
     gdf <- data.frame(rtime = as.numeric(eic_rtime),
                       intensity = as.numeric(eic_int),
                       peak = rep(1, length(eic_rtime)))
-    cmp <- paste0(spk[i,"name"], ": peak was NOT picked")
-    g <- ggplot(gdf) +
-      geom_segment(data = gdf,  aes(x = rtime, xend = rtime, y = 0, yend = intensity), alpha = 0.8, colour = "#a6cee3", na.rm = TRUE) +
-      geom_point(data = gdf, aes(x = rtime, y = intensity), colour = "#a6cee3", na.rm = TRUE) +
-      geom_hline(aes(yintercept= prefilter[2], linetype = paste0("Prefilter: c(", prefilter[1], "," , prefilter[2], ")")), colour= "#1b7837") +
-      geom_hline(aes(yintercept= noise, linetype = paste("Noise:", noise)), colour= '#762a83') +
-      scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
-                            guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837")))) +
-      ylab("intensity") +
-      xlab("retention time")
 
     ## find corresponding peak in the peak table
     pks_match <- pks %>%
@@ -86,20 +76,19 @@ checkSPIKED <- function(fname, pks, raw, eic, spk, out_dir, prefilter, noise, rt
       cmp <- paste0(spk[i,"name"], ": peak was picked")
 
       g <- ggplot(gdf) +
-        geom_segment(data = gdf,  aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(peak)), alpha = 0.8, na.rm = TRUE) +
-        geom_point(data = gdf, aes(x = rtime, y = intensity, colour = as.factor(peak)), alpha = 0.8, na.rm = TRUE) +
+        geom_segment(data = gdf,  aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(peak)), na.rm = TRUE) +
+        geom_point(data = gdf, aes(x = rtime, y = intensity, colour = as.factor(peak)), na.rm = TRUE) +
         scale_colour_brewer(palette="Paired",
                           name = "", labels = c("Full spectrum", "Picked peak")) +
         geom_hline(aes(yintercept= prefilter[2], linetype = paste0("Prefilter: c(", prefilter[1], "," , prefilter[2], ")")), colour= "#1b7837") +
         geom_hline(aes(yintercept= noise, linetype = paste("Noise:", noise)), colour= '#762a83') +
         scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
-                              guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837")))) +
-        ylab("intensity") +
-        xlab("retention time")
+                              guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837"))))
 
       ## save output
       match <- data.frame(sample_id = fname,
                           spiked_id = spk[i,"id"],
+                          spiked_molw = spk[i,"mol_weight"],
                           spiked_mz = mz,
                           spiked_rt = rt,
                           pks_id = pks_match_id,
@@ -118,8 +107,18 @@ checkSPIKED <- function(fname, pks, raw, eic, spk, out_dir, prefilter, noise, rt
 
         message("No match: id = ", spk[i,"id"], ", i =", i)
 
+        cmp <- paste0(spk[i,"name"], ": peak was NOT picked")
+        g <- ggplot(gdf) +
+          geom_segment(data = gdf,  aes(x = rtime, xend = rtime, y = 0, yend = intensity), colour = "#a6cee3", na.rm = TRUE) +
+          geom_point(data = gdf, aes(x = rtime, y = intensity), colour = "#a6cee3", na.rm = TRUE) +
+          geom_hline(aes(yintercept= prefilter[2], linetype = paste0("Prefilter: c(", prefilter[1], "," , prefilter[2], ")")), colour= "#1b7837") +
+          geom_hline(aes(yintercept= noise, linetype = paste("Noise:", noise)), colour= '#762a83') +
+          scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
+                                guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837"))))
+
         match <- data.frame(sample_id = fname,
                             spiked_id = spk[i,"id"],
+                            spiked_molw = spk[i,"mol_weight"],
                             spiked_mz = mz,
                             spiked_rt = rt,
                             pks_id = NA,
@@ -134,7 +133,7 @@ checkSPIKED <- function(fname, pks, raw, eic, spk, out_dir, prefilter, noise, rt
 
         message("More than one match: id = ", spk[i,"id"], ", i = ",i) ## (!) duplicated matches removal to be updated
         rt_close <- which(abs(pks_match$rt - rt)  == min(abs(pks_match$rt - rt)))
-
+        if (fname == "AIRWAVE_LNEG_ToF06_P73W84_SR" & i == 7 ) { rt_close <- 1 } # cheap hack, need to use sample specific rt
         eic_pks <- xcms::chromatogram(raw, aggregationFun = "sum",
                                       rt = c(pks_match$rtmin[rt_close], pks_match$rtmax[rt_close]),
                                       mz = c(pks_match$mzmin[rt_close], pks_match$mzmax[rt_close]))
@@ -146,19 +145,19 @@ checkSPIKED <- function(fname, pks, raw, eic, spk, out_dir, prefilter, noise, rt
         cmp <- paste0(spk[i,"name"], ": more than one peak picked, closest match")
 
         g <- ggplot(gdf) +
-          geom_segment(data = gdf,  aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(peak)), alpha = 0.8, na.rm = TRUE) +
-          geom_point(data = gdf, aes(x = rtime, y = intensity, colour = as.factor(peak)), alpha = 0.8, na.rm = TRUE) +
+          geom_segment(data = gdf,  aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(peak)), na.rm = TRUE) +
+          geom_point(data = gdf, aes(x = rtime, y = intensity, colour = as.factor(peak)), na.rm = TRUE) +
           scale_colour_brewer(palette="Paired",
                               name = "", labels = c("Full spectrum", "Picked peak")) +
           geom_hline(aes(yintercept= prefilter[2], linetype = paste0("Prefilter: c(", prefilter[1], "," , prefilter[2], ")")), colour= "#1b7837") +
           geom_hline(aes(yintercept= noise, linetype = paste("Noise:", noise)), colour= '#762a83') +
           scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
-                                guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837")))) +
-          ylab("intensity") +
-          xlab("retention time")
+                                guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837"))))
+
 
         match <- data.frame(sample_id = fname,
                             spiked_id = spk[i,"id"],
+                            spiked_molw = spk[i,"mol_weight"],
                             spiked_mz = mz,
                             spiked_rt = rt,
                             pks_id = pks_match_id[rt_close],
@@ -173,18 +172,22 @@ checkSPIKED <- function(fname, pks, raw, eic, spk, out_dir, prefilter, noise, rt
 
     ####---- finish with plotting ----
     g <- g +
+      ylab("Intensity") +
+      xlab("Retention time") +
       ggtitle(cmp) +
+      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5))
 
-    ggsave(filename = paste0(out_dir, "/", fname, "_spiked_", spk[i,"id"], ".png"), plot = g,width = 10, height = 8, units = "in")
+    ggsave(filename = paste0(out_dir, "/", fname, "_spikedMR-", spk[i,"formula"], ".png"), plot = g,width = 10, height = 8, units = "in")
 
     match_df <- rbind(match_df, match)
   }
+  write.csv(match_df, paste0(out_dir, "/", fname, "_checkSPIKED_output.csv"), quote = F, row.names = F)
   return(match_df)
 }
 
 
-checkSPIKEDcomps <- function(i, fname, pks, raw, eic, spk_pks, cor_mat, out_dir, prefilter, noise, rt_err = 3, mz_err = 0.005) {
+checkSPIKEDcomps <- function(i, fname, pks, raw, eic, spk_pks, cor_mat, out_dir, paramCWT, rt_err = 3, mz_err = 0.005, thr = 0.95) {
 
   if (missing(i)) {
 
@@ -197,9 +200,9 @@ checkSPIKEDcomps <- function(i, fname, pks, raw, eic, spk_pks, cor_mat, out_dir,
     i_list <- i
   }
 
-  match_df <- data.frame()
-
   for(i in i_list) {
+
+    message("Checking spiked compound: ", spk[i,"id"], ", i = ", i)
 
     ## get all peaks in the same component as the matched peak
     spk_pks_comp <- pks %>%
@@ -213,95 +216,130 @@ checkSPIKEDcomps <- function(i, fname, pks, raw, eic, spk_pks, cor_mat, out_dir,
       co_pid <- pull(spk_pks_comp, pid)
       spiked_pid <-  filter(spk_pks_comp, spiked == T) %>% pull(pid)
 
-      ## extract EIC values for every corelated peak
-      spec <- spk_pks_comp %>%
-        group_by(pid) %>%
-        do(extractSPECTRUM(co = ., raw = raw))
-
       ## get cor values between all co-eluting peaks, pair-wise
-
-      ## doesn't work yet since previous cor mat generations were wrong
       # spk_pks_comp_cor <- expand.grid(pid1 = co_pid, pid2 = co_pid) %>%
       #   filter(pid1 != pid2) %>%
       #   group_by(pid1, pid2) %>%
-      #   mutate(cor =  (filter(cor_mat,
+      #   mutate(cor = (filter(cor_mat,
       #                        (x == pid1| x == pid2) &
       #                          (y == pid1| y == pid2)) %>% pull(cor)) )
 
+      ## get cor values for alll co-eluting peaks
+      cor_all <- cor_mat %>%
+        ungroup() %>%
+        filter(x != y) %>%
+        filter(x %in% co_pid | y %in% co_pid) %>%
+        select(pid1 = x, pid2 = y, cor) %>%
+        mutate(comp = ifelse(pid1 %in% co_pid & pid2 %in% co_pid, T, F))
 
-      # ## pids won't match order in the peak table any more if reduced pks-comps-cls.txt file is used
-      # co_ind <- which(pks$pid %in% co_pid)
-      # spk_pks_comp_cor <- buildCOR(co_ind = co_ind, eic = eic, pearson = pearson)
+      ## extract cor values for between all co-eluting peaks, pair-wise
+      cor_co <- cor_all %>%
+        filter(comp == T)
 
-      ## make spiked - coeluting pairs
-      comp_cor <-  spk_pks_comp_cor %>%
-        filter(x == spiked_pid | y == spiked_pid)
+      ## get correlations from real peak alignment
+      cor_co_real <- buildCOR(co_ind = co_pid, eic = eic, pearson = pearson)
+
+      ## extract EIC values for every corelated peak
+      spec <- spk_pks_comp %>%
+        group_by(pid) %>%
+        do(extractSPECTRUM(co = ., raw = raw)) %>%
+        ungroup()
+
+      ## plot network of component's peaks
+      buildNETWORK(poi_co_cor = cor_co_real,
+                  pkscomps = pks,
+                  co_ind = co_pid,
+                  thr = thr,
+                  pks = pks,
+                  p = spiked_pid, # p is the pid of the main peak
+                  plot = TRUE,
+                  out_dir = out_dir,
+                  fname = fname,
+                  return = F)
+
+      ####---- save MZ differences within the component
+      cor_co_real <- cor_co_real %>%
+        select(pid1 = x, pid2 = y, cor) %>%
+        group_by(pid1, pid2) %>%
+        mutate(pid_pid = paste(min(c(pid1, pid2)), max(c(pid1, pid2)), sep = "_")) %>%
+        group_by(pid_pid) %>%
+        slice(1) %>%
+        mutate(mz_pid1 = pks %>% filter(pid == pid1) %>% pull(mz),
+               mz_pid2 = pks %>% filter(pid == pid2) %>% pull(mz)) %>%
+        mutate(mz_dif = round(abs(mz_pid1 - mz_pid2), digits = 3)) %>%
+        ungroup()
+
+      write.csv(cor_co_real, file = paste0(out_dir, "/", fname, "_spikedMR-", spk[i,"formula"], "_component_cor.csv"), row.names = F, quote = F)
 
 
       ####---- plot EICs of main adduct and all co-eluting peaks ----
-      ## version (A) - all together
-      # g <- ggplot(spec) +
-      #   geom_segment(data = spec,  aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(peak)), alpha = 0.8) +
-      #   geom_point(data = spec, aes(x = rtime, y = intensity, colour = as.factor(peak)), alpha = 0.8) +
-      #   geom_hline(aes(yintercept= prefilter[2], linetype = paste0("Prefilter: c(", prefilter[1], "," , prefilter[2], ")")), colour= "#1b7837") +
-      #   geom_hline(aes(yintercept= noise, linetype = paste("Noise:", noise)), colour= '#762a83') +
-      #   scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
-      #                         guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837")))) +
-      #   scale_colour_brewer(palette="Paired",
-      #                       name = "") +
-      #   ylab("intensity") +
-      #   xlab("retention time")
-
-      ## version B - facet
-
-
-
-      g_text <- paste0("Correlation: ", round(unique(spec$cor), digits = 3), ". MZ difference: ", abs(round(unique(gdf$mz_diff), digits = 3)))
-
+      g_labels <- cor_co_real %>%
+        filter(pid1 == spiked_pid | pid2 == spiked_pid) %>%
+        mutate(not_spiked_pid = ifelse(pid1 == spiked_pid, pid2, pid1)) %>%
+        group_by(not_spiked_pid) %>%
+        slice(1) %>%
+        mutate(g_text = paste0("Correlation: ", round(cor, digits = 3), ". MZ diff: ", mz_dif)) %>%
+        ungroup() %>%
+        select(pid1, pid2, not_spiked_pid, g_text) %>%
+        bind_rows(data.frame(pid1 = spiked_pid, pid2 = spiked_pid, not_spiked_pid = spiked_pid, g_text = paste("Spiked MR peak PID: ", spiked_pid), stringsAsFactors = F)) %>%
+        arrange(not_spiked_pid)
 
       g <- ggplot(spec, aes(x = rtime, xend = rtime, y = 0, yend = intensity)) +
         ## exclusion of column 'co_pid' allows to retain data points in each facet
         geom_segment(data = filter(spec, spiked == T) %>% select(., -co_pid),
-                     alpha = 0.6, colour = "black") +
+                     alpha = 0.6, colour = "black", na.rm = TRUE) +
         geom_point(data = filter(spec, spiked == T)  %>% select(., -co_pid), aes(y = intensity),
-                   alpha = 0.6, colour = "black") +
+                   alpha = 0.6, colour = "black", na.rm = TRUE) +
         geom_segment(data = filter(spec, spiked == F),
-                     alpha = 0.6, aes(colour = as.factor(co_pid))) +
+                     aes(colour = as.factor(co_pid)),
+                     alpha = 0.8, na.rm = TRUE) +
+        geom_point(data = filter(spec, spiked == F),
+                   aes(y = intensity,colour = as.factor(co_pid)),
+                   alpha = 0.8, na.rm = TRUE) +
         scale_colour_brewer(palette = "Paired",
                             name = "Peak PID") +
-        geom_point(data = filter(spec, spiked == F),
-                   aes(y = intensity,colour = as.factor(co_pid)), alpha = 0.6) +
-        facet_wrap(~co_pid) +
-        geom_hline(aes(yintercept = prefilter[2], linetype = paste0("Prefilter: c(", prefilter[1], "," , prefilter[2], ")")), colour= "#1b7837") +
-          geom_hline(aes(yintercept= noise, linetype = paste("Noise:", noise)), colour= '#762a83') +
+        facet_wrap(~co_pid,
+                   labeller =  as_labeller(setNames(g_labels$g_text, nm = g_labels$not_spiked_pid)),
+                   scales = "free") +
+        geom_hline(aes(yintercept = paramCWT@prefilter[2],
+                       linetype = paste0("Prefilter: c(", paramCWT@prefilter[1], "," , paramCWT@prefilter[2], ")")),
+                   colour= "#1b7837") +
+        geom_hline(aes(yintercept = paramCWT@noise,
+                       linetype = paste("Noise:", paramCWT@noise)),
+                   colour= '#762a83') +
           scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
                                 guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837")))) +
         xlab("Retention time") +
-        ylab("Intensity")
+        ylab("Intensity") +
+        theme_bw() +
+        theme(legend.position = "bottom")
 
-      ggsave(filename = paste0(out_dir_fname, "/", fname, "_spiked_", spk[i,"id"], "_coelutingPP.png"), plot = g,width = 10, height = 8, units = "in")
+      ggsave(filename = paste0(out_dir, "/", fname, "_spikedMR-", spk[i,"formula"], "_component_spectra.png"), plot = g,width = 10, height = 8, units = "in")
+
+      ####---- save MZ differences with the real compound molecular weight ----
+
+      spk_pks_comp <- spk_pks_comp %>%
+        mutate(mz_diff_mw = spk[i,"mol_weight"] - mz,
+               mz_diff_main = pks %>% filter(pid == spiked_pid) %>% pull(mz) - mz)
+      write.csv(spk_pks_comp, file = paste0(out_dir, "/", fname, "_spikedMR-", spk[i,"formula"], "_component_pks.csv"), row.names = F, quote = F)
 
 
-      ####---- plot mz diff vs cor ----
-      cmp <-  paste0(spk[i,"name"])
-      g <- ggplot(data = all_poi_co) +
-        geom_point(aes(x = cor, y = mz_diff)) +
-        geom_text(aes(x = cor, y = mz_diff, label = round(mz_diff, digits = 3)), vjust = 0, nudge_y = 0.5) +
-        scale_x_continuous(breaks = c(seq(-1, 1, by = 0.1))) +
-        ylab("MZ difference") +
+      ####---- plot spiked MR component's peaks vs non-related peaks ----
+      ## use artificially-aligned correlation values
+      g <- ggplot(cor_all) +
+        geom_histogram(aes(x = cor, group = comp, fill = comp),
+                       na.rm = TRUE) +
+        scale_fill_brewer(name = "", labels = c("Unrelated peaks", "Component's peak")) +
+        facet_wrap(~comp,
+                   scales = "free") +
+        ylab("Count") +
         xlab("Correlation coefficient") +
         theme_bw() +
-        ggtitle(cmp) +
-        theme(plot.title = element_text(hjust = 0.5))
-      ggsave(filename = paste0(out_dir_fname, "/", fname, "_spiked_", spk[i,"id"], "_coelutingPP-mzdiff.png"), plot = g,width = 10, height = 8, units = "in")
+        theme(legend.position = "bottom")
+
+      ggsave(filename = paste0(out_dir, "/", fname, "_spikedMR-", spk[i,"formula"], "_component_cor.png"), plot = g,width = 10, height = 8, units = "in")
+
     } else {print("No co-eluting peaks")}
-
-
-
-
-
-
-
 
 
   }
