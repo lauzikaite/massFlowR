@@ -100,6 +100,8 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
         group_by(comp, key) %>%
         do(getMATCH(t = ., tmp = tmp))  %>%
         ungroup()
+      #
+      # if (any(target$pid %in% c(143))) { stop()}
 
       ####---- COMPARE matches according to scenario (if no matches, will just update TMP) ----
       scen <- getSCEN(tmat = mat)

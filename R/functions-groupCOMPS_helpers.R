@@ -317,7 +317,7 @@ updateTMP <- function(mattop, tmat, pids, tmp, mz_err, rt_err) {
       filter(comp == cmp)
 
     ####--- (A) check if this DOI COMP was assigned with a CID ----
-    if(any(!is.na(component$topCOMP))) {
+    if (any(!is.na(component$topCOMP))) {
 
       ## take the assigned CID only
       component <- component %>%
@@ -339,13 +339,13 @@ updateTMP <- function(mattop, tmat, pids, tmp, mz_err, rt_err) {
 
       ####---- (2) merge TMP peaks that match to the same KEY ----
 
-      ## (2A) list all KEYS that the peak is matched to
+      ## (2A) list all KEYS that the tmp peak is matched to
       cmat <- componentmat %>%
         group_by(target, pid) %>%
         arrange(pid) %>% ## order by pid, aka intensity of the feature
         mutate(key_paste = ifelse(is.na(key), NA, paste0(key, collapse = ",")))
 
-      ## (2B) for each KEY that matches multiple peaks, find the closest peak
+      ## (2B) for each KEY that matches multiple tmp peaks, find the closest peak
       cmat <- cmat %>%
         group_by(target, key) %>%
         do(selectPEAK(t = ., cmat = cmat)) %>%
@@ -381,9 +381,7 @@ updateTMP <- function(mattop, tmat, pids, tmp, mz_err, rt_err) {
           mz = mz_final, rt = rt_final,
           mz_l = mz_final - mz_err, mz_h = mz_final + mz_err, rt_l = rt_final - rt_err, rt_h = rt_final + rt_err)
 
-      if(cmat %>% filter(!is.na(key)) %>% distinct(key) %>% nrow() != unique(na.omit(componentmat$key_max))){ stop("the number of selected keys does not match keys in the target!")}
-
-      # cmat <- cmat %>% select(names(.), - key, key = key_paste)
+      if (cmat %>% filter(!is.na(key)) %>% distinct(key) %>% nrow() != unique(na.omit(componentmat$key_max))) { stop("the number of selected keys does not match keys in the target!")}
 
       ####---- (3)  update matched TMP peaks in the TMP ----
       utmp <- cmat %>%
@@ -488,13 +486,14 @@ updateTMPnew <- function(cmat, component, tmp, mz_err, rt_err) {
 ####---- Select peaks if TMP peak matches to multiple keys, decide which one is closer in MZ ----
 selectPEAK <- function(t, cmat){
 
-  if(any(t$target == F) & all(!is.na(t$key))) {
+  if (any(t$target == F) & all(!is.na(t$key))) {
 
     closest <- t %>%
         filter(target == F) %>%
         group_by(pid) %>%
         mutate(key_to_match = key) %>%
-        mutate(dif = (cmat %>% ungroup() %>% filter(target == T, key == key_to_match ) %>% select(mz) %>% pull()) - mz) %>%
+        ## find mz difference between the KEY and the matched tmp peaks
+        mutate(dif = abs((cmat %>% ungroup() %>% filter(target == T, key == key_to_match ) %>% select(mz) %>% pull()) - mz)) %>%
         group_by(key) %>%
         filter(dif == min(dif)) %>%
         select(-c(key_to_match, dif))
