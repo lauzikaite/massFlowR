@@ -14,7 +14,11 @@
 #' @export
 #'
 #' @examples
-getCOMPS <- function(files, out_dir, cwt, match = 1, pearson = TRUE, thr = 0.95, plot = FALSE, clean = TRUE, bpparam){
+getCOMPS <- function(files, out_dir, cwt, match = 1, pearson = TRUE, thr = 0.95, plot = FALSE, clean = TRUE, bpparam) {
+
+  if (missing(out_dir)) { stop("'out_dir' must be specified!") }
+  if (missing(cwt)) { stop("'cwt' has to be specified!") }
+  if (class(cwt) != "CentWaveParam") { stop("'cwt' has to be 'CentWaveParam' object!") }
 
   message("Apex matching window: ", match, " SCPOS")
   message("Correlation estimation: ", ifelse(pearson == TRUE, "Pearson", "Spearman"))
@@ -37,12 +41,8 @@ getCOMPS <- function(files, out_dir, cwt, match = 1, pearson = TRUE, thr = 0.95,
 
 }
 
-####---- function for bplapply call, not to export ----
+####---- function for bplapply call, not to export
 getCOMPS_paral <- function(f, out_dir, cwt, match, pearson, thr, plot, clean) {
-
-  if (missing(cwt)) { stop("'cwt' has to be specified!") }
-  if (class(cwt) != "CentWaveParam") { stop("'cwt' has to be 'CentWaveParam' object!") }
-  if (missing(out_dir)) { stop("'out_dir' must be specified!") }
 
   fname <- strsplit(basename(f), split = "[.]")[[1]][1] # remove filename encoding for simplicity
   raw <- MSnbase::readMSData(f, mode = "onDisk")

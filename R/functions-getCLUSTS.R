@@ -80,7 +80,7 @@ buildCLUSTS <- function(f, out_dir){
   comp <- full_join(comp, cls_ids, by = c("comp")) %>%
     arrange(pid)
 
-  write.table(comp, file = paste0(out_dir, fname, "-cls.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
+  write.table(comp, file = paste0(out_dir, "/", fname, "-cls.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
   return(comp)
 
 }

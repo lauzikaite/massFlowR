@@ -34,14 +34,12 @@ getMATCH <- function(t, tmp) {
 
 }
 
-
-
-####---- scale vector to unit length ----
+####---- scale vector to unit length
 scaleVEC <- function(x) {
   x / ( sqrt(sum(x * x)) )
 }
 
-####---- cosine estimation ----
+####---- cosine estimation
 getCOS <- function(breaks, target_vec, vector, cluster){
 
   vector_vec <- full_join(breaks,
@@ -67,7 +65,7 @@ getCOS <- function(breaks, target_vec, vector, cluster){
   return(cos_angle)
 }
 
-####---- get matching scenario ----
+####---- get matching scenario
 getSCEN <- function(tmat) {
 
   ## (1) check for CID multiplicicity - do same CID get matched by multiple COMP?
@@ -118,7 +116,7 @@ getSCEN <- function(tmat) {
   }
 }
 
-####---- Compare target COMP and all matched TMP CIDs ----
+####---- Compare target COMP and all matched TMP CIDs
 compareCOMPS <- function(t, tmat, bins) {
 
   ## if this component have any matches
@@ -166,7 +164,7 @@ compareCOMPS <- function(t, tmat, bins) {
   return(cos)
 }
 
-####---- Compare target CLS and all matched TMP CLSs, extract top-matched TMP CIDs ----
+####---- Compare target CLS and all matched TMP CLSs, extract top-matched TMP CIDs
 compareCLS <- function(matcos, tmat) {
 
   ## extract TOP matches for each target COMP (if there are any)
@@ -252,8 +250,8 @@ compareCLS <- function(matcos, tmat) {
 }
 
 
-####---- Perform matching comparison and template update ----
-runSCEN <- function(tmat, scen, tmp, pids, bins, mz_err, rt_err){
+####---- Perform matching comparison and template update
+runSCEN <- function(tmat, scen, tmp, pids, bins, mz_err, rt_err) {
 
   ## (1) add additional peaks from the matched TMP clusters
   tmat <- bind_rows(tmat,
@@ -265,7 +263,7 @@ runSCEN <- function(tmat, scen, tmp, pids, bins, mz_err, rt_err){
                       filter(!pid  %in% (tmat %>% filter(target == FALSE, !is.na(cls)) %>% distinct(pid) %>% pull(pid))) %>%
                       mutate(target = FALSE))
 
-  ####--- (A|B) simple component-by-component scenario----
+  ####--- (A|B) simple component-by-component scenario
 
   if(any(scen == "A" | scen == "B")) {
 
@@ -283,7 +281,7 @@ runSCEN <- function(tmat, scen, tmp, pids, bins, mz_err, rt_err){
       mutate(tmpCLS_order = NA, targetCLS_sc = NA, tmpCLS_sc = NA)
 
 
-    ####---- (C) complex full-cluster matching scenario ----
+    ####---- (C) complex full-cluster matching scenario
   } else {
 
     ## (1) check similarity of all target COMPS against TMP, one-by-one
@@ -299,7 +297,7 @@ runSCEN <- function(tmat, scen, tmp, pids, bins, mz_err, rt_err){
 
   }
 
-  ####---- universal part for updating TMP ----
+  ####---- universal part for updating TMP
   update <- updateTMP(mattop = mattop, tmat = tmat, pids = pids, tmp = tmp, mz_err = mz_err, rt_err = rt_err)
   return(list("pids" = update$pids, "tmp" = update$tmp, "mattop" = mattop))
 
@@ -307,7 +305,7 @@ runSCEN <- function(tmat, scen, tmp, pids, bins, mz_err, rt_err){
 
 
 
-####---- Update template with selected matches ----
+####---- Update template with selected matches
 updateTMP <- function(mattop, tmat, pids, tmp, mz_err, rt_err) {
 
   for(cmp in na.omit(mattop$comp)) {
@@ -316,14 +314,14 @@ updateTMP <- function(mattop, tmat, pids, tmp, mz_err, rt_err) {
     component <- mattop %>%
       filter(comp == cmp)
 
-    ####--- (A) check if this DOI COMP was assigned with a CID ----
+    ####--- (A) check if this DOI COMP was assigned with a CID
     if (any(!is.na(component$topCOMP))) {
 
       ## take the assigned CID only
       component <- component %>%
         filter(!is.na(topCOMP))
 
-      ####---- (0) extract matches-target table for the COMP-CID combination ----
+      ####---- (0) extract matches-target table for the COMP-CID combination
       componentmat <- tmat %>%
         filter(
           (target == T & comp == component$comp)|
@@ -337,7 +335,7 @@ updateTMP <- function(mattop, tmat, pids, tmp, mz_err, rt_err) {
           targetCLS_sc = component$targetCLS_sc,
           tmpCLS_sc = component$tmpCLS_sc)
 
-      ####---- (2) merge TMP peaks that match to the same KEY ----
+      ####---- (2) merge TMP peaks that match to the same KEY
 
       ## (2A) list all KEYS that the tmp peak is matched to
       cmat <- componentmat %>%
@@ -456,7 +454,7 @@ updateTMP <- function(mattop, tmat, pids, tmp, mz_err, rt_err) {
 
 
 
-####---- Update template by adding new peaks that were not present in template before ----
+####---- Update template by adding new peaks that were not present in template before
 updateTMPnew <- function(cmat, component, tmp, mz_err, rt_err) {
 
   ## assign new CID and PID for the unmatched target component

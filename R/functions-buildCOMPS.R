@@ -101,7 +101,7 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
 
   pkscomps <- merge(pks, pkscomps[, c("pid", "comp")],
                     by = c("pid"), all = F)
-  write.table(pkscomps, file = paste0(out_dir, fname, "_pks-comps.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
+  write.table(pkscomps, file = paste0(out_dir, "/", fname, "_pks-comps.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
   return(pkscomps)
 }
 

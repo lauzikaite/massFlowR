@@ -48,7 +48,7 @@ pickPEAKS <- function(raw, cwt, fname, out_dir) {
     mutate(pid = row_number()) %>%
     data.frame()
 
-  write.table(pks, file = paste0(out_dir, fname, "_pks.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
+  write.table(pks, file = paste0(out_dir, "/", fname, "_pks.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
 
 
   return(pks)
