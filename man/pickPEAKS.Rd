@@ -7,9 +7,9 @@
 pickPEAKS(raw, cwt, fname, out_dir)
 }
 \arguments{
-\item{raw}{\code{OnDiskMSnExp} class object for the single datafile of interest.}
+\item{raw}{\code{OnDiskMSnExp} class object for the single LC-MS spectrum of interest. Such object can be created by the \emph{MSnbase::readMSData} function.}
 
-\item{cwt}{\code{CentWaveParam} class object with parameters for peak-picking.}
+\item{cwt}{\code{CentWaveParam} class object with parameters for peak-picking. Object can be created by the \emph{xcms::CentWaveParam} function.}
 
 \item{fname}{\code{character} object specifying datafile name.}
 

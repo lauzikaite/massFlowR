@@ -1,45 +1,18 @@
-#' Obtain clusters of components for each datafile
+#' @title Component assignment into chromatographic regions (clusters).
+#' @description Function assigns components of correlated peaks into chromatographic regions, called clusters.
 #'
-#' @param files
-#' @param out_dir
-#' @param bpparam
+#' @param fname A \code{character} specifying datafile name.
+#' @param comp_table A \code{DataFrame} class peak table with assigned components, created by \emph{buildCOMPS} function.
+#' @param out_dir out_dir \code{character} object specifying directory where output data will be saved.
 #'
-#' @return
+#' @return Function returns an updated peak table. Column \code{"cls"} contains cluster ID for each peak.
+#' Function also writes updated peak table to a text file in the specified directory.
 #' @export
 #'
 #' @examples
-getCLUSTS <- function(files, out_dir, bpparam) {
+buildCLUSTS <- function(fname, comp_table, out_dir){
 
-  if (missing(out_dir)) { stop("'out_dir' must be specified!") }
-
-  ## if paral workers are not defined, use the default backend
-  if (missing(bpparam)) { bpparam <-  BiocParallel::bpparam() }
-
-  BiocParallel::bplapply(X = files,
-                         FUN = buildCLUSTS,
-                         out_dir = out_dir,
-                         BPPARAM = bpparam)
-
-  message("Clusters of components were succesfully generated.")
-
-  }
-
-#' Title
-#'
-#' @param f
-#' @param out_dir
-#'
-#' @return
-#' @export
-#'
-#' @examples
-buildCLUSTS <- function(f, out_dir){
-
-  fname <- gsub(".txt", "", basename(f))
-  message("Building clusters of components for file: ", fname, " ...")
-
-  comp <- read.table(f, header = T, sep = "\t", stringsAsFactors = F)
-  comp <- comp %>%
+  comp <- comp_table %>%
     arrange(comp)
 
   ## build cluster id matching table
@@ -77,10 +50,9 @@ buildCLUSTS <- function(f, out_dir){
 
   }
 
-  comp <- full_join(comp, cls_ids, by = c("comp")) %>%
+  cls <- full_join(comp, cls_ids, by = c("comp")) %>%
     arrange(pid)
 
-  write.table(comp, file = paste0(out_dir, "/", fname, "-cls.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
-  return(comp)
+  write.table(cls, file = paste0(out_dir, "/", fname, "_pks-comps-cls.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
 
 }

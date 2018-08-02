@@ -8,24 +8,28 @@ buildCOMPS(pks, eic, out_dir, fname, pearson = TRUE, match = 1,
   thr = 0.95, plot = FALSE, clean = TRUE)
 }
 \arguments{
-\item{pks}{\code{DataFrame} object, provided by \emph{pickPEAKS} function.}
+\item{pks}{A \code{DataFrame} class peak table, created by \emph{pickPEAKS} function.}
 
-\item{eic}{\code{list} containing extracted ion chromatograms for each peak in the \code{pks} table.}
+\item{eic}{A \code{list} containing extracted ion chromatograms for each peak in the \code{pks} table.}
 
-\item{out_dir}{\code{character} object specifying directory where output data will be saved.}
+\item{out_dir}{A \code{character} specifying directory where output data will be saved.}
 
-\item{fname}{\code{character} object specifying datafile name.}
+\item{fname}{A \code{character} specifying datafile name.}
 
-\item{pearson}{\code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.}
+\item{pearson}{A \code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.}
 
-\item{match}{\code{numeric} defining the number of scans for co-eluting peaks extraction.}
+\item{match}{A \code{numeric} defining the number of scans for co-eluting peaks extraction.}
 
-\item{thr}{\code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
+\item{thr}{A \code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
 
-\item{plot}{\code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png in the out_dir directory.}
+\item{plot}{A \code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png in the out_dir directory.}
 
-\item{clean}{\code{logical} whether one-peak components should be removed (default is TRUE).}
+\item{clean}{A \code{logical} whether one-peak components should be removed (default is TRUE).}
 }
 \value{
-Function returns a \code{DataFrame} object with a column \code{"comp"}. \code{"comp"} contains component ID for each peak, which was correlated with any of its co-eluting peak(s).
+Function returns an updated peak table. Column \code{"comp"} contains component ID for each peak. Peaks not correlated to any of its co-eluting peaks are removed from the table.
+Function also writes updated peak table to a text file in the specified directory.
+}
+\description{
+Function builds components of co-eluting peaks that are correlated to each other.
 }

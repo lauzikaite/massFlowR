@@ -1,16 +1,18 @@
 #' @title Component building based on correlation between co-eluting peaks.
+#' @description Function builds components of co-eluting peaks that are correlated to each other.
 #'
-#' @param pks \code{DataFrame} object, provided by \emph{pickPEAKS} function.
-#' @param eic \code{list} containing extracted ion chromatograms for each peak in the \code{pks} table.
-#' @param match \code{numeric} defining the number of scans for co-eluting peaks extraction.
-#' @param thr \code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.
-#' @param plot \code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png in the out_dir directory.
-#' @param out_dir \code{character} object specifying directory where output data will be saved.
-#' @param fname \code{character} object specifying datafile name.
-#' @param pearson \code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.
-#' @param clean \code{logical} whether one-peak components should be removed (default is TRUE).
+#' @param pks A \code{DataFrame} class peak table, created by \emph{pickPEAKS} function.
+#' @param eic A \code{list} containing extracted ion chromatograms for each peak in the \code{pks} table.
+#' @param match A \code{numeric} defining the number of scans for co-eluting peaks extraction.
+#' @param thr A \code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.
+#' @param plot A \code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png in the out_dir directory.
+#' @param out_dir A \code{character} specifying directory where output data will be saved.
+#' @param fname A \code{character} specifying datafile name.
+#' @param pearson A \code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.
+#' @param clean A \code{logical} whether one-peak components should be removed (default is TRUE).
 #'
-#' @return Function returns a \code{DataFrame} object with a column \code{"comp"}. \code{"comp"} contains component ID for each peak, which was correlated with any of its co-eluting peak(s).
+#' @return Function returns an updated peak table. Column \code{"comp"} contains component ID for each peak. Peaks not correlated to any of its co-eluting peaks are removed from the table.
+#' Function also writes updated peak table to a text file in the specified directory.
 #' @export
 #'
 #' @examples
@@ -19,7 +21,7 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
 
   if (missing(fname)) { stop("'fname' must be specified!") }
 
-  message("Building components for file:", fname, "...")
+  message("Building components for file: ", fname, "...")
 
   ## duplicate table for storing built componenents
   pkscomps <- pks %>%
@@ -87,12 +89,12 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
   message(max(na.omit(pkscomps$comp)), " components built.")
 
   if (clean == TRUE) {
-    message("'clean' set to TRUE. Removing un-grouped peaks ...")
-    message(length(which(is.na(pkscomps$comp))), " peaks removed.")
+    # message("'clean' set to TRUE. Removing un-grouped peaks ...")
+    # message(length(which(is.na(pkscomps$comp))), " peaks removed.")
     pkscomps <- pkscomps %>% filter(!is.na(comp))
   } else {
-    message("'clean' set to FALSE. Returning un-grouped peaks as 1-peak components ...")
-    message(length(which(is.na(pkscomps$comp))), " 1-peak components built.")
+    # message("'clean' set to FALSE. Returning un-grouped peaks as 1-peak components ...")
+    # message(length(which(is.na(pkscomps$comp))), " 1-peak components built.")
     pkscomps[which(is.na(pkscomps$comp)), "comp"] <- seq(
         from = (max(na.omit(pkscomps$comp)) + 1),
         length.out = length(which(is.na(pkscomps$comp))),
@@ -102,6 +104,7 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
   pkscomps <- merge(pks, pkscomps[, c("pid", "comp")],
                     by = c("pid"), all = F)
   write.table(pkscomps, file = paste0(out_dir, "/", fname, "_pks-comps.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
+
   return(pkscomps)
 }
 

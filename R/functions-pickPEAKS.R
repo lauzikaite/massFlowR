@@ -7,8 +7,8 @@
 #'
 #' \emph{pickPEAKS} is applied for a single datafile.
 #'
-#' @param cwt \code{CentWaveParam} class object with parameters for peak-picking.
-#' @param raw \code{OnDiskMSnExp} class object for the single datafile of interest.
+#' @param cwt \code{CentWaveParam} class object with parameters for peak-picking. Object can be created by the \emph{xcms::CentWaveParam} function.
+#' @param raw \code{OnDiskMSnExp} class object for the single LC-MS spectrum of interest. Such object can be created by the \emph{MSnbase::readMSData} function.
 #' @param fname \code{character} object specifying datafile name.
 #' @param out_dir \code{character} object specifying directory where output data will be saved.
 #'
@@ -36,7 +36,7 @@ pickPEAKS <- function(raw, cwt, fname, out_dir) {
     filter(n > 1) %>%
     nrow()
 
-  message(pks_dup, "  duplicating peaks were removed.")
+  # message(pks_dup, "  duplicating peaks were removed.")
 
   pks <- pks %>%
     group_by(rt, mz) %>%

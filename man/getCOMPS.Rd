@@ -2,11 +2,34 @@
 % Please edit documentation in R/functions-getCOMPS.R
 \name{getCOMPS}
 \alias{getCOMPS}
-\title{Obtain components for all datafiles}
+\title{Component building in raw LC-MS datafiles}
 \usage{
 getCOMPS(files, out_dir, cwt, match = 1, pearson = TRUE, thr = 0.95,
   plot = FALSE, clean = TRUE, bpparam)
 }
 \arguments{
-\item{workers}{}
+\item{files}{A \code{character} with paths to files to be processed.}
+
+\item{out_dir}{A \code{character} specifying desired directory for output.}
+
+\item{cwt}{A \code{CentWaveParam} class object with parameters for centWave-based peak-picking.}
+
+\item{match}{A \code{numeric} defining the number of scans for co-eluting peaks extraction.}
+
+\item{pearson}{A \code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.}
+
+\item{thr}{A \code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
+
+\item{plot}{A \code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png file in the out_dir directory.}
+
+\item{clean}{A \code{logical} whether one-peak components should be removed (default is TRUE).}
+
+\item{workers}{A \code{BiocParallel} parameter object to control how and if parallel processing should be performed. Such object can be created by the \emph{SerialParam}, \emph{MulticoreParam} or \emph{SnowParam} functions from the /emph{BiocParallel} package.}
+}
+\value{
+Foe each LC-MS file, function writes a table with picked-peaks, their components and clusters into separate text files, in the defined \code{out_dir} directory.
+}
+\description{
+Function performs peak-picking, based on package \emph{xcms} functionality.
+Picked-peaks are then used to build spectral components of correlated, co-eluting peaks, which are then organised into chromatographic regions, called clusters.
 }

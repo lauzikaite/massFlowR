@@ -10,8 +10,6 @@ test_that("groupCOMPS of two identical tables returns correct template back", {
                                   fitgauss = fitGauss,
                                   verboseColumns = TRUE)
   getCOMPS(files = fl[1], out_dir = out_dir, cwt = paramCWT)
-  f <- list.files(out_dir, pattern = "_pks-comps.txt", full.names = T)
-  getCLUSTS(files = f, out_dir = out_dir)
   f <- list.files(out_dir, pattern = "_pks-comps-cls.txt", full.names = T)
   tmp <- groupCOMPS(files = c(f, f), mz_err = mz_err, rt_err = rt_err)
 
