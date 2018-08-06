@@ -1,9 +1,9 @@
 #' Group components across datafiles.
 #'
-#' @param files
-#' @param mz_err
-#' @param rt_err
-#' @param bins
+#' @param files A \code{character} with paths to peak tables with components and clusters. Created by \emph{buildCOMPS} function.
+#' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
+#' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 0.2 (min).
+#' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).
 #'
 #' @return
 #' @export
@@ -16,9 +16,18 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
 
   message("Building first template from file: ", basename(files[[1]]))
 
+  ## save first file's table in the final output format for next stages in the pipeline:
+  ## original peak table + columns 'pid' (unique peak ID, to retain thourough grouping), 'cid' (unique component ID, to retain thourough grouping), 'cpid' (number of peak in the component), 'clid' (cluster ID)
+
+  tmp <- read.table(files[[1]], header = T, stringsAsFactors = F) %>%
+    group_by(comp) %>%
+    mutate(pid = pno, cid = comp, cpid = row_number(), clid = cls)
+
+  write.table(tmp, file = gsub(".txt", "-cid.txt" , files[[1]]), quote = F, sep = "\t", row.names = F)
+
   ## versionA - matching regions calculated using user defined mz_err and rt_err
-    tmp <- read.table(files[[1]], header = T, stringsAsFactors = F) %>%
-    select(pid = pid, mz, rt, into, cid = comp, cls) %>%
+  tmp <- tmp %>%
+    select(pid, mz, rt, into, cid, cpid, clid) %>%
     mutate(mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err) %>%
     mutate(tmp = NA)
 
@@ -48,7 +57,7 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
 
     ## versionA - matching regions calculated using mz_err and rt_err
     doi <- doi_full %>%
-      select(pid = pid, mz, rt, into, comp, cls) %>%
+      select(pid = pno, mz, rt, into, comp, cls) %>%
       mutate(cid = NA, mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err)
 
     ## versionB - matching regions taken from xcms outputs

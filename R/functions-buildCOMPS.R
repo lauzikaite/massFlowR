@@ -26,17 +26,17 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
   ## duplicate table for storing built componenents
   pkscomps <- pks %>%
     mutate(comp = NA) %>%
-    select(pid = pid, mz, scpos, into, comp) %>%
+    select(pno, mz, scpos, into, comp) %>%
     data.frame
 
-  pids <- pkscomps %>%
-    pull(pid)
+  pnos <- pkscomps %>%
+    pull(pno)
 
   # ## set progress bar
   # pb <- txtProgressBar(min = 0, max = nrow(pks), style = 3)
 
   ####--- (A) select POI (peak of interest) from the table ----
-  for (p in pids) {
+  for (p in pnos) {
     if (is.na(pkscomps[p, "comp"])) {
 
       # ## update progress bar
@@ -46,7 +46,7 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
       if (match == 0) {
         ## exact scpos match
         pks_co <- pkscomps %>%
-          filter(is.na(comp) & scpos == scpos[pid == p])
+          filter(is.na(comp) & scpos == scpos[pno == p])
 
       } else {
         ## scpos +- match
@@ -57,7 +57,7 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
 
       ## store indeces of co-eluting peaks
       co_ind <- pks_co %>%
-        pull(pid)
+        pull(pno)
 
       ####--- if POI has any co-eluting peaks ----
       if (length(co_ind) > 1 & p %in% co_ind) {
@@ -101,8 +101,8 @@ buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr 
         by = 1)
   }
 
-  pkscomps <- merge(pks, pkscomps[, c("pid", "comp")],
-                    by = c("pid"), all = F)
+  pkscomps <- merge(pks, pkscomps[, c("pno", "comp")],
+                    by = c("pno"), all = F)
   write.table(pkscomps, file = paste0(out_dir, "/", fname, "_pks-comps.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
 
   return(pkscomps)
@@ -140,7 +140,7 @@ buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, match, thr, pks, p, plot,
 
   ## asign names to vertices(nodes)
   igraph::V(g)$name <- pkscomps %>%
-    filter(pid %in% co_ind) %>%
+    filter(pno %in% co_ind) %>%
     pull(mz)
 
   ## delete edges between feature pairs with cor < thr
@@ -158,7 +158,7 @@ buildNETWORK <- function(poi_co_cor, pkscomps, co_ind, match, thr, pks, p, plot,
   ## delete edges between different clusters
   gg <- igraph::delete.edges(g, igraph::E(g)[igraph::crossing(coms, g)])
   igraph::V(gg)$name <- pkscomps %>%
-    filter(pid %in% co_ind) %>%
+    filter(pno %in% co_ind) %>%
     pull(mz) %>%
     round(digits = 3)
 
@@ -184,7 +184,7 @@ plotNETWORK <- function(gg, mem, out_dir, fname, match, p, co_ind) {
   png(filename = paste0(out_dir, "/", fname, "_peak", p, "_and_CoPeaks.png"),
       width = 10, height = 8, units = "in", res = 100)
 
-  ## PID of the peak of interest
+  ## Peak number of the peak of interest
   pmain <- paste0("Main peak: ", round(pks[p, "mz"], digits = 4),
                   ". Coeluting peaks: ",
                   length(co_ind))

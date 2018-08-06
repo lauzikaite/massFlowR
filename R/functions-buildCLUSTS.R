@@ -40,7 +40,7 @@ buildCLUSTS <- function(fname, comp_table, out_dir){
       mat <- bind_rows(mat,
                        comp %>%
                          filter(comp %in% (mat %>% distinct(comp) %>% pull(comp))) %>%
-                         filter(!pid  %in% (mat %>% distinct(pid) %>% pull(pid)))
+                         filter(!pno  %in% (mat %>% distinct(pno) %>% pull(pno)))
                        )
 
       ## update cluster ID assignment table
@@ -51,7 +51,7 @@ buildCLUSTS <- function(fname, comp_table, out_dir){
   }
 
   cls <- full_join(comp, cls_ids, by = c("comp")) %>%
-    arrange(pid)
+    arrange(pno)
 
   write.table(cls, file = paste0(out_dir, "/", fname, "_pks-comps-cls.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
 

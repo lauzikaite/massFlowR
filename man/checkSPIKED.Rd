@@ -4,8 +4,8 @@
 \alias{checkSPIKED}
 \title{Title}
 \usage{
-checkSPIKED(fname, pks, raw, eic, spk, out_dir, prefilter, noise, rt_err = 3,
-  mz_err = 0.005)
+checkSPIKED(fname, pks, raw, eic, spk, out_dir, prefilter, noise,
+  rt_err = 3, mz_err = 0.005)
 }
 \arguments{
 \item{mz_err}{}

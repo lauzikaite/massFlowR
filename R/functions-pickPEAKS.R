@@ -27,8 +27,8 @@ pickPEAKS <- function(raw, cwt, fname, out_dir) {
   ## order by intensity
   pks <- pks[order(pks$into, decreasing = T), ]
 
-  ## give each peak an ID based on its intensity order
-  pks$pid <- 1:nrow(pks)
+  ## assign each peak a number, based on its intensity order
+  pks$pno <- 1:nrow(pks)
 
   pks_dup <- pks %>%
     group_by(rt, mz) %>%
@@ -40,12 +40,12 @@ pickPEAKS <- function(raw, cwt, fname, out_dir) {
 
   pks <- pks %>%
     group_by(rt, mz) %>%
-    arrange(pid) %>%
+    arrange(pno) %>%
     ## take only first of the two identical peaks which are in the same component
     filter(row_number()== 1) %>%
     ungroup() %>%
-    ## update IDs
-    mutate(pid = row_number()) %>%
+    ## update peak nos
+    mutate(pno = row_number()) %>%
     data.frame()
 
   write.table(pks, file = paste0(out_dir, "/", fname, "_pks.txt"), col.names = T, quote = F, sep = "\t", row.names = F)
