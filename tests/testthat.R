@@ -1,5 +1,6 @@
 library(testthat)
 library(massflowR)
+library(faahKO)
 
 ####---- Create objects to be used with multiple tests
 ## Use faahKO package data
@@ -22,10 +23,6 @@ paramCWT <- xcms::CentWaveParam(ppm = 25,
                                 integrate = 1,
                                 fitgauss = FALSE,
                                 verboseColumns = TRUE)
-match <- 1
-pearson <- TRUE
-mz_err <- 0.01
-rt_err <- 10
 
 ####---- XCMS-based objects
 

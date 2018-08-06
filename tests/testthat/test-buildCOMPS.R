@@ -10,7 +10,7 @@ faahko_pks_co <- faahko_pks_rd %>%
 
 test_that("buildCOR returns correct table", {
 
-  buildCOR_out <- buildCOR(co_ind = faahko_pks_co, eic = faahko_eic_rd, pearson = pearson)
+  buildCOR_out <- buildCOR(co_ind = faahko_pks_co, eic = faahko_eic_rd, pearson = TRUE)
 
   ## all co-eluting peaks are in the output?
   expect_true(all(buildCOR_out$x %in% faahko_pks_co, buildCOR_out$y %in% faahko_pks_co))

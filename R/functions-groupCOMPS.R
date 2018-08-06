@@ -17,25 +17,26 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
   message("Building first template from file: ", basename(files[[1]]))
 
   ## save first file's table in the final output format for next stages in the pipeline:
-  ## original peak table + columns 'pid' (unique peak ID, to retain thourough grouping), 'cid' (unique component ID, to retain thourough grouping), 'cpid' (number of peak in the component), 'clid' (cluster ID)
+  ## original peak table + columns:
+  ##'pid' (unique peak ID, to retain thourough grouping), 'cid' (unique component ID, to retain thourough grouping),
+  ##''clid' (cluster ID)
 
   tmp <- read.table(files[[1]], header = T, stringsAsFactors = F) %>%
-    group_by(comp) %>%
-    mutate(pid = pno, cid = comp, cpid = row_number(), clid = cls)
+    mutate(pid = pno, cid = comp, clid = cls) %>%
+    ungroup()
 
   write.table(tmp, file = gsub(".txt", "-cid.txt" , files[[1]]), quote = F, sep = "\t", row.names = F)
 
-  ## versionA - matching regions calculated using user defined mz_err and rt_err
+  ## define first template with following columns:
+  ## 'pid', 'mz', 'rt', 'into', 'cid', 'cpid', 'clid', 'mz_l', 'mz_h', 'rt_l', 'rt_h', 'tmp'
+  ## peak matching regions calculated using user-defined mz_err and rt_err regions around the central mz and rt values
   tmp <- tmp %>%
-    select(pid, mz, rt, into, cid, cpid, clid) %>%
+    select(pid, mz, rt, into, cid, clid) %>%  # in first template, PID equals to PNO of the file
     mutate(mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err) %>%
-    mutate(tmp = NA)
+    mutate(tmp = NA) # This will be used by getMATCH function to check whether peak was in the tmp, or came from DOI
 
-  ## versionB - matching regions taken from xcms outputs
-  # tmp <- read.table(files[[1]], header = T, stringsAsFactors = F) %>%
-  #   select(pid = pid, mz, rt, into, cid = comp, cls,mz_l = mzmin, mz_h = mzmax, rt_l = rtmin, rt_h = rtmax)
-
-  ## order peaks by their components' complexity (components with more peaks go first)
+  ## order peaks by their components' complexity (components with more peaks go first),
+  ## and peaks intensity (more intense peaks in the component go first)
   tmp_c <- tmp %>%
     group_by(cid) %>%
     summarise(n = n()) %>%
@@ -53,18 +54,13 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
 
     ####---- load datafile-of-interest
     ## DOI components are COMP, CIDs are assigned for each DOI peak
-    doi_full <- read.table(files[[d]], header = T, stringsAsFactors = F)
+    doi_full <- read.table(files[[d]], header = T, stringsAsFactors = F) # save full version, as this one is going to be modified at the of the grouping round
 
-    ## versionA - matching regions calculated using mz_err and rt_err
+    ## define peak matching regions using user-defined mz_err and rt_err ranges
     doi <- doi_full %>%
-      select(pid = pno, mz, rt, into, comp, cls) %>%
-      mutate(cid = NA, mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err)
-
-    ## versionB - matching regions taken from xcms outputs
-    # doi <- doi_full %>%
-    #   select(pid = pid, mz, rt, into, comp, cls,
-    #          mz_l = mzmin, mz_h = mzmax, rt_l = rtmin, rt_h = rtmax) %>%
-    #   mutate(cid = NA)
+      select(pno, mz, rt, into, comp, cls) %>%
+      mutate(mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err,
+             pid = NA, cid = NA, clid = NA) # pid, cid, clid will get filled during grouping
 
     ## order peaks by their components' complexity (components with more peaks go first)
     doi_c <- doi %>%
@@ -72,24 +68,23 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
       summarise(n = n()) %>%
       arrange(desc(n)) %>%
       ungroup()
-
     doi <- doi %>%
-      arrange(factor(comp, levels = doi_c$comp), comp, pid)
-
+      arrange(factor(comp, levels = doi_c$comp), comp, pno)
 
     ####---- loop over all PEAKS in the DOI
 
     ## create a copy of DOI peaks, while() writes CIDs for each peak
-    pids <- doi %>% filter(is.na(cid)) %>% select(pid, cid)
+    doi_peaks <- doi %>% filter(is.na(cid)) %>% select(pno, pid, cid, clid)
 
-    while(any(is.na(pids$cid))) {
+    # while(any(is.na(pids$cid))) {
+    while (any(is.na(doi_peaks$cid))) {
 
       ## take the first peak, which has not been assigned a CID yet
-      p <- pids %>% filter(is.na(cid)) %>% slice(1) %>% pull(pid)
+      p <- doi_peaks %>% filter(is.na(cid)) %>% slice(1) %>% pull(pno)
 
-      # print(paste("Checking pid:", p))
+      message("checking p:", p)
 
-      target <- doi %>% filter(pid == p)
+      target <- doi %>% filter(pno == p)
 
       ## extract all target peaks within CLUSTER
       target <- doi %>%
@@ -112,19 +107,19 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
 
       ####---- COMPARE matches according to scenario (if no matches, will just update TMP)
       scen <- getSCEN(tmat = mat)
-      matout <- runSCEN(tmat = mat, scen = scen, tmp = tmp, pids = pids, bins = bins, mz_err = mz_err, rt_err = rt_err)
-      tmp <- matout$tmp
-      pids <- matout$pids
+      scen_out <- runSCEN(tmat = mat, scen = scen, tmp = tmp, doi_peaks = doi_peaks, bins = bins, mz_err = mz_err, rt_err = rt_err)
+      tmp <- scen_out$tmp
+      doi_peaks <- scen_out$doi_peaks
 
     }
 
     ###--- write CIDs in the original DOI datafile and write in the directory of the inputed datafiles
-    doi_full <- full_join(doi_full, pids, by = c("pid"))
+    doi_full <- full_join(doi_full, doi_peaks, by = c("pno"))
     write.table(doi_full, file = gsub(".txt", "-cid.txt" ,files[[d]]), quote = F, sep = "\t", row.names = F)
 
 
   }
   message("Components were succesfully grouped.")
-  return(list("new_tmp" = tmp, "pids" = pids))
+  return(list("new_tmp" = tmp, "doi_peaks" = doi_peaks))
 
 }
