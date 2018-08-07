@@ -109,7 +109,8 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
     write.table(doi_full, file = gsub(".txt", "-cid.txt" ,files[[d]]), quote = F, sep = "\t", row.names = F)
 
   }
-  message("Components were succesfully grouped.")
+  message("All files were succesfully grouped.")
+  write.table(tmp, file = gsub(".txt", "-final-tmp.txt", files[[d]]), quote = F, sep = "\t", row.names = F)
   return(list("new_tmp" = tmp, "doi_peaks" = doi_peaks))
 
 }

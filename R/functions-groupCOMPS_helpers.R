@@ -234,7 +234,7 @@ compareCLS <- function(matcos, tmat) {
   mattop <- bind_rows(mattop,
                       tmat %>%
                         filter(target == F, !cid %in% matcos$cid) %>%
-                        group_by(cid, cls) %>%
+                        group_by(cid, clid) %>%
                         summarise(comp = NA, cos = NA))
 
   ## get order of components in clusters based on RT
@@ -248,14 +248,14 @@ compareCLS <- function(matcos, tmat) {
 
   o_tmp <- tmat %>%
     filter(target == F) %>%
-    group_by(cls, cid) %>%
+    group_by(clid, cid) %>% # column 'clid' contains cluster ids for tmp/doi, depending on row
     summarise(rtmed = median(rt)) %>%
     arrange(rtmed) %>%
-    group_by(cls) %>%
+    group_by(clid) %>%
     mutate(order = row_number()) %>%
     ungroup()
 
-  ## add components order in the cluster
+  ## add columns for components order in the clusters of target and tmp
   mattop <-
     full_join(
       full_join(
@@ -268,15 +268,15 @@ compareCLS <- function(matcos, tmat) {
 
   ## cluster summaries
   matcls <- mattop %>%
-    group_by(cls) %>%
+    group_by(clid) %>%
     arrange(target_order) %>%
     filter(topCOMP == T) %>%
-    summarise(tmpCLS_order = all(tmp_order == cummax(tmp_order)),
-              targetCLS_sc = sum(!is.na(topCOMP))/ max(o_target$order),
-              tmpCLS_sc =  sum(!is.na(topCOMP))/ max(tmp_order))
+    summarise(tmpCLS_order = all(tmp_order == cummax(tmp_order)), # TRUE if every matched comp/cid pair stands in the same position in the cluster
+              targetCLS_sc = sum(!is.na(topCOMP))/ max(o_target$order), # ratio of matched comps to cid, to total cids in the cluster
+              tmpCLS_sc =  sum(!is.na(topCOMP))/ max(tmp_order)) # ratio of matched comps to cid, to total comps in the cluster
   ## add summaries
-  mattop <- full_join(mattop %>% select(comp, cls, cid, cos, topCOMP),
-                      matcls, by = c("cls"))
+  mattop <- full_join(mattop %>% select(comp, clid, cid, cos, topCOMP),
+                      matcls, by = c("clid"))
 
   ## for each COMP, retain only the top selected CID (if none, retain one row per COMP)
   mattop <- mattop %>%
