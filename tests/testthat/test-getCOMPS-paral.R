@@ -1,18 +1,13 @@
 context("getCOMPS_paral")
 
-test_that("extractEIC returns correct list of EICs", {
+test_that("Functions used by getCOMPS_paral() returs correct output", {
 
-  ## test with package pickPEAKS() function
+  ## test massflowR
   extractEIC_out <- extractEIC(raw = faahko_raw, pks = faahko_pks_rd)
+  pickPEAKS_out <- pickPEAKS(raw = faahko_raw, fname = faahko_fname, cwt = paramCWT, out_dir = massflowR_dir)
 
   ## is the same number of EICs returned?
-  expect_equal(length(faahko_eic_rd), length(extractEIC_out))
-})
-
-test_that("pickPEAKS returns correct table", {
-
-  ## test with package pickPEAKS() function
-  pickPEAKS_out <- pickPEAKS(raw = faahko_raw, fname = faahko_fname, cwt = paramCWT, out_dir = massflowR_dir)
+  expect_equal(length(extractEIC_out), length(faahko_eic_rd))
 
   ## is the same number of peaks returned?
   expect_equal(nrow(pickPEAKS_out), nrow(faahko_pks_rd))
@@ -21,6 +16,7 @@ test_that("pickPEAKS returns correct table", {
   expect_true(all(pickPEAKS_out$mz == faahko_pks_rd$mz))
 
 })
+
 
 
 
