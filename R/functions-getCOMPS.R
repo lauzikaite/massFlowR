@@ -52,8 +52,7 @@ getCOMPS_paral <- function(f, out_dir, cwt, match, pearson, thr, plot, clean) {
   raw <- MSnbase::readMSData(f, mode = "onDisk")
   pks <- pickPEAKS(raw = raw, cwt = cwt, fname = fname, out_dir = out_dir)
   eic <- extractEIC(raw = raw, pks = pks)
-  comp <- buildCOMPS(pks = pks, eic = eic, out_dir = out_dir, fname = fname, pearson = pearson, match = match, thr = thr, plot = plot, clean = clean)
-  buildCLUSTS(fname = fname, comp_table = comp, out_dir = out_dir)
+  buildCOMPS(pks = pks, eic = eic, out_dir = out_dir, fname = fname, pearson = pearson, match = match, thr = thr, plot = plot, clean = clean)
 
 }
 
