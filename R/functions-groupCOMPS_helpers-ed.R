@@ -54,35 +54,16 @@ getCLUSTS <- function(dt){
 
 
 ####---- getMATCH(): makes long df wit single-row per feature, either target, or match. Column 'target' indicates where the peak comes from
-getMATCH <- function(t, tmp) {
+getMATCH <- function(t, tmpo) {
 
-  mat <- tmp %>%
+  ## using original tmp table to match only peaks that were already in the tmp and did not come from DOI
+  mat <- tmpo %>%
     ## Using regions of both peaks. Regions defined by user mz and rt error ranges
     filter(between(mz_l, t$mz_l, t$mz_h) | between(mz_h, t$mz_l, t$mz_h)) %>%
     filter(between(rt_l, t$rt_l, t$rt_h) | between(rt_h, t$rt_l, t$rt_h)) %>%
-
-    ## only match to peaks that were already in the tmp and did not come from DOI
-    ## this is required as template is iterated over the same DOI peak table
-    filter(is.na(tmp) | tmp == T) %>%
     mutate(cls = t$cls, pno = t$pno) %>%
     select(cls, pno, pid, mz, rt, into, cid, clid)
 
-  # if (nrow(mat) == 0) {
-  #
-  #   mat <- t %>%
-  #     mutate(pid = pno, target = TRUE, cid = comp,  clid = cls) %>%
-  #     select(comp, cls, key, key_max, pno, mz, rt, into, pid, cid, clid, target)
-  #
-  #
-  # } else {
-  #
-  #   mat <- bind_rows(
-  #     # assign original DOI component to mat cid
-  #     t %>%
-  #       mutate(pid = pno, target = TRUE, cid = comp,  clid = cls) %>%
-  #       select(comp, cls, key, key_max, pno, mz, rt, into, pid, cid, clid, target),
-  #     mat)
-  # }
   return(mat)
 
 }
@@ -121,10 +102,16 @@ getCOS <- function(breaks, target_vec, vector, cluster){
 getSCEN <- function(mat) {
 
   ## (1) check for CID multiplicicity - do same CID get matched by multiple COMP?
+  # multi <- mat %>%
+  #   group_by(comp, pno) %>%
+  #   summarise(target_comp = paste0(unique(comp), collapse = ","),
+  #             target_comp_n = length(unique(comp)))
+
   multi <- mat %>%
-    group_by(comp, pno) %>%
+    group_by(cid, clid) %>%
     summarise(target_comp = paste0(unique(comp), collapse = ","),
               target_comp_n = length(unique(comp)))
+
 
   if (any(multi$target_comp_n > 1)) {
 
@@ -201,7 +188,7 @@ compareCOMPS <- function(t, allmat, bins) {
 }
 
 ####---- Compare target CLS and all matched TMP CLSs, extract top-matched TMP CIDs
-compareCLS <- function(matcos, tmat) {
+compareCLS <- function(matcos, allmat, target) {
 
   ## extract TOP matches for each target COMP (if there are any)
   mattop <- matcos %>%
@@ -229,23 +216,21 @@ compareCLS <- function(matcos, tmat) {
 
   ## add those TMP cids, which did not have any match, but are in the same CLS
   mattop <- bind_rows(mattop,
-                      tmat %>%
-                        filter(target == F, !cid %in% matcos$cid) %>%
+                      allmat %>%
+                        filter(!cid %in% matcos$cid) %>%
                         group_by(cid, clid) %>%
                         summarise(comp = NA, cos = NA))
 
   ## get order of components in clusters based on RT
-  o_target <- tmat %>%
-    filter(target == T) %>%
+  o_target <- target %>%
     group_by(comp) %>%
     summarise(rtmed = median(rt)) %>%
     arrange(rtmed) %>%
     ungroup() %>%
     mutate(order = row_number())
 
-  o_tmp <- tmat %>%
-    filter(target == F) %>%
-    group_by(clid, cid) %>% # column 'clid' contains cluster ids for tmp/doi, depending on row
+  o_tmp <- allmat %>%
+    group_by(clid, cid) %>%
     summarise(rtmed = median(rt)) %>%
     arrange(rtmed) %>%
     group_by(clid) %>%
@@ -287,16 +272,16 @@ compareCLS <- function(matcos, tmat) {
 
 
 ####---- Perform matching comparison and template update
-runSCEN <- function(mat, target, scen, tmp, bins, mz_err, rt_err, doi_peaks) {
+runSCEN <- function(mat, target, scen, tmpo, tmp, doi, bins, mz_err, rt_err, doi_peaks) {
 
   ## (1) add additional peaks from the matched TMP clusters
 
   allmat <- bind_rows(mat,
-                    tmp %>%
-                      filter( (is.na(tmp) | tmp == T)) %>% ## only use peaks that were originally in the tmp
-                      filter(clid %in% (mat %>% distinct(clid) %>% pull(clid))) %>% ## add additional tmp cls peaks
-                      filter(!pid  %in% (mat %>% distinct(pid) %>% pull(pid))) %>% ## but not those, that are already matched by mz/rt
-                      select(pid, mz, rt, into, cid, clid))
+                      ## use original tmp table
+                      tmpo %>%
+                        filter(clid %in% (mat %>% distinct(clid) %>% pull(clid))) %>% ## add additional tmp cls peaks
+                        filter(!pid  %in% (mat %>% distinct(pid) %>% pull(pid))) %>% ## but not those, that are already matched by mz/rt
+                        select(pid, mz, rt, into, cid, clid))
 
   ####--- (A|B) simple component-by-component scenario
 
@@ -322,41 +307,60 @@ runSCEN <- function(mat, target, scen, tmp, bins, mz_err, rt_err, doi_peaks) {
     matcos <- target %>%
       select(pno, mz, rt, into, comp, cls) %>%
       group_by(comp) %>%
-      do(compareCOMPS(t = ., tmat = tmat, bins = bins))
+      do(compareCOMPS(t = ., allmat = allmat, bins = bins))
 
     ## (2) compare CLS, extract top matches and estimate match scores
-    mattop <- compareCLS(matcos = matcos, tmat = tmat)
+    mattop <- compareCLS(matcos = matcos, allmat = allmat, target = target)
 
   }
 
   ####---- universal part for updating TMP
   target <- target %>% select(pno, mz, rt, into, comp, cls) # won't need the extra columns further down
-  update <- addCOMPS(mattop = mattop, target = target %>% select(pno, mz, rt, into, comp, cls), allmat, doi_peaks = doi_peaks, tmp = tmp, mz_err = mz_err, rt_err = rt_err)
+  update <- addCOMPS(mattop = mattop, target, allmat, doi_peaks = doi_peaks, tmpo = tmpo, tmp = tmp, doi = doi, mz_err = mz_err, rt_err = rt_err)
 
   return(list("doi_peaks" = update$doi_peaks, "tmp" = update$tmp))
 
 }
 
 ####---- Update template with selected matches
-# updateTMP <- function(mattop, tmat, doi_peaks, tmp, mz_err, rt_err) {
-addCOMPS <- function(mattop, target, allmat, doi_peaks, tmp, mz_err, rt_err) {
+addCOMPS <- function(mattop, target, allmat, doi_peaks, tmpo, tmp, doi, mz_err, rt_err) {
 
   ## for every component in the selected matching table
-  for(cmp in na.omit(mattop$comp)) {
+  for(cmp in unique(na.omit(mattop$comp))) {
 
     ## take single DOI COMP
     component <- mattop %>%
       filter(comp == cmp)
 
-    ####--- (A) check if this DOI COMP was assigned with a CID
+    ####--- (A) if this DOI COMP was assigned with a CID (topCOMP as TRUE) and also had a higher cos than any previously assigned DOI COMPs
     if (any(!is.na(component$topCOMP))) {
-      update <- addGROUPED(component = component, target = target, allmat = allmat, tmp = tmp, mz_err = mz_err, rt_err = rt_err, doi_peaks = doi_peaks)
+
+      ## check if assigned CID was not grouped with other COMPS from the same DOI
+      ## if CID was already grouped with another COMP, compare their cos
+      previouscomp <- tmp %>%
+        filter(cid == component$cid) %>%
+        select(pid, cid, comp, contains("cos"), contains("pno"), tmp) %>%
+        # ## fix if tmp doesn't have column 'cos' yet
+        # mutate(cos = ifelse(ncol(.) > 3 , cos, 0)) %>%
+        ## fix if cid doesn't have cos (wasn't grouped yet), or not all pids have cos for this comp
+        mutate(cos = ifelse(any(!is.na(cos)), na.omit(cos), 0))
+
+      componenttop <- ifelse( component %>% filter(topCOMP == T) %>%  pull(cos) > (unique(previouscomp$cos)), T, F)
+
+      if (componenttop) {
+        update <- addGROUPED(component = component, target = target, allmat = allmat, tmpo = tmpo, tmp = tmp, doi = doi, previouscomp = previouscomp, mz_err = mz_err, rt_err = rt_err, doi_peaks = doi_peaks)
 
     } else {
-      ####---- (B) if DOI component was not assigned with a CID, add its peaks as new
+      ####---- (B) otherwise, add its peaks as new
       update <- addUNGROUPED(component = component, target = target, allmat = allmat, tmp = tmp, mz_err = mz_err, rt_err = rt_err, doi_peaks = doi_peaks)
 
     }
+
+    } else {
+        ####---- (B) otherwise, add its peaks as new
+        update <- addUNGROUPED(component = component, target = target, allmat = allmat,  tmp = tmp, mz_err = mz_err, rt_err = rt_err, doi_peaks = doi_peaks)
+
+      }
 
     ####---- universal part for updating tmp
     ## extract from list
@@ -370,6 +374,10 @@ addCOMPS <- function(mattop, target, allmat, doi_peaks, tmp, mz_err, rt_err) {
     ## bind peaks to TMP
     tmp <- bind_rows(ttmp, utmp)
 
+    ## remove pids marked in 'pid_to_remove'
+    tmp <- tmp %>%
+      filter(pid_to_remove == F | is.na(pid_to_remove))
+
   }
 
   return(list("doi_peaks" = doi_peaks, "tmp" = tmp))
@@ -378,23 +386,97 @@ addCOMPS <- function(mattop, target, allmat, doi_peaks, tmp, mz_err, rt_err) {
 
 
 ####---- If any of component's peaks were grouped to any template's CID, add all of its peaks to that CID
-addGROUPED <- function(component, target, allmat, tmp, mz_err, rt_err, doi_peaks) {
+addGROUPED <- function(component, target, allmat, tmpo, tmp, doi, previouscomp, mz_err, rt_err, doi_peaks) {
 
   ## take the TMP CID, which was assigned to the component
   component <- component %>%
     filter(!is.na(topCOMP))
 
-  ####---- (1) extract matches and target tables for the component
+  ## extract matches and target tables for the component
   targetcomp <- target %>%
     filter(comp == component$comp)
 
+  ####---- (A) if this CID was previously grouped with other COMP, and now has to be over-written by current COMP
+  if (unique(previouscomp$cos) > 0) {
+
+    ####---- (A1) remove peaks in TMP coming from previous COMP
+    ### re-assign previous COMP to new CID and PIDs
+    ### here mz/rt/into come from DOI and can be readily merged to tmp
+    ### assign pids T or F in column 'pid_to_remove' to mark for row removal from tmp once merged with tmp
+    ### get a new CID for previous COMP
+    cid_id <- max(tmp$cid) + 1
+
+    ## table with old pids, which are marked 'pid_to_remove' = T for removal once merged with tmp
+    ptmp <- previouscomp %>%
+      filter(!pid %in% tmpo$pid) %>%
+      mutate(pid_to_remove = TRUE)
+
+    ## duplicate table with new pids (and all grouping metadata), which will be kept in the tmp
+    ptmp <- previouscomp %>%
+        filter(pno %in% doi$pno) %>%
+        group_by(pno) %>%
+        mutate(pid_to_remove = F) %>%
+        ## for peaks coming from DOI, assign original DOI mz/rt values
+        mutate(mz = ifelse(pno %in% doi$pno, doi[which(doi$pno == pno),"mz"], NA)) %>%
+          mutate(rt = ifelse(pno %in% doi$pno, doi[which(doi$pno == pno),"rt"], NA)) %>%
+          mutate(into = ifelse(pno %in% doi$pno, doi[which(doi$pno == pno),"into"], NA)) %>%
+          mutate(pid = NA, cid = cid_id, cos = NA) %>%
+          mutate(mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err) %>%
+          ungroup() %>%
+      bind_rows(., ptmp)
+
+    ## change CIDs for peaks from the previous COMP
+    doi_peaks <- right_join(doi_peaks %>%
+                              filter(pno %in% (previouscomp %>% filter(!is.na(pno)) %>% pull(pno))) %>%
+                              mutate(cid = cid_id),
+                            doi_peaks, by = "pno") %>%
+      mutate(cid = ifelse(is.na(cid.x), cid.y, cid.x)) %>%
+      select(pno, cid)
+
+
+    ####---- (A2) update template with current COMP
+    ## take TMP peaks that were returned by matched CLID
+    matcomp <- allmat %>%
+      filter(
+        (comp == component$comp & cid == component$cid) |
+          (is.na(comp) & cid == component$cid)) ## peaks not matched my mz/rt, but by CID
+
+    ## merge TMP peaks that match to the same PNO
+    ## for each PNO that matches multiple tmp peaks, find the closest peak
+    matcomp <- matcomp %>%
+      group_by(pno) %>%
+      do(selectPEAK(m = ., target = target)) %>%
+      ungroup()
+
+    ## select and average can be put into one function!! future develop
+    ## for each PNO, average the mz/rt across all matches. Returns all target peaks and their matches (if any)
+    ntmp <- targetcomp %>%
+      group_by(pno) %>%
+      do(getMEDIAN(t = ., m = matcomp)) %>%
+      ungroup()
+
+    ntmp <- ntmp %>%
+      bind_rows(.,
+                ## update TMP peaks that were not matched
+                matcomp %>%
+                  filter(!pid %in% ntmp$pid) %>%
+                  mutate(tmp = TRUE, comp = component$comp, cls = unique(targetcomp$cls))) %>%
+      mutate(mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err) %>%
+      mutate(cid = component$cid, clid = component$clid,
+             cos = unlist(component$cos), topCOMP = component$topCOMP, tmpCLS_order = component$tmpCLS_order, targetCLS_sc = component$targetCLS_sc, tmpCLS_sc = component$tmpCLS_sc) %>%
+      mutate(pid_to_remove = FALSE)
+
+    utmp <- bind_rows(ntmp, ptmp)
+
+  } else {
+
+  ####---- (B) if this CID was not previosly grouped, simple merge/add COMPS peaks to it
   ## take TMP peaks that were returned by matched CLID
   matcomp <- allmat %>%
     filter(
       (comp == component$comp & cid == component$cid) |
         (is.na(comp) & cid == component$cid)) ## peaks not matched my mz/rt, but by CID
 
-  ####---- (2) Updating template
   ## merge TMP peaks that match to the same PNO
   ## for each PNO that matches multiple tmp peaks, find the closest peak
   matcomp <- matcomp %>%
@@ -410,11 +492,6 @@ addGROUPED <- function(component, target, allmat, tmp, mz_err, rt_err, doi_peaks
     do(getMEDIAN(t = ., m = matcomp)) %>%
     ungroup()
 
-  ## add PIDs for newly added target peaks
-  if (nrow(utmp %>% filter(is.na(pid))) > 0) {
-    pid_ids <- (max(tmp$pid) + 1):( max(tmp$pid) + nrow(utmp %>% filter(is.na(pid))) )
-    utmp[which(is.na(utmp$pid)), "pid"] <- pid_ids }
-
   ## add matching metadata
   utmp <- utmp %>%
     bind_rows(.,
@@ -425,11 +502,19 @@ addGROUPED <- function(component, target, allmat, tmp, mz_err, rt_err, doi_peaks
     mutate( mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err) %>%
     mutate(cid = component$cid, clid = component$clid,
            cos = unlist(component$cos), topCOMP = component$topCOMP, tmpCLS_order = component$tmpCLS_order, targetCLS_sc = component$targetCLS_sc, tmpCLS_sc = component$tmpCLS_sc)
+}
 
 
-  ####----(4) assign CIDs for the checked DOI peaks
+  ## give PIDs for newly added/re-added peaks
+  if (nrow(utmp %>% filter(is.na(pid))) > 0) {
+    pid_ids <- (max(tmp$pid) + 1):( max(tmp$pid) + nrow(utmp %>% filter(is.na(pid))) )
+    utmp[which(is.na(utmp$pid)), "pid"] <- pid_ids
+  }
+
+  ####----(4) assign CIDs for the current COMP
   doi_peaks <- right_join(utmp %>%
                             filter(pno %in% (targetcomp %>% pull(pno))) %>%
+                            filter(cid == component$cid) %>%
                             select(pno, cid),
                           doi_peaks, by = "pno") %>%
     mutate(cid = ifelse(is.na(cid.x), cid.y, cid.x)) %>%
@@ -452,10 +537,10 @@ addUNGROUPED <- function(component, target, allmat, tmp, mz_err, rt_err, doi_pea
 
   ## assign new CID and PID for the unmatched target component
   cid_id <- max(tmp$cid) + 1
-  pid_ids <- (max(tmp$pid) + 1):(max(tmp$pid) + nrow(targetcomp))
+  # pid_ids <- (max(tmp$pid) + 1):(max(tmp$pid) + nrow(targetcomp))
 
   utmp <- targetcomp %>%
-    mutate(pid = pid_ids,
+    mutate(pid = NA,
            cid = cid_id,
            clid = NA, # temporalily assign cluster ID with NA, since ids will be generated again at the end of tmp grouping round
            mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err,
@@ -466,6 +551,14 @@ addUNGROUPED <- function(component, target, allmat, tmp, mz_err, rt_err, doi_pea
            targetCLS_sc = component$targetCLS_sc,
            tmpCLS_sc = NA) %>%
     select(comp, cls, pno, pid, mz, rt, into, cid, clid, tmp, mz_l, mz_h, rt_l, rt_h, cos, topCOMP, tmpCLS_order, targetCLS_sc, tmpCLS_sc)
+
+
+  ## give PIDs for newly added/re-added peaks
+  if (nrow(utmp %>% filter(is.na(pid))) > 0) {
+    pid_ids <- (max(tmp$pid) + 1):( max(tmp$pid) + nrow(utmp %>% filter(is.na(pid))) )
+    utmp[which(is.na(utmp$pid)), "pid"] <- pid_ids
+  }
+
 
   ## assign CIDs for the checked DOI peaks
   doi_peaks <- right_join(utmp %>%
@@ -488,9 +581,11 @@ selectPEAK <- function(m, target){
         group_by(pid) %>%
         mutate(pno_to_match = pno) %>%
         ## find mz difference between the KEY and the matched tmp peaks
-        mutate(dif = abs((target %>% filter(pno == pno_to_match) %>% select(mz) %>% pull()) - mz)) %>%
+        mutate(dif = abs((target %>% filter(pno == pno_to_match) %>% pull(mz)) - mz)) %>%
         group_by(pno) %>%
         filter(dif == min(dif)) %>%
+        ## if more than 1 pid has the same MZ difference to target, take the most intense pid
+        filter(into == max(into)) %>%
         select(-c(pno_to_match, dif))
 
   } else {
@@ -502,6 +597,14 @@ selectPEAK <- function(m, target){
 
 
 }
+
+#
+# matcomp <- matcomp %>%
+#   group_by(pno) %>%
+#   do(selectPEAK(m = ., target = target)) %>%
+#   ungroup()
+#
+
 
 getMEDIAN <- function(t, m) {
 
