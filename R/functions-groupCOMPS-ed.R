@@ -28,7 +28,6 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
 
   ####---- loop over all remaining datafiles in the list
   for (d in 2:length(files)) {
-
     message("Grouping template with file: ", basename(files[[d]]))
 
     ####---- update template before each new round of grouping:
@@ -93,13 +92,12 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
       scen <- getSCEN(mat = mat)
       scen_out <- runSCEN(mat = mat, target = target, scen = scen, tmpo = tmpo, tmp = tmp, doi = doi, doi_peaks = doi_peaks, bins = bins, mz_err = mz_err, rt_err = rt_err)
 
-      if (nrow(scen_out$tmp %>%  filter(pno %in% target$pno)) != nrow(target)) stop("Not all target PNOs were added to tmp!")
-      if (nrow(scen_out$doi_peaks %>% filter(!is.na(cid)) %>% filter(!pno %in% scen_out$tmp$pno)) > 0) stop("PNO: ", p, " was overwritten in tmp!")
+      if (any(!scen_out$doi_peaks %>%  filter(!is.na(cid)) %>% pull(cid) %in% tmpo$cid)) stop("new CID created, why?")
 
-      ## message when pno 166 is assigned to 96
-      # if (scen_out$tmp %>%  filter( pno == 266) %>%  nrow() != 0) stop(message("PNO 166 is assigned to tmp")) # with p = 25
-      ## message when pno 166is no longer assigned to 80
-      # if (scen_out$tmp %>%  filter( pno == 266) %>%  nrow() == 0) message("CID120 is NOT assigned in tmp.")
+      # if (!is.na(scen_out$doi_peaks %>%  filter(pno == 394) %>% pull(cid))) stop("comp 171 was assigned")
+
+      # if (nrow(scen_out$tmp %>%  filter(pno %in% target$pno)) != nrow(target)) stop("Not all target PNOs were added to tmp!")
+      # if (nrow(scen_out$doi_peaks %>% filter(!is.na(cid)) %>% filter(!pno %in% scen_out$tmp$pno)) > 0) stop("PNO: ", p, " was overwritten in tmp!")
 
       tmp <- scen_out$tmp
       doi_peaks <- scen_out$doi_peaks
@@ -120,6 +118,11 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
       select(pno, mz, rt, into, scpos, comp, pid, cid, clid, cos)
 
     write.table(doi_full, file = gsub(".txt", "-cid.txt", files[[d]]), quote = F, sep = "\t", row.names = F)
+
+
+    ## write intermediate template if grouping has to be re-initiated mid-way through
+    write.table(tmp, file = gsub(".txt", "-itmp.txt", files[[d]]), quote = F, sep = "\t", row.names = F)
+
 
     ## Update template to grouping output
     tmpo <- tmp

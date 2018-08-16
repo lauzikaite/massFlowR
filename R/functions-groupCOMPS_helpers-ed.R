@@ -102,13 +102,8 @@ getCOS <- function(breaks, target_vec, vector, cluster){
 getSCEN <- function(mat) {
 
   ## (1) check for CID multiplicicity - do same CID get matched by multiple COMP?
-  # multi <- mat %>%
-  #   group_by(comp, pno) %>%
-  #   summarise(target_comp = paste0(unique(comp), collapse = ","),
-  #             target_comp_n = length(unique(comp)))
-
   multi <- mat %>%
-    group_by(cid, clid) %>%
+    group_by(cid) %>%
     summarise(target_comp = paste0(unique(comp), collapse = ","),
               target_comp_n = length(unique(comp)))
 
@@ -192,25 +187,29 @@ compareCLS <- function(matcos, allmat, target) {
 
   ## extract TOP matches for each target COMP (if there are any)
   mattop <- matcos %>%
+
+    ## (1) for each CID, retain only one COMP, based on cosine
     group_by(cid) %>%
     mutate(multiCIDn = n()) %>%
-
-    ## (1) for each CID, extract only one COMP, based on cosine
     mutate(topCID =
-             ## retain COMPS with no CID
-             if(all(!is.na(cid))) {
-               ## top from multiple COMP
+             ## remove COMPS with no CID
+             if (all(!is.na(cid))) {
+               ## select top from multiple COMP
                ifelse(multiCIDn > 1 & cos == max(unlist(cos)), TRUE,
                       ## top from single COMP
                       ifelse(multiCIDn == 1 & cos == max(unlist(cos)), TRUE, NA)) } else { NA}) %>%
 
     ## (2) for each COMP, retain only one CID
     group_by(topCID, comp) %>%
+    ## how many topCIDs are for this component
     mutate(topCIDn = sum(topCID == TRUE)) %>%
     ## select topCOMP from single/multiple topCID
-    mutate(topCOMP = if(all(!is.na(cid))) { ifelse(topCIDn > 0 & topCID == TRUE & cos == max(unlist(cos)), TRUE, NA) } else { NA }) %>%
-    group_by(comp) %>%
-    ## select topCOMP when no topCID is available
+    mutate(topCOMP = if (all(!is.na(cid))) {
+      ifelse(topCIDn > 0 & topCID == TRUE & cos == max(unlist(cos)), TRUE, NA) } else { NA }) %>%
+    ## if multiple CIDs have same exact cosine (only possible when running simulated data), take the one with smaller CID
+    mutate(topCOMP = if (sum(na.omit(topCOMP) == T ) > 1) {
+      ifelse(topCOMP == T & cos == max(unlist(cos)) & cid == min(cid[which(topCOMP == T)]), TRUE, NA) } else { topCOMP }) %>%
+    # select topCOMP when no topCID is available
     mutate(topCOMP = ifelse(all(is.na(topCOMP)) & !is.na(cid) & multiCIDn == 1 & n() == 1, TRUE, topCOMP)) %>%
     ungroup()
 
@@ -295,6 +294,8 @@ runSCEN <- function(mat, target, scen, tmpo, tmp, doi, bins, mz_err, rt_err, doi
       ## if more than one CID is matched, take the one with highest cosine, NA is used instead of FALSE since in compareCLS() NA is generated
       mutate(topCOMP = ifelse(is.na(cid), NA, T)) %>%
       filter(if (all(!is.na(topCOMP))) { cos == max(unlist(cos)) } else { is.na(topCOMP) }) %>%
+      ## if more than one CID has the higest cosine (i.e. they have equal cos, which only happens with simulated data), take first CID number (which means, must have come from earlier in grouping)
+      filter(if (n() > 1) { cid == min(cid) } else { row_number() == 1 }) %>%
       ungroup() %>%
       ## add this for later code to work correctly
       mutate(tmpCLS_order = NA, targetCLS_sc = NA, tmpCLS_sc = NA)
