@@ -2,15 +2,19 @@
 #'
 #' @param files A \code{character} with paths to peak tables with components and clusters. Created by \emph{buildCOMPS} function.
 #' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
-#' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 0.2 (min).
-#' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).
+#' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
+#' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.1).
 #'
 #' @return
 #' @export
 #'
 #' @examples
 #'
-groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
+groupCOMPS <- function(files, mz_err = 0.01, rt_err = 2, bins = 0.1) {
+
+  ####---- notes on default input params:
+  ## bins smaller than 0.1 tend to break up really similar mzs into more bins, actually decreasing cosine accuracy
+  ## rt_err of smaller than 1 tend to miss small, random variance even in almost identical tables
 
   ####---- create first template with mz, rt and component id for matching using the first datafile in the list
   ## save first file's table in the final output format for next stages in the pipeline:
@@ -28,6 +32,7 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
 
   ####---- loop over all remaining datafiles in the list
   for (d in 2:length(files)) {
+
     message("Grouping template with file: ", basename(files[[d]]))
 
     ####---- update template before each new round of grouping:
@@ -92,7 +97,7 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01) {
       scen <- getSCEN(mat = mat)
       scen_out <- runSCEN(mat = mat, target = target, scen = scen, tmpo = tmpo, tmp = tmp, doi = doi, doi_peaks = doi_peaks, bins = bins, mz_err = mz_err, rt_err = rt_err)
 
-      if (any(!scen_out$doi_peaks %>%  filter(!is.na(cid)) %>% pull(cid) %in% tmpo$cid)) stop("new CID created, why?")
+      # if (any(!scen_out$doi_peaks %>%  filter(!is.na(cid)) %>% pull(cid) %in% tmpo$cid)) stop("new CID created, why?")
 
       # if (!is.na(scen_out$doi_peaks %>%  filter(pno == 394) %>% pull(cid))) stop("comp 171 was assigned")
 

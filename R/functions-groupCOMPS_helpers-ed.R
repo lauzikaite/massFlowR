@@ -142,7 +142,7 @@ compareCOMPS <- function(t, allmat, bins) {
 
   if(nrow(cmat) > 0) {
 
-    ## build total peak table for both target and matches
+    ## build total peak table for both the target peaks and all tmp matches
     allpks <-  bind_rows(t, # target peaks
                             cmat, # tmp peaks matched by target's mz/rt
                          allmat %>% filter(is.na(comp), cid %in% cmat$cid) # tmp peaks matched by tmp cid only
@@ -208,7 +208,7 @@ compareCLS <- function(matcos, allmat, target) {
       ifelse(topCIDn > 0 & topCID == TRUE & cos == max(unlist(cos)), TRUE, NA) } else { NA }) %>%
     ## if multiple CIDs have same exact cosine (only possible when running simulated data), take the one with smaller CID
     mutate(topCOMP = if (sum(na.omit(topCOMP) == T ) > 1) {
-      ifelse(topCOMP == T & cos == max(unlist(cos)) & cid == min(cid[which(topCOMP == T)]), TRUE, NA) } else { topCOMP }) %>%
+      ifelse(topCOMP == T & cos == max(unlist(cos)) & cid == cid[which(abs(comp - cid) == min(abs(comp - cid)))], TRUE, NA) } else { topCOMP }) %>%
     # select topCOMP when no topCID is available
     mutate(topCOMP = ifelse(all(is.na(topCOMP)) & !is.na(cid) & multiCIDn == 1 & n() == 1, TRUE, topCOMP)) %>%
     ungroup()
@@ -294,8 +294,8 @@ runSCEN <- function(mat, target, scen, tmpo, tmp, doi, bins, mz_err, rt_err, doi
       ## if more than one CID is matched, take the one with highest cosine, NA is used instead of FALSE since in compareCLS() NA is generated
       mutate(topCOMP = ifelse(is.na(cid), NA, T)) %>%
       filter(if (all(!is.na(topCOMP))) { cos == max(unlist(cos)) } else { is.na(topCOMP) }) %>%
-      ## if more than one CID has the higest cosine (i.e. they have equal cos, which only happens with simulated data), take first CID number (which means, must have come from earlier in grouping)
-      filter(if (n() > 1) { cid == min(cid) } else { row_number() == 1 }) %>%
+      ## if more than one CID has the higest cosine (i.e. they have equal cos, which only happens with simulated data), take CID number that is either equal to comp, or closest
+      filter(if (n() > 1) { cid == cid[which(abs(comp - cid) == min(abs(comp - cid)))] } else { row_number() == 1 }) %>%
       ungroup() %>%
       ## add this for later code to work correctly
       mutate(tmpCLS_order = NA, targetCLS_sc = NA, tmpCLS_sc = NA)

@@ -347,6 +347,117 @@ checkSPIKEDcomps <- function(i, fname, pks, raw, eic, spk_pks, cor_mat, out_dir,
 
 }
 
+checkANYpeak <- function(p_list, fname, pks, pks_comps, raw, eic, out_dir, paramCWT, thr = 0.95) {
+
+
+  for(p in p_list) {
+
+    message("Checking peak with pno: ", p )
+
+    ## get all co-eluting peaks for the peak-of-interest
+    p_scpos <- c(pks[p, "scpos"] - 1, pks[p, "scpos"] + 1)
+    p_co <- pks %>%
+      filter(between(scpos, p_scpos[1], p_scpos[2])) %>%
+      mutate(poi = ifelse(pno == p, T, F)) %>%
+      ## which peak is the most intense - i.e. the main
+      mutate(main = ifelse(into == max(into), T, F))
+
+    if (nrow(p_co) > 1) {
+
+      p_co_pno <- pull(p_co, pno)
+
+      ## get cor values between all co-eluting peaks, pair-wise
+      p_co_cor <- buildCOR(co_ind = p_co_pno, eic = eic, pearson = T)
+
+      ## extract EIC values for every corelated peak
+      spec <- p_co %>%
+        group_by(pno) %>%
+        do(extractSPECTRUM(co = ., raw = raw)) %>%
+        ungroup()
+
+      ##  save MZ differences within the component
+      p_co_cor <- p_co_cor %>%
+        group_by(x, y) %>%
+        mutate(x_y = paste(min(c(x, y)), max(c(x, y)), sep = "_")) %>%
+        group_by(x, y) %>%
+        slice(1) %>%
+        mutate(mz_x = pks %>% filter(pno == x) %>% pull(mz),
+               mz_y = pks %>% filter(pno == y) %>% pull(mz)) %>%
+        mutate(mz_dif = round(abs(mz_x - mz_y), digits = 2)) %>%
+        ungroup()
+
+      ####---- plot EICs of main adduct and all co-eluting peaks
+      g_labels <- p_co_cor %>%
+        filter(x == p | y == p) %>%
+        mutate(not_p_pno = ifelse(x == p, y, x)) %>%
+        group_by(not_p_pno) %>%
+        slice(1) %>%
+        mutate(g_text = paste0("Cor: ", round(cor, digits = 2), ". MZ diff: ", mz_dif)) %>%
+        ungroup() %>%
+        select(x, y, not_p_pno, g_text) %>%
+        bind_rows(data.frame(x = p, y = p, not_p_pno = p, g_text = paste("Peak-of-Interest"), stringsAsFactors = F)) %>%
+        arrange(not_p_pno)
+
+      g <- ggplot(spec, aes(x = rtime, xend = rtime, y = 0, yend = intensity)) +
+        ## exclusion of column 'co_pid' allows to retain data points in each facet
+        geom_segment(data = filter(spec, main == T) %>% select(., -co_pno),
+                     alpha = 0.6, colour = "black", na.rm = TRUE) +
+        geom_point(data = filter(spec, main == T)  %>% select(., -co_pno), aes(y = intensity),
+                   alpha = 0.6, colour = "black", na.rm = TRUE) +
+        geom_segment(data = filter(spec, main == F),
+                     aes(colour = as.factor(co_pno)),
+                     alpha = 0.8, na.rm = TRUE) +
+        geom_point(data = filter(spec, main == F),
+                   aes(y = intensity,colour = as.factor(co_pno)),
+                   alpha = 0.8, na.rm = TRUE) +
+        scale_color_viridis_d( name = "Peak ID") +
+        facet_wrap(~co_pno,
+                   labeller =  as_labeller(setNames(g_labels$g_text, nm = g_labels$not_p_pno)),
+                   scales = "free_y") +
+        # geom_hline(aes(yintercept = paramCWT@prefilter[2],
+        #                linetype = paste0("Prefilter: c(", paramCWT@prefilter[1], "," , paramCWT@prefilter[2], ")")),
+        #            colour= "#1b7837") +
+        # geom_hline(aes(yintercept = paramCWT@noise,
+        #                linetype = paste("Noise:", paramCWT@noise)),
+        #            colour= '#762a83') +
+        # scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
+        #                       guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837")))) +
+        xlab("Retention time") +
+        ylab("Intensity") +
+        theme_bw() +
+        theme(legend.position = "bottom")
+
+        grid::grid.newpage()
+        pdf(width = 12, height = 8,  paper = "a4",
+            file = paste0(out_dir, "/", fname, "_poi-", p, "_allCO_spectra.pdf"))
+        grid::grid.draw(ggplotGrob(g))
+        dev.off()
+
+        ####---- plot network of all co-eluting peaks
+        buildNETWORK(poi_co_cor = p_co_cor,
+                     pkscomps = pks,
+                     co_ind = p_co_pno,
+                     thr = thr,
+                     pks = pks,
+                     p = p, # p is the pid of the main peak
+                     plot = TRUE,
+                     out_dir = out_dir,
+                     fname = fname,
+                     return = F)
+
+    } else {print("No co-eluting peaks")}
+
+}
+}
+
+
+
+
+
+
+
+
+
 
 #' Title
 #'
@@ -365,8 +476,8 @@ extractSPECTRUM <- function(co, raw) {
 
   spec <- data.frame(rtime = as.numeric(xcms::rtime(eic_co[1])),
              intensity = as.numeric(xcms::intensity(eic_co[1]))) %>%
-    mutate(co_pid = co$pid) %>%
-    mutate(spiked = co$spiked) %>%
+    mutate(co_pno = co$pno) %>%
+    mutate(poi = co$poi) %>%
     mutate(main = co$main)
 
   return(spec)
