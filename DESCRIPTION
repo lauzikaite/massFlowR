@@ -1,5 +1,6 @@
 Package: massFlowR
-Version: 0.1
+Version: 1.0
+Date: 2018-08-23
 Title: LC-MS Data Pre-Processing
 Description: massFlowR performs peak-picking, feature grouping and retention time correction for high-throughput LC-MS experiments.
 Authors@R: person("Elzbieta", "Lauzikaite", email = "e.lauzikaite14@imperial.ac.uk", role = c("aut", "cre"))
