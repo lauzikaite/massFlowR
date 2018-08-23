@@ -126,7 +126,7 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 2, bins = 0.1) {
 
 
     ## write intermediate template if grouping has to be re-initiated mid-way through
-    write.table(tmp, file = gsub(".txt", "-itmp.txt", files[[d]]), quote = F, sep = "\t", row.names = F)
+    # write.table(tmp, file = gsub(".txt", "-itmp.txt", files[[d]]), quote = F, sep = "\t", row.names = F)
 
 
     ## Update template to grouping output
