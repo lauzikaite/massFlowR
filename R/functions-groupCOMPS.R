@@ -77,7 +77,7 @@ groupCOMPS <- function(files, mz_err = 0.01, rt_err = 2, bins = 0.1) {
       ## take the first peak, which has not been assigned a CID yet
       p <- doi_peaks %>% filter(is.na(cid)) %>% slice(1) %>% pull(pno)
 
-      message("checking p:", p)
+      # message("checking p:", p)
 
       target <- doi %>% filter(pno == p)
 

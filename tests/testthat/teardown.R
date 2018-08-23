@@ -1,3 +1,3 @@
 ## delete directory with written output
-unlink(massflowR_dir, recursive=TRUE)
+unlink(massFlowR_dir, recursive=TRUE)
 message("Awesome")

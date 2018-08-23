@@ -1,8 +1,8 @@
 ## Load objects
 faahko_file <- system.file('cdf/KO/ko15.CDF', package = "faahKO")
 faahko_fname <- strsplit(basename(faahko_file), split = "[.]")[[1]][1]
-massflowR_dir <- file.path(system.file(package = "massflowR"), "tests/objects")
-dir.create(massflowR_dir)
+massFlowR_dir <- file.path(system.file(package = "massFlowR"), "tests/objects")
+dir.create(massFlowR_dir)
 
 ## Run basic object preparation for testing
 paramCWT <- xcms::CentWaveParam(ppm = 25,

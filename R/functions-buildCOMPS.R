@@ -219,7 +219,7 @@ plotNETWORK <- function(gg, mem, out_dir, fname, match, p, co_ind) {
 buildCOR <- function(co_ind, eic, pearson) {
   poi_co_cor <- expand.grid(x = co_ind, y = co_ind) %>%
     group_by(x, y) %>%
-    mutate(cor = massflowR::getCOR(x = x, y = y, eic = eic, pearson = pearson)) %>%
+    mutate(cor = massFlowR::getCOR(x = x, y = y, eic = eic, pearson = pearson)) %>%
     filter(x != y)
 }
 

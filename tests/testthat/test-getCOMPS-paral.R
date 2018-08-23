@@ -2,9 +2,9 @@ context("getCOMPS_paral")
 
 test_that("Functions used by getCOMPS_paral() returs correct output", {
 
-  ## test massflowR
+  ## test massFlowR
   extractEIC_out <- extractEIC(raw = faahko_raw, pks = faahko_pks_rd)
-  pickPEAKS_out <- pickPEAKS(raw = faahko_raw, fname = faahko_fname, cwt = paramCWT, out_dir = massflowR_dir)
+  pickPEAKS_out <- pickPEAKS(raw = faahko_raw, fname = faahko_fname, cwt = paramCWT, out_dir = massFlowR_dir)
 
   ## is the same number of EICs returned?
   expect_equal(length(extractEIC_out), length(faahko_eic_rd))

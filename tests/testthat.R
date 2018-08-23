@@ -1,4 +1,4 @@
 library(testthat)
-library(massflowR)
+library(massFlowR)
 
-test_check("massflowR")
+test_check("massFlowR")

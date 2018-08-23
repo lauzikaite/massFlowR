@@ -17,5 +17,5 @@ Imports:
     igraph,
     MSnbase,
 RoxygenNote: 6.1.0
-Suggests: 
+Suggests:
     testthat

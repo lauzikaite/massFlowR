@@ -2,8 +2,8 @@ context("groupCOMPS")
 
 test_that("groupCOMPS of two identical tables returns correct template back", {
 
-  getCOMPS(files = faahko_file, out_dir = massflowR_dir, cwt = paramCWT)
-  f <- list.files(massflowR_dir, pattern = "_pks-comps.txt", full.names = T)
+  getCOMPS(files = faahko_file, out_dir = massFlowR_dir, cwt = paramCWT)
+  f <- list.files(massFlowR_dir, pattern = "_pks-comps.txt", full.names = T)
   tmp_with2 <- groupCOMPS(files = c(f, f), mz_err = 0.01, rt_err = 10)
   tmp_with3 <- groupCOMPS(files = c(f, f, f), mz_err = 0.01, rt_err = 10)
 
