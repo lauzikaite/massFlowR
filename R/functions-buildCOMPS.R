@@ -15,7 +15,6 @@
 #' Function also writes updated peak table to a text file in the specified directory.
 #' @export
 #'
-#' @examples
 
 buildCOMPS <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr = 0.95, plot = FALSE, clean = TRUE) {
 

@@ -599,14 +599,6 @@ selectPEAK <- function(m, target){
 
 }
 
-#
-# matcomp <- matcomp %>%
-#   group_by(pno) %>%
-#   do(selectPEAK(m = ., target = target)) %>%
-#   ungroup()
-#
-
-
 getMEDIAN <- function(t, m) {
 
   m <- m %>%

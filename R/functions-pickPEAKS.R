@@ -15,7 +15,6 @@
 #' @return Function returns a \code{DataFrame} object with picked-peaks and centWave details.
 #' @export
 #'
-#' @examples
 
 pickPEAKS <- function(raw, cwt, fname, out_dir) {
 
