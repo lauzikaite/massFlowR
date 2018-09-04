@@ -1,56 +1,56 @@
 
 ####---- standartise the template/doi before each new round of grouping
-getCLUSTS <- function(dt){
-
-  ## build cluster id matching table
-  cls_ids <- data.frame(cid = unique(dt$cid), clid = NA)
-
-  for (cid_id in unique(unique(dt$cid))) {
-
-    ## if component was not grouped yet into a cluster
-    if (is.na(cls_ids[which(cls_ids$cid == cid_id),"clid"])) {
-
-      ## assign cluster ID
-      cls_id <- ifelse(all(is.na(cls_ids$clid)), 1, max(na.omit(cls_ids$clid)) + 1)
-
-      ## extract component's peaks
-      cmp <- dt %>%
-        filter(cid == cid_id)
-
-      ## find all other peaks in the same RT region
-      mat <- dt %>%
-        filter(cid %in% (cls_ids %>% filter(is.na(clid)) %>% select(cid) %>% pull) ) %>% # only search between components that were not clustered yet
-        filter(between(rt, min(cmp$rt), max(cmp$rt))) # use RT region defined by the min and max values for all component's peaks
-
-      ## add other peaks in the extracted components
-      mat <- bind_rows(mat,
-                       dt %>%
-                         filter(cid %in% (mat %>% distinct(cid) %>% pull(cid))) %>%
-                         filter(!pid  %in% (mat %>% distinct(pid) %>% pull(pid))))
-
-      ## update cluster ID assignment table
-      cls_ids[which(cls_ids$cid %in% unique(mat$cid)),"clid"] <- rep(cls_id, length(unique(mat$cid)))
-
-    } else { next }
-
-  }
-
-  dt <- full_join(dt, cls_ids, by = c("cid"))
-
-  ## order peaks by their components' complexity (components with more peaks go first),
-  ## and peaks intensity (more intense peaks in the component go first)
-  dt_c <- dt %>%
-    group_by(cid) %>%
-    summarise(n = n()) %>%
-    arrange(desc(n)) %>%
-    ungroup()
-
-  dt <- dt %>%
-    arrange(factor(cid, levels = dt_c$cid), cid, pid)
-
-  return(dt)
-
-}
+# getCLUSTS <- function(dt){
+#
+#   ## build cluster id matching table
+#   cls_ids <- data.frame(cid = unique(dt$cid), clid = NA)
+#
+#   for (cid_id in unique(unique(dt$cid))) {
+#
+#     ## if component was not grouped yet into a cluster
+#     if (is.na(cls_ids[which(cls_ids$cid == cid_id),"clid"])) {
+#
+#       ## assign cluster ID
+#       cls_id <- ifelse(all(is.na(cls_ids$clid)), 1, max(na.omit(cls_ids$clid)) + 1)
+#
+#       ## extract component's peaks
+#       cmp <- dt %>%
+#         filter(cid == cid_id)
+#
+#       ## find all other peaks in the same RT region
+#       mat <- dt %>%
+#         filter(cid %in% (cls_ids %>% filter(is.na(clid)) %>% select(cid) %>% pull) ) %>% # only search between components that were not clustered yet
+#         filter(between(rt, min(cmp$rt), max(cmp$rt))) # use RT region defined by the min and max values for all component's peaks
+#
+#       ## add other peaks in the extracted components
+#       mat <- bind_rows(mat,
+#                        dt %>%
+#                          filter(cid %in% (mat %>% distinct(cid) %>% pull(cid))) %>%
+#                          filter(!pid  %in% (mat %>% distinct(pid) %>% pull(pid))))
+#
+#       ## update cluster ID assignment table
+#       cls_ids[which(cls_ids$cid %in% unique(mat$cid)),"clid"] <- rep(cls_id, length(unique(mat$cid)))
+#
+#     } else { next }
+#
+#   }
+#
+#   dt <- full_join(dt, cls_ids, by = c("cid"))
+#
+#   ## order peaks by their components' complexity (components with more peaks go first),
+#   ## and peaks intensity (more intense peaks in the component go first)
+#   dt_c <- dt %>%
+#     group_by(cid) %>%
+#     summarise(n = n()) %>%
+#     arrange(desc(n)) %>%
+#     ungroup()
+#
+#   dt <- dt %>%
+#     arrange(factor(cid, levels = dt_c$cid), cid, pid)
+#
+#   return(dt)
+#
+# }
 
 
 ####---- getMATCH(): makes long df wit single-row per feature, either target, or match. Column 'target' indicates where the peak comes from

@@ -1,3 +1,58 @@
+## requires columns 'pg', 'pid', rt/mz values
+getCLUSTS <- function(dt){
+  
+  pgc_ids <- data.frame(pg = unique(dt$pg), pgc = NA, stringsAsFactors = F)
+  
+  ## for every peak group
+  for (pgroup in unique(dt$pg)) {
+    
+    if (is.na(pgc_ids[which(pgc_ids$pg == pgroup),"pgc"])) {
+      
+      ## assign peak-group-cluster ID
+      pgc_id <- ifelse(all(is.na(pgc_ids$pgc)), 1, max(na.omit(pgc_ids$pgc)) + 1)
+      
+      ## find all other peaks in the same RT region as the peak-group
+      peaks <- dt %>%
+        filter(pg == pgroup)
+      cluster <- dt %>%
+        filter(pg %in% (pgc_ids %>% filter(is.na(pgc)) %>% select(pg) %>% pull) ) %>% # only search between peak groups that were not clustered yet
+        filter(between(rt, min(peaks$rt), max(peaks$rt))) # use RT region defined by the min and max values
+      
+      ## add other peaks in the extracted peak-group
+      cluster <- bind_rows(cluster,
+                       dt %>%
+                         filter(pg %in% (cluster %>% distinct(pg) %>% pull(pg))) %>%
+                         filter(!pid  %in% (cluster %>% distinct(pid) %>% pull(pid))))
+      
+      ## update cluster ID assignment table
+      pgc_ids[which(pgc_ids$pg %in% unique(cluster$pg)),"pgc"] <- rep(pgc_id, length(unique(cluster$pg)))
+      
+    } else { next }
+    
+  }
+  
+  dt <- full_join(dt, pgc_ids, by = c("pg"))
+  
+  ## order peak-groups by their pg complexity
+  ## and peaks intensity
+  dt_c <- dt %>%
+    group_by(pg) %>%
+    summarise(n = n()) %>%
+    arrange(desc(n)) %>%
+    ungroup()
+  
+  dt <- dt %>%
+    arrange(factor(pg, levels = dt_c$pg), pg, pid)
+  
+  return(dt)
+  
+}
+
+
+
+
+
+
 matchPEAK <- function(p, dt, use_db = T) {
 
   if (use_db == T) {
@@ -19,23 +74,13 @@ matchPEAK <- function(p, dt, use_db = T) {
 }
 
 ####---- Add DOI peaks to the DB annotations table
-addDOI <- function(anno, target, mat) {
-  
-  
-  
-}
-
-
-
-
 annotateDOI <- function(db, doi, mz_err = 0.01, rt_err = 2, bins = 0.1) {
   
   ## find matches for every DB compound in the 1st study sample
-  ## 'pid'numbering starts in DB anno
-  ## prepare DB annotations gor grouping 
+  ## prepare DB annotations for matching
   anno <- db %>% 
     mutate(mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err) %>% 
-    arrange(dbid) %>% 
+    arrange(dbid, ) %>% 
     mutate(pid = row_number()) %>% #, comp = NA, cls = NA, cid = NA, clid = NA, cos = NA) %>% 
     select(-pno)
 
