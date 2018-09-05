@@ -1,14 +1,13 @@
-#' Group components across datafiles.
+#' Group components across peak tables.
 #'
 #' @param files A \code{character} with paths to peak tables with components and clusters. Created by \emph{buildCOMPS} function.
 #' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.1).
 #'
-#' @return
+#' @return Function assigns components IDs for every component in every inputed peak table, i.e. \emph{file}. Writes updated peaks tables in the same directory as the original ones. s
 #' @export
 #'
-#' @examples
 #'
 groupCOMPS <- function(files, mz_err = 0.01, rt_err = 2, bins = 0.1) {
 

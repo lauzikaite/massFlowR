@@ -2,19 +2,22 @@
 % Please edit documentation in R/functions-groupCOMPS.R
 \name{groupCOMPS}
 \alias{groupCOMPS}
-\title{Group components across datafiles.}
+\title{Group components across peak tables.}
 \usage{
-groupCOMPS(files, mz_err = 0.01, rt_err = 0.2, bins = 0.01)
+groupCOMPS(files, mz_err = 0.01, rt_err = 2, bins = 0.1)
 }
 \arguments{
 \item{files}{A \code{character} with paths to peak tables with components and clusters. Created by \emph{buildCOMPS} function.}
 
 \item{mz_err}{A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.}
 
-\item{rt_err}{A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 0.2 (min).}
+\item{rt_err}{A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).}
 
-\item{bins}{A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).}
+\item{bins}{A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.1).}
+}
+\value{
+Function assigns components IDs for every component in every inputed peak table, i.e. \emph{file}. Writes updated peaks tables in the same directory as the original ones. s
 }
 \description{
-Group components across datafiles.
+Group components across peak tables.
 }

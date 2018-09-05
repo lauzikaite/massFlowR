@@ -12,10 +12,9 @@
 #' @param clean A \code{logical} whether one-peak components should be removed (default is TRUE).
 #' @param workers A \code{BiocParallel} parameter object to control how and if parallel processing should be performed. Such object can be created by the \emph{SerialParam}, \emph{MulticoreParam} or \emph{SnowParam} functions from the /emph{BiocParallel} package.
 #'
-#' @return Foe each LC-MS file, function writes a table with picked-peaks, their components and clusters into separate text files, in the defined \code{out_dir} directory.
+#' @return For each LC-MS file, function writes a table with picked-peaks, their components and clusters into separate text files, in the defined \code{out_dir} directory.
 #' @export
 #'
-#' @examples
 getCOMPS <- function(files, out_dir, cwt, match = 1, pearson = TRUE, thr = 0.95, plot = FALSE, clean = TRUE, bpparam) {
 
   if (missing(files)) { stop("'files' must be specified!") }

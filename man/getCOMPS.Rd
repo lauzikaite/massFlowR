@@ -27,7 +27,7 @@ getCOMPS(files, out_dir, cwt, match = 1, pearson = TRUE, thr = 0.95,
 \item{workers}{A \code{BiocParallel} parameter object to control how and if parallel processing should be performed. Such object can be created by the \emph{SerialParam}, \emph{MulticoreParam} or \emph{SnowParam} functions from the /emph{BiocParallel} package.}
 }
 \value{
-Foe each LC-MS file, function writes a table with picked-peaks, their components and clusters into separate text files, in the defined \code{out_dir} directory.
+For each LC-MS file, function writes a table with picked-peaks, their components and clusters into separate text files, in the defined \code{out_dir} directory.
 }
 \description{
 Function performs peak-picking, based on package \emph{xcms} functionality.
