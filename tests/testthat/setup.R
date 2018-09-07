@@ -18,12 +18,12 @@ faahko_chrom <- xcms::findChromPeaks(object = faahko_raw, param = paramCWT)
 faahko_pks <- data.frame(xcms::chromPeaks(faahko_chrom))
 faahko_pks_rd <- faahko_pks %>%
   arrange(desc(into)) %>% ## arrange by peak intensity and give a peak number ('pno')
-  mutate(pno = row_number()) %>%
+  mutate(peakid = row_number()) %>%
   group_by(rt, mz) %>%
-  arrange(pno) %>%
+  arrange(peakid) %>%
   filter(row_number() == 1) %>%
   ungroup() %>%
-  mutate(pno = row_number()) %>% ## update peak number after removal of duplicating peaks
+  mutate(peakid = row_number()) %>% ## update peak number after removal of duplicating peaks
   data.frame()
 faahko_eic <- xcms::chromatogram(faahko_raw,
                                  rt = data.frame(

@@ -1,6 +1,6 @@
-context("getCOMPS_paral")
+context("groupPEAKS_paral")
 
-test_that("Functions used by getCOMPS_paral() returs correct output", {
+test_that("Functions used by groupPEAKS_paral() returs correct output", {
 
   ## test massFlowR
   extractEIC_out <- extractEIC(raw = faahko_raw, pks = faahko_pks_rd)

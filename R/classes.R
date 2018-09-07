@@ -1,6 +1,7 @@
 setClass("massFlowDB",
-         slots = c(files = "data.frame",
-                   db = "data.frame"
+         slots = c(
+           db_filepath = "character",
+           db = "data.frame"
          ))
 setClass("massFlowTemplate",
          slots = c(files = "list",

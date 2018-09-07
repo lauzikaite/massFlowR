@@ -47,6 +47,7 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams 
 
       message("Single match for compound: ", spk[i,"formula"], ", i = ", i)
 
+      ## extract EIC for the corresponding peak using peak's mz and rt range
       spec_pks <- massFlowR::extractSPECTRUM(co = pks_match, raw = raw)
       spec <- rbind(spec, spec_pks)
       gtitle <- paste0(spk[i,"name"], ": peak was picked")
@@ -103,7 +104,7 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams 
                                 guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837"))))
         }
 
-    pdf(width = 6, height = 6,
+    pdf(width = 8, height = 8,
         file = paste0(out_dir, "/", fname, "_spikedMR-", spk[i,"formula"], ".pdf"))
     grid::grid.draw(rbind(ggplotGrob(g), size = "last"))
     dev.off()
@@ -111,7 +112,7 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams 
     ## save output
     match <- data.frame(sample_id = fname,
                         spiked_id = spk[i,"id"],
-                        spiked_molw = spk[i,"mol_weight"],
+                        # spiked_molw = spk[i,"mol_weight"],
                         spiked_mz = spk[i,"mz"],
                         spiked_rt = spk[i,"rt"],
                         pks_id = pks_match$pno,
@@ -133,7 +134,7 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams 
 ## check list pf pre-selected peaks (can be all from one COMP, can be simply co-eluting, can be from same CLS)
 ## build correlation  network
 ## for selected pairs of the network, plot spectra and output cor values and MZ differences
-checkPEAKS <- function(pks_mat, spiked, spiked_p, eic, raw, out_dir, paramCWT, add_xcmsparams = F, thr = 0.95, use_thr = T) {
+checkPEAKS <- function(pks_mat, pks, spiked, spiked_p, eic, raw, out_dir, paramCWT, add_xcmsparams = F, thr = 0.95, use_thr = T) {
 
   ## get cor values between all co-eluting peaks, pair-wise
   pks_mat <- pks_mat %>%
@@ -145,29 +146,18 @@ checkPEAKS <- function(pks_mat, spiked, spiked_p, eic, raw, out_dir, paramCWT, a
   pks_cor <- buildCOR(co_ind = pno_all, eic = eic, pearson = T)
 
   ## if only peaks above cor threshold is desired
-  if (use_thr == T) {
-    pks_cor  <- pks_cor %>%
-      filter(cor > thr)
-    ## update peak numbers
-    pno_all <- pks_cor %>%
-      select(x,y) %>%
-      pull() %>%
-      unique()
-
-    ## update peak table
-    pks_mat <- pks_mat %>%
-      filter(pno %in% pno_all)
-  }
-
-  buildNETWORK(poi_co_cor = pks_cor,
-               pkscomps = pks_mat,
-               co_ind = pno_all,
-               thr = thr,
-               pks = pks_mat,
-               p = spiked_p,
-               plot = T,
-               out_dir = out_dir,
-               fname = fname)
+  # if (use_thr == T) {
+  #   pks_cor  <- pks_cor %>%
+  #     filter(cor > thr)
+  #   ## update peak numbers
+  #   pno_all <- pks_cor %>%
+  #     select(x,y) %>%
+  #     pull() %>%
+  #     unique()
+  #   ## update peak table
+  #   pks_mat <- pks_mat %>%
+  #     filter(pno %in% pno_all)
+  # }
 
   ## for every peak-pair, extract cor and mz_diff
   pks_cor_mz <- pks_cor %>%
@@ -188,26 +178,52 @@ checkPEAKS <- function(pks_mat, spiked, spiked_p, eic, raw, out_dir, paramCWT, a
     ungroup()
 
   ## plot all peaks in one
+  ## labels will be mz, color order also mz
+  spec <- spec %>%
+    rename(spec_pno = pno) %>%
+    group_by(spec_pno) %>%
+    mutate(mz = pks_mat %>% filter(pno %in% spec_pno) %>% distinct(mz) %>% pull() %>% round(., digits = 3)) %>%
+    arrange(mz)
+
+  colors <- setNames(viridis::viridis(end = 0.9, ## avoid bright yellow
+                                      begin = 0.2, ## avoid dark purple
+                                      n = length(unique(spec$mz))),
+                              nm = spec %>% distinct(mz) %>% pull())
+
   g <- ggplot(data = spec) +
-    geom_segment(aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(pno)), na.rm = TRUE) +
-    geom_point(aes(x = rtime, y = intensity, colour = as.factor(pno)), na.rm = TRUE) +
-    scale_color_viridis_d(name = "Peak ID", end = 0.9) +
+    geom_segment(aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(mz)), na.rm = TRUE) +
+    geom_point(aes(x = rtime, y = intensity, colour = as.factor(mz)), na.rm = TRUE) +
+    # scale_color_viridis_d(name = "Peak mz", end = 0.9) +
+    scale_color_manual(values = colors,
+                       name = "Peak mz") +
     ylab("Intensity") +
     xlab("Retention time") +
     theme_bw() +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    theme(legend.position = "bottom")
+    theme(plot.title = element_text(hjust = 0.5))
 
   grid::grid.newpage()
-  pdf(width = 10, height = 10,
+  pdf(width = 8, height = 8,
       file = paste0(out_dir, "/", fname, "_peaks-",paste0(pks_mat$pno, collapse = "-"),  ".pdf"))
   grid::grid.draw(rbind(ggplotGrob(g), size = "last"))
   dev.off()
 
-  g <- pks_cor_mz %>%
-    group_by(x,y) %>%
-    mutate(gtitle = paste0("Cor: ", round(cor, digits = 2), ". MZ diff: ", mz_dif)) %>%
-    do(plotPEAKpair(pair = ., spec = spec, spiked = spiked, add_xcmsparams = T, paramCWT = paramCWT, out_dir = out_dir, fname = fname))
+  buildNETWORK(poi_co_cor = pks_cor,
+               peakgroups = pks_mat %>% rename(peakid = dplyr::matches("order_ID|pid|pno"),
+                                               peakgr = dplyr::matches("comp")), # for newest version
+               co_ind = pno_all,
+               thr = thr,
+               pks = pks,
+               p = spiked_p,
+               plot = T,
+               out_dir = out_dir,
+               fname = fname,
+               return = F,
+               colors = colors)
+
+  # g <- pks_cor_mz %>%
+  #   group_by(x,y) %>%
+  #   mutate(gtitle = paste0("Cor: ", round(cor, digits = 2), ". MZ diff: ", mz_dif)) %>%
+  #   do(plotPEAKpair(pair = ., spec = spec, spiked = spiked, add_xcmsparams = T, paramCWT = paramCWT, out_dir = out_dir, fname = fname))
 
  return(pks_cor_mz)
 }
@@ -280,7 +296,6 @@ extractSPECTRUM <- function(co, raw) {
   spec <- data.frame(rtime = as.numeric(xcms::rtime(eic_co[1])),
              intensity = as.numeric(xcms::intensity(eic_co[1]))) %>%
     mutate(pno = co$pno)
-           # pair = co$pair)
 
   return(spec)
 
