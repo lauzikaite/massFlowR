@@ -6,4 +6,6 @@ setClass("massFlowDB",
 setClass("massFlowTemplate",
          slots = c(files = "list",
                    tmp = "data.frame"))
-
+# setClass("massFlowDT",
+#          slots = c(files = "list",
+#                    dt = "data.frame"))

@@ -29,18 +29,11 @@ pickPEAKS <- function(raw, cwt, fname, out_dir) {
   ## assign each peak with id, based on its intensity order
   pks$peakid <- 1:nrow(pks)
 
-  pks_dup <- pks %>%
-    group_by(rt, mz) %>%
-    summarise(n = n()) %>%
-    filter(n > 1) %>%
-    nrow()
-
-  # message(pks_dup, "  duplicating peaks were removed.")
-
+  ## remove artefactural, duplicating peaks
   pks <- pks %>%
     group_by(rt, mz) %>%
     arrange(peakid) %>%
-    ## take only first of the two identical peaks which are in the same component
+    ## take only first of the two identical peaks
     filter(row_number()== 1) %>%
     ungroup() %>%
     ## update peak id
@@ -48,7 +41,6 @@ pickPEAKS <- function(raw, cwt, fname, out_dir) {
     data.frame()
 
   write.csv(pks, file = paste0(out_dir, "/", fname, "_peaks.csv"), quote = F, row.names = F)
-
 
   return(pks)
 

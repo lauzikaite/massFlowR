@@ -7,14 +7,16 @@ setGeneric("files", function(object) standardGeneric("files"))
 setMethod("files", signature = "massFlowDB", function(object) object@db_filepath)
 
 setMethod("show", signature = "massFlowDB", function(object) {
-  cat("An \"massFlowDB\" object \n")
-  cat("database filepath:", object@db_filepath, "\n")
-  cat("contains:", length(unique(object@db$dbid)), "chemicals \n")
+  cat("A \"massFlowDB\" object \n")
+  cat("Database filepath:", object@db_filepath, "\n")
+  cat("Contains:", length(unique(object@db$dbid)), "chemicals \n")
 })
 
 ## massFlowTemplate
 setMethod("files", signature = "massFlowTemplate", function(object) object@files)
 
 setMethod("show", signature = "massFlowTemplate", function(object) {
-  cat("An \"massFlowTemplate\" object with", nrow(object@files), "study samples")
+  cat("A \"massFlowTemplate\" object with", nrow(object@files), "study samples")
 })
+
+

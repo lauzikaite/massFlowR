@@ -53,221 +53,221 @@
 # }
 
 
-####---- getMATCH(): makes long df wit single-row per feature, either target, or match. Column 'target' indicates where the peak comes from
-getMATCH <- function(t, tmpo) {
+# ####---- getMATCH(): makes long df wit single-row per feature, either target, or match. Column 'target' indicates where the peak comes from
+# getMATCH <- function(t, tmpo) {
+#
+#   ## using original tmp table to match only peaks that were already in the tmp and did not come from DOI
+#   mat <- tmpo %>%
+#     ## Using regions of both peaks. Regions defined by user mz and rt error ranges
+#     filter(between(mz_l, t$mz_l, t$mz_h) | between(mz_h, t$mz_l, t$mz_h)) %>%
+#     filter(between(rt_l, t$rt_l, t$rt_h) | between(rt_h, t$rt_l, t$rt_h)) %>%
+#     mutate(cls = t$cls, pno = t$pno) %>%
+#     select(cls, pno, pid, mz, rt, into, cid, clid)
+#
+#   return(mat)
+#
+# }
 
-  ## using original tmp table to match only peaks that were already in the tmp and did not come from DOI
-  mat <- tmpo %>%
-    ## Using regions of both peaks. Regions defined by user mz and rt error ranges
-    filter(between(mz_l, t$mz_l, t$mz_h) | between(mz_h, t$mz_l, t$mz_h)) %>%
-    filter(between(rt_l, t$rt_l, t$rt_h) | between(rt_h, t$rt_l, t$rt_h)) %>%
-    mutate(cls = t$cls, pno = t$pno) %>%
-    select(cls, pno, pid, mz, rt, into, cid, clid)
-
-  return(mat)
-
-}
-
-####---- scale vector to unit length
-scaleVEC <- function(x) {
-  x / ( sqrt(sum(x * x)) )
-}
+# ####---- scale vector to unit length
+# scaleVEC <- function(x) {
+#   x / ( sqrt(sum(x * x)) )
+# }
 
 ####---- cosine estimation
-getCOS <- function(breaks, target_vec, vector, cluster){
+# getCOS <- function(breaks, target_vec, vector, cluster){
+#
+#   vector_vec <- full_join(breaks,
+#                           vector,
+#                           by = c("bin")) %>%
+#     mutate(into = ifelse(is.na(into), 0, into)) %>%
+#     select(pid, breaks, bin, into)
+#
+#   ## remove duplicated vector PIDs, that are vectored to multiple key - RETAIN ORIGINAL ROW ORDER BY BIN NUMBER
+#   vector_vec <- bind_rows(
+#     ## retain all target_vec entries
+#     vector_vec %>% filter(is.na(pid)),
+#     ## remove duplicating PIDs and/or duplicating bins from different PIDS
+#     vector_vec %>% filter(!is.na(pid)) %>% group_by(bin) %>% filter(row_number(pid) == 1)
+#   ) %>% arrange(bin)
+#
+#   ## scale intensities
+#   vector_vec <- scaleVEC(vector_vec$into)
+#
+#   ## find the cosine of the angle
+#   cos_angle <- (sum(target_vec * vector_vec) )  / ( (sqrt(sum(target_vec * target_vec)))  * ( sqrt(sum(vector_vec * vector_vec)) ) )
+#   return(cos_angle)
+# }
 
-  vector_vec <- full_join(breaks,
-                          vector,
-                          by = c("bin")) %>%
-    mutate(into = ifelse(is.na(into), 0, into)) %>%
-    select(pid, breaks, bin, into)
-
-  ## remove duplicated vector PIDs, that are vectored to multiple key - RETAIN ORIGINAL ROW ORDER BY BIN NUMBER
-  vector_vec <- bind_rows(
-    ## retain all target_vec entries
-    vector_vec %>% filter(is.na(pid)),
-    ## remove duplicating PIDs and/or duplicating bins from different PIDS
-    vector_vec %>% filter(!is.na(pid)) %>% group_by(bin) %>% filter(row_number(pid) == 1)
-  ) %>% arrange(bin)
-
-  ## scale intensities
-  vector_vec <- scaleVEC(vector_vec$into)
-
-  ## find the cosine of the angle
-  cos_angle <- (sum(target_vec * vector_vec) )  / ( (sqrt(sum(target_vec * target_vec)))  * ( sqrt(sum(vector_vec * vector_vec)) ) )
-  return(cos_angle)
-}
-
-####---- get matching scenario
-getSCEN <- function(mat) {
-
-  ## (1) check for CID multiplicicity - do same CID get matched by multiple COMP?
-  multi <- mat %>%
-    group_by(cid) %>%
-    summarise(target_comp = paste0(unique(comp), collapse = ","),
-              target_comp_n = length(unique(comp)))
-
-
-  if (any(multi$target_comp_n > 1)) {
-
-    ## Scenario C: clusters are compared together
-    "C"
-
-  } else {
-
-    ## (2) check for COMP multiplicity - do same COMP match multiple CID?
-    multi <- mat %>%
-      group_by(comp) %>%
-      summarise(match_cid = paste0(unique(cid), collapse = ","),
-                match_cid_n = length(unique(cid)))
-
-    if( any(multi$match_cid_n > 1)) {
-
-      ## Scenario B: decision on CID/CLS
-      "B"
-
-    } else {
-
-      ## Scenario A: one-to-one matching, no decision needed
-      "A"
-    }
-  }
-}
+# ####---- get matching scenario
+# getSCEN <- function(mat) {
+#
+#   ## (1) check for CID multiplicicity - do same CID get matched by multiple COMP?
+#   multi <- mat %>%
+#     group_by(cid) %>%
+#     summarise(target_comp = paste0(unique(comp), collapse = ","),
+#               target_comp_n = length(unique(comp)))
+#
+#
+#   if (any(multi$target_comp_n > 1)) {
+#
+#     ## Scenario C: clusters are compared together
+#     "C"
+#
+#   } else {
+#
+#     ## (2) check for COMP multiplicity - do same COMP match multiple CID?
+#     multi <- mat %>%
+#       group_by(comp) %>%
+#       summarise(match_cid = paste0(unique(cid), collapse = ","),
+#                 match_cid_n = length(unique(cid)))
+#
+#     if( any(multi$match_cid_n > 1)) {
+#
+#       ## Scenario B: decision on CID/CLS
+#       "B"
+#
+#     } else {
+#
+#       ## Scenario A: one-to-one matching, no decision needed
+#       "A"
+#     }
+#   }
+# }
 
 ####---- Compare target COMP and all matched TMP CIDs
-compareCOMPS <- function(t, allmat, bins) {
-
-  ## extract match table for the component
-  cmat <- allmat %>% filter(comp %in% t$comp) ## tmp peaks matched by mz/rt
-
-  if(nrow(cmat) > 0) {
-
-    ## build total peak table for both the target peaks and all tmp matches
-    allpks <-  bind_rows(t, # target peaks
-                            cmat, # tmp peaks matched by target's mz/rt
-                         allmat %>% filter(is.na(comp), cid %in% cmat$cid) # tmp peaks matched by tmp cid only
-                            )
-
-    breaks <- data.frame(breaks = seq(from = min(allpks$mz), to = max(allpks$mz) , by = bins)) %>%
-      mutate(bin = row_number())
-    allpks <- allpks %>%
-      mutate(bin = findInterval(mz, breaks$breaks))
-
-    ## build target vector of the target spectrum
-    target_vec <- full_join(breaks,
-                            allpks %>%
-                              filter(is.na(pid)) %>% ## target peaks don't have pid
-                              group_by(bin) %>% filter(row_number() == 1) %>% ## remove duplicating duplicating bins from different PIDS
-                              select(bin, into),
-                            by = c("bin")) %>%
-      mutate(into = ifelse(is.na(into), 0, into))
-
-    ## scale vector to unit length of 1
-    target_vec <- scaleVEC(target_vec$into)
-
-    ## get the cosine of the angle between vectors representing spectra
-    cos <- allpks %>%
-      filter(!is.na(pid)) %>% ## tmp peaks have pid
-      group_by(clid, cid) %>%
-      ## do returns a dataframe with two columns: first is the label, second is a list with outcomes of the function
-      do(cos = getCOS(breaks = breaks, target_vec = target_vec, vector = .)) %>%
-      ungroup()
-
-
-  } else {
-
-    cos <- data.frame(clid = NA, cid = NA, cos = NA)
-  }
-
-  return(cos)
-}
+# compareCOMPS <- function(t, allmat, bins) {
+#
+#   ## extract match table for the component
+#   cmat <- allmat %>% filter(comp %in% t$comp) ## tmp peaks matched by mz/rt
+#
+#   if(nrow(cmat) > 0) {
+#
+#     ## build total peak table for both the target peaks and all tmp matches
+#     allpks <-  bind_rows(t, # target peaks
+#                             cmat, # tmp peaks matched by target's mz/rt
+#                          allmat %>% filter(is.na(comp), cid %in% cmat$cid) # tmp peaks matched by tmp cid only
+#                             )
+#
+#     breaks <- data.frame(breaks = seq(from = min(allpks$mz), to = max(allpks$mz) , by = bins)) %>%
+#       mutate(bin = row_number())
+#     allpks <- allpks %>%
+#       mutate(bin = findInterval(mz, breaks$breaks))
+#
+#     ## build target vector of the target spectrum
+#     target_vec <- full_join(breaks,
+#                             allpks %>%
+#                               filter(is.na(pid)) %>% ## target peaks don't have pid
+#                               group_by(bin) %>% filter(row_number() == 1) %>% ## remove duplicating duplicating bins from different PIDS
+#                               select(bin, into),
+#                             by = c("bin")) %>%
+#       mutate(into = ifelse(is.na(into), 0, into))
+#
+#     ## scale vector to unit length of 1
+#     target_vec <- scaleVEC(target_vec$into)
+#
+#     ## get the cosine of the angle between vectors representing spectra
+#     cos <- allpks %>%
+#       filter(!is.na(pid)) %>% ## tmp peaks have pid
+#       group_by(clid, cid) %>%
+#       ## do returns a dataframe with two columns: first is the label, second is a list with outcomes of the function
+#       do(cos = getCOS(breaks = breaks, target_vec = target_vec, vector = .)) %>%
+#       ungroup()
+#
+#
+#   } else {
+#
+#     cos <- data.frame(clid = NA, cid = NA, cos = NA)
+#   }
+#
+#   return(cos)
+# }
 
 ####---- Compare target CLS and all matched TMP CLSs, extract top-matched TMP CIDs
-compareCLS <- function(matcos, allmat, target) {
-
-  ## extract TOP matches for each target COMP (if there are any)
-  mattop <- matcos %>%
-
-    ## (1) for each CID, retain only one COMP, based on cosine
-    group_by(cid) %>%
-    mutate(multiCIDn = n()) %>%
-    mutate(topCID =
-             ## remove COMPS with no CID
-             if (all(!is.na(cid))) {
-               ## select top from multiple COMP
-               ifelse(multiCIDn > 1 & cos == max(unlist(cos)), TRUE,
-                      ## top from single COMP
-                      ifelse(multiCIDn == 1 & cos == max(unlist(cos)), TRUE, NA)) } else { NA}) %>%
-
-    ## (2) for each COMP, retain only one CID
-    group_by(topCID, comp) %>%
-    ## how many topCIDs are for this component
-    mutate(topCIDn = sum(topCID == TRUE)) %>%
-    ## select topCOMP from single/multiple topCID
-    mutate(topCOMP = if (all(!is.na(cid))) {
-      ifelse(topCIDn > 0 & topCID == TRUE & cos == max(unlist(cos)), TRUE, NA) } else { NA }) %>%
-    ## if multiple CIDs have same exact cosine (only possible when running simulated data), take the one with smaller CID
-    mutate(topCOMP = if (sum(na.omit(topCOMP) == T ) > 1) {
-      ifelse(topCOMP == T & cos == max(unlist(cos)) & cid == cid[which(abs(comp - cid) == min(abs(comp - cid)))], TRUE, NA) } else { topCOMP }) %>%
-    # select topCOMP when no topCID is available
-    mutate(topCOMP = ifelse(all(is.na(topCOMP)) & !is.na(cid) & multiCIDn == 1 & n() == 1, TRUE, topCOMP)) %>%
-    ungroup()
-
-  ## add those TMP cids, which did not have any match, but are in the same CLS
-  mattop <- bind_rows(mattop,
-                      allmat %>%
-                        filter(!cid %in% matcos$cid) %>%
-                        group_by(cid, clid) %>%
-                        summarise(comp = NA, cos = NA))
-
-  ## get order of components in clusters based on RT
-  o_target <- target %>%
-    group_by(comp) %>%
-    summarise(rtmed = median(rt)) %>%
-    arrange(rtmed) %>%
-    ungroup() %>%
-    mutate(order = row_number())
-
-  o_tmp <- allmat %>%
-    group_by(clid, cid) %>%
-    summarise(rtmed = median(rt)) %>%
-    arrange(rtmed) %>%
-    group_by(clid) %>%
-    mutate(order = row_number()) %>%
-    ungroup()
-
-  ## add columns for components order in the clusters of target and tmp
-  mattop <-
-    full_join(
-      full_join(
-        mattop,
-        o_target %>% select(comp, target_order = order),
-        by = c("comp")),
-      o_tmp %>% select(cid, tmp_order = order),
-      by = c("cid")
-    )
-
-  ## cluster summaries
-  matcls <- mattop %>%
-    group_by(clid) %>%
-    arrange(target_order) %>%
-    filter(topCOMP == T) %>%
-    summarise(tmpCLS_order = all(tmp_order == cummax(tmp_order)), # TRUE if every matched comp/cid pair stands in the same position in the cluster
-              targetCLS_sc = sum(!is.na(topCOMP))/ max(o_target$order), # ratio of matched comps to cid, to total cids in the cluster
-              tmpCLS_sc =  sum(!is.na(topCOMP))/ max(tmp_order)) # ratio of matched comps to cid, to total comps in the cluster
-  ## add summaries
-  mattop <- full_join(mattop %>% select(comp, clid, cid, cos, topCOMP),
-                      matcls, by = c("clid"))
-
-  ## for each COMP, retain only the top selected CID (if none, retain one row per COMP)
-  mattop <- mattop %>%
-    group_by(comp) %>%
-    filter(topCOMP == T | ifelse(all(is.na(topCOMP)), is.na(topCOMP), NA)) %>%
-    ungroup()
-
-  return(mattop)
-
-}
+# compareCLS <- function(matcos, allmat, target) {
+#
+#   ## extract TOP matches for each target COMP (if there are any)
+#   mattop <- matcos %>%
+#
+#     ## (1) for each CID, retain only one COMP, based on cosine
+#     group_by(cid) %>%
+#     mutate(multiCIDn = n()) %>%
+#     mutate(topCID =
+#              ## remove COMPS with no CID
+#              if (all(!is.na(cid))) {
+#                ## select top from multiple COMP
+#                ifelse(multiCIDn > 1 & cos == max(unlist(cos)), TRUE,
+#                       ## top from single COMP
+#                       ifelse(multiCIDn == 1 & cos == max(unlist(cos)), TRUE, NA)) } else { NA}) %>%
+#
+#     ## (2) for each COMP, retain only one CID
+#     group_by(topCID, comp) %>%
+#     ## how many topCIDs are for this component
+#     mutate(topCIDn = sum(topCID == TRUE)) %>%
+#     ## select topCOMP from single/multiple topCID
+#     mutate(topCOMP = if (all(!is.na(cid))) {
+#       ifelse(topCIDn > 0 & topCID == TRUE & cos == max(unlist(cos)), TRUE, NA) } else { NA }) %>%
+#     ## if multiple CIDs have same exact cosine (only possible when running simulated data), take the one with smaller CID
+#     mutate(topCOMP = if (sum(na.omit(topCOMP) == T ) > 1) {
+#       ifelse(topCOMP == T & cos == max(unlist(cos)) & cid == cid[which(abs(comp - cid) == min(abs(comp - cid)))], TRUE, NA) } else { topCOMP }) %>%
+#     # select topCOMP when no topCID is available
+#     mutate(topCOMP = ifelse(all(is.na(topCOMP)) & !is.na(cid) & multiCIDn == 1 & n() == 1, TRUE, topCOMP)) %>%
+#     ungroup()
+#
+#   ## add those TMP cids, which did not have any match, but are in the same CLS
+#   mattop <- bind_rows(mattop,
+#                       allmat %>%
+#                         filter(!cid %in% matcos$cid) %>%
+#                         group_by(cid, clid) %>%
+#                         summarise(comp = NA, cos = NA))
+#
+#   ## get order of components in clusters based on RT
+#   o_target <- target %>%
+#     group_by(comp) %>%
+#     summarise(rtmed = median(rt)) %>%
+#     arrange(rtmed) %>%
+#     ungroup() %>%
+#     mutate(order = row_number())
+#
+#   o_tmp <- allmat %>%
+#     group_by(clid, cid) %>%
+#     summarise(rtmed = median(rt)) %>%
+#     arrange(rtmed) %>%
+#     group_by(clid) %>%
+#     mutate(order = row_number()) %>%
+#     ungroup()
+#
+#   ## add columns for components order in the clusters of target and tmp
+#   mattop <-
+#     full_join(
+#       full_join(
+#         mattop,
+#         o_target %>% select(comp, target_order = order),
+#         by = c("comp")),
+#       o_tmp %>% select(cid, tmp_order = order),
+#       by = c("cid")
+#     )
+#
+#   ## cluster summaries
+#   matcls <- mattop %>%
+#     group_by(clid) %>%
+#     arrange(target_order) %>%
+#     filter(topCOMP == T) %>%
+#     summarise(tmpCLS_order = all(tmp_order == cummax(tmp_order)), # TRUE if every matched comp/cid pair stands in the same position in the cluster
+#               targetCLS_sc = sum(!is.na(topCOMP))/ max(o_target$order), # ratio of matched comps to cid, to total cids in the cluster
+#               tmpCLS_sc =  sum(!is.na(topCOMP))/ max(tmp_order)) # ratio of matched comps to cid, to total comps in the cluster
+#   ## add summaries
+#   mattop <- full_join(mattop %>% select(comp, clid, cid, cos, topCOMP),
+#                       matcls, by = c("clid"))
+#
+#   ## for each COMP, retain only the top selected CID (if none, retain one row per COMP)
+#   mattop <- mattop %>%
+#     group_by(comp) %>%
+#     filter(topCOMP == T | ifelse(all(is.na(topCOMP)), is.na(topCOMP), NA)) %>%
+#     ungroup()
+#
+#   return(mattop)
+#
+# }
 
 
 ####---- Perform matching comparison and template update
