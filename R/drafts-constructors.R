@@ -15,14 +15,14 @@ massFlowDB <- function(file = NULL){
   return(object)
 }
 
-massFlowTemplate <- function(files = NULL, db = NULL) {
+massFlowTemplate <- function(files = NULL, db = NULL, mz_err = 0.01, rt_err = 2, bins = 0.1) {
 
   ## check and add filepaths to template object
   if (is.null(files)) stop("files is required.")
   if (any(!file.exists(files))) stop("incorrect filepaths provided.\n")
 
   studyfiles <- read.csv(files, stringsAsFactors = F)
-  if (any(!c("filepaths", "run_order") %in% names(studyfiles))) stop("files must contain columns 'filepaths'and  'run_order'")
+  if (any(!c("filepaths", "run_order") %in% names(studyfiles))) stop("files must contain columns 'filepaths' and 'run_order'")
 
   # ## create column 'grouped' where information whether sample was already grouped will be stored
   # studyfiles[,"grouped"] <- FALSE
@@ -31,17 +31,12 @@ massFlowTemplate <- function(files = NULL, db = NULL) {
 
   if (is.null(db)) {
     message("db is not defined. \n Using 1st study sample to build template ... ")
-
     tmp <- read.csv(file = studyfiles[which(studyfiles$run_order == 1),"filepaths"], stringsAsFactors = F)
-    tmp <- getCLUSTS(dt = tmp %>% select(peakid, mz, rt, into, peakgr))
-
     } else {
-    if (class(db) != "massFlowDB") stop("db must be a 'massFlowDB' class object.")
-    message("Using database and 1st study sample to build template ... ")
-
-    tmp <- addDOI(tmp = db@db, doi = object@files$filepaths[object@files$run_order == 1])
-
-  }
+      if (class(db) != "massFlowDB") stop("db must be a 'massFlowDB' class object.")
+      message("Using database and 1st study sample to build template ... ")
+      tmp <- addDOI(tmp = db@db, doi = object@files$filepaths[object@files$run_order == 1], mz_err = mz_err, rt_err = rt_err, bins = bins)
+      }
 
   object@tmp <- tmp
   return(object)
