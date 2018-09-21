@@ -5,7 +5,7 @@
 \title{Group peaks of a single LC-MS spectrum using EIC correlation}
 \usage{
 groupPEAKSspec(pks, eic, out_dir, fname, pearson = TRUE, match = 1,
-  thr = 0.95, plot = FALSE, clean = TRUE)
+  thr = 0.95, plot = FALSE, clean = TRUE, return = FALSE)
 }
 \arguments{
 \item{pks}{A \code{DataFrame} class peak table, created by \emph{pickPEAKS} function.}
@@ -14,7 +14,7 @@ groupPEAKSspec(pks, eic, out_dir, fname, pearson = TRUE, match = 1,
 
 \item{out_dir}{A \code{character} specifying directory where output data will be saved.}
 
-\item{fname}{A \code{character} specifying datafile name.}
+\item{fname}{A \code{character} specifying LC-MS filename.}
 
 \item{pearson}{A \code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.}
 
@@ -22,7 +22,7 @@ groupPEAKSspec(pks, eic, out_dir, fname, pearson = TRUE, match = 1,
 
 \item{thr}{A \code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
 
-\item{plot}{A \code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png in the out_dir directory.}
+\item{plot}{A \code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved in the out_dir directory.}
 
 \item{clean}{A \code{logical} whether one-peak peak-groups should be removed (default is TRUE).}
 }
@@ -31,5 +31,5 @@ Function returns an updated peak table. Column \code{"peakgr"} contains peak-gro
 Function also writes updated peak table in the specified directory.
 }
 \description{
-Function builds peak-groups of co-eluting peaks that are correlated to each other in a single LC-MS spectral file.
+Function builds peak-groups of co-eluting peaks that are correlated to each other in a single LC-MS spectrum.
 }

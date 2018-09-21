@@ -6,8 +6,7 @@ faahko_pks_co <- faahko_pks_rd %>%
   filter(between(scpos, faahko_pks_co_scans[1], faahko_pks_co_scans[2])) %>%
   pull(peakid)
 
-## test that internal builCOR function correctly calculates correlation between co-eluting peaks
-
+## (1) test that builCOR() correctly calculates correlation between co-eluting peaks
 test_that("buildCOR returns correct table", {
 
   buildCOR_out <- buildCOR(co_ind = faahko_pks_co, eic = faahko_eic_rd, pearson = TRUE)

@@ -24,7 +24,7 @@ groupPEAKS(files, out_dir, cwt, match = 1, pearson = TRUE,
 
 \item{clean}{A \code{logical} whether one-peak peak-groups should be removed (default is TRUE).}
 
-\item{workers}{A \code{BiocParallel} parameter object to control how and if parallel processing should be performed. Such object can be created by the \emph{SerialParam}, \emph{MulticoreParam} or \emph{SnowParam} functions from the /emph{BiocParallel} package.}
+\item{workers}{A \code{BiocParallel} parameter object to control how and if parallel processing should be performed. Such object can be created by the \emph{SerialParam}, \emph{MulticoreParam} or \emph{SnowParam} functions from the \emph{BiocParallel} package.}
 }
 \value{
 For each LC-MS file, function writes a table with picked-peaks and their peak-groups into separate files, in the defined \code{out_dir} directory.

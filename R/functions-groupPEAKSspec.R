@@ -16,7 +16,7 @@
 #' @export
 #'
 
-groupPEAKSspec <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr = 0.95, plot = FALSE, clean = TRUE) {
+groupPEAKSspec <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, thr = 0.95, plot = FALSE, clean = TRUE, return = FALSE) {
 
   message("Building peak-groups for file: ", fname, "...")
 
@@ -81,7 +81,11 @@ groupPEAKSspec <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, 
                     by = c("peakid"), all = F)
   write.csv(peakgroups, file = paste0(out_dir, "/", fname, "_peakgrs.csv"), quote = F, row.names = F)
 
-  message(max(na.omit(peakgroups$peakgr)), " peak-groups built.")
+  if (return == TRUE) {
+    return(peakgroups)
+  } else {
+    message(max(na.omit(peakgroups$peakgr)), " peak-groups built.")
+  }
 
 }
 
