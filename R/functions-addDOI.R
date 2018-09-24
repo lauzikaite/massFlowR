@@ -2,18 +2,17 @@
 ## add DATAFILE (doi) to the the TEMPLATE (tmp)
 ## template could be either the master peak table, or a DATABASE (if building template for the first time)
 ## returns a template
-addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs) {
+addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs = 0) {
 
   ## (A) prepare tmp for grouping with the doi where doi peaks will be added to
   tmp <- getCLUSTS(dt = tmp)
   tmp <- tmp %>%
     mutate(mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err) %>%
-    ## if db information is not available
-    addCOLS(., c("chemid", "dbid", "dbname"))
+    addCOLS(., c("chemid", "dbid", "dbname")) %>%  ## if not using db to build a template, add missing columns
+    mutate(doi_peakid = NA, doi_peakgr = NA, doi_peakgrcls = NA, cos = NA) ## if tmp has been aligned with doi before, remove old metadata
 
   ## build dataframe for storing intermediate alignment results
-  itmp <- tmp %>%
-    mutate(doi_peakid = NA, doi_peakgr = NA, doi_peakgrcls = NA, cos = NA)
+  itmp <- tmp
 
   ## (B) prepare doi for matching against template/db
   doi_full <- getDOI(file = doi_fname)
@@ -49,7 +48,7 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
 
   }
 
-  ###--- write grouping output
+  ## (D) write grouping output
   if (!all(doi$peakid %in% itmp$doi_peakid)) { stop("not all PNOs were assigned to TMP!") }
 
   doi_full <- right_join(doi_full,
@@ -58,9 +57,12 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
                            rename(tmp_peakid = peakid, tmp_peakgr = peakgr, peakid = doi_peakid) %>%
                            rename(new_mz = mz, new_rt = rt) %>%
                            select(peakid, tmp_peakid, tmp_peakgr, new_mz, new_rt, chemid, dbid, dbname, cos), by = c("peakid"))
-  write.csv(doi_full, file = gsub(".csv", "_grouped.csv", doi_fname), quote = F, row.names = F)
+  write.csv(doi_full, file = gsub(".csv", "_aligned.csv", doi_fname), quote = T, row.names = F) ## quote = T to preserve complex DB entries with "-"
 
-  return(itmp)
+  ## Update template
+  tmp <- itmp %>%
+    select(-peakgrcls) ## must be removed, otherwise next addDOI call with have two peakgrcls columns
 
+  return(list("tmp" = tmp, "doi" = doi_full))
 
 }

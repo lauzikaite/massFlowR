@@ -8,9 +8,9 @@
 #' ## Build template using a sample, provided with the package
 #' data_dir <- system.file("testdata", package = "massFlowR")
 #' db_fname <- file.path(data_dir, "DBtemplate.csv")
-#' db <- massFlowDB(file = db_fname)
+#' db <- buildDB(file = db_fname)
 #'
-massFlowDB <- function(file = NULL){
+buildDB <- function(file = NULL){
 
   if (is.null(file)) stop("file is required")
   if (any(!file.exists(file))) stop("incorrect filepath provided.\n")
@@ -40,19 +40,19 @@ massFlowDB <- function(file = NULL){
 #' @export
 #'
 #' @examples
-massFlowTemplate <- function(file = NULL, db = NULL, mz_err = 0.01, rt_err = 2, bins = 0.1, db_thrs = 0.5) {
+buildTMP <- function(file = NULL, db = NULL, mz_err = 0.01, rt_err = 2, bins = 0.1, db_thrs = 0.5) {
 
   ## check and add filepaths to template object
   if (is.null(file)) stop("'file' is required")
   if (!file.exists(file)) stop("incorrect filepath for 'file' provided")
 
-  studyfiles <- read.csv(file, header = T, stringsAsFactors = F)
-  if (any(!c("filepaths", "run_order") %in% names(studyfiles))) stop("files must contain columns 'filepaths' and 'run_order'")
-  studyfiles[,"grouped"] <- FALSE   ## in column 'grouped' will be used to mark already grouped samples
+  samples <- read.csv(file, header = T, stringsAsFactors = F)
+  if (any(!c("filepaths", "run_order") %in% names(samples))) stop("files must contain columns 'filepaths' and 'run_order'")
+  samples[,"aligned"] <- FALSE
 
   object <- new("massFlowTemplate")
   object@filepath <- file
-  object@samples <- studyfiles
+  object@samples <- samples
 
   doi_fname <- object@samples$filepaths[object@samples$run_order == 1]
 
@@ -62,12 +62,12 @@ massFlowTemplate <- function(file = NULL, db = NULL, mz_err = 0.01, rt_err = 2, 
     } else {
       if (class(db) != "massFlowDB") stop("db must be a 'massFlowDB' class object.")
       message("Using database and 1st study sample to build template ... ")
-      tmp <- addDOI(tmp = db@db, doi_fname = doi_fname, mz_err = mz_err, rt_err = rt_err, bins = bins, add_db = TRUE, db_thrs = db_thrs)
+      out <- addDOI(tmp = db@db, doi_fname = doi_fname, mz_err = mz_err, rt_err = rt_err, bins = bins, add_db = TRUE, db_thrs = db_thrs)
       message("Template was succesfully built. ")
     }
 
-  object@tmp <- tmp
-  object@samples[object@samples$run_order == 1,"grouped"] <- TRUE
+  object@tmp <- out$tmp
+  object@samples[object@samples$run_order == 1,"aligned"] <- TRUE
   return(object)
 }
 
