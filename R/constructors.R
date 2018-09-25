@@ -61,12 +61,13 @@ buildTMP <- function(file = NULL, db = NULL, mz_err = 0.01, rt_err = 2, bins = 0
     tmp <- read.csv(file = doi_fname, header = T, stringsAsFactors = F)
     } else {
       if (class(db) != "massFlowDB") stop("db must be a 'massFlowDB' class object.")
-      message("Using database and 1st study sample to build template ... ")
+      message("Building template using database and sample: " , doi_fname, "... ")
       out <- addDOI(tmp = db@db, doi_fname = doi_fname, mz_err = mz_err, rt_err = rt_err, bins = bins, add_db = TRUE, db_thrs = db_thrs)
+      tmp <- out$tmp
       message("Template was succesfully built. ")
     }
 
-  object@tmp <- out$tmp
+  object@tmp <- tmp
   object@samples[object@samples$run_order == 1,"aligned"] <- TRUE
   return(object)
 }

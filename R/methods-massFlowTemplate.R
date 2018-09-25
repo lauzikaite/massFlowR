@@ -4,7 +4,7 @@ setMethod("show", signature = "massFlowTemplate", function(object) {
 })
 setMethod("alignSAMPLES",
           signature = "massFlowTemplate",
-          function(object, mz_err = 0.01, rt_err = 2, bins = 0.1) {
+          function(object, mz_err = 0.01, rt_err = 2, bins = 0.01) {
 
             if (class(object) != "massFlowTemplate") stop("db must be a 'massFlowTemplate' class object.")
 
@@ -12,8 +12,8 @@ setMethod("alignSAMPLES",
 
               doi_fname <- checkSAMPLES(object)
               message("Aliging template with sample: ", basename(doi_fname),  "... ")
-              tmp <- addDOI(tmp = object@tmp, doi_fname = doi_fname, mz_err = mz_err, rt_err = rt_err, bins = bins)
-              object@tmp <- tmp
+              out <- addDOI(tmp = object@tmp, doi_fname = doi_fname, mz_err = mz_err, rt_err = rt_err, bins = bins)
+              object@tmp <- out$tmp
               object@samples[object@samples$filepaths == doi_fname,"aligned"] <- TRUE
 
             }
