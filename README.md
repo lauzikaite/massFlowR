@@ -1,5 +1,5 @@
 
-massFlowR
+massflowR
 =========
 
 Package for pre-processing of high-resolution, untargeted, centroid LC-MS data.
@@ -7,20 +7,35 @@ Package for pre-processing of high-resolution, untargeted, centroid LC-MS data.
 Overview
 ========
 
-`massFlowR` implements pre-processing in two major steps:
+`massFlowR` annotates and aligns structurally-related spectral peaks across LC-MS experiment samples. Its pipeline consists of three stages:
 
-1.  Pre-processing of individual datafiles - either in real-time of acquired datafiles one-by-one, or in parallel using backend provided by the `BiocParallel` package:
+Individual samples processing
+-----------------------------
 
--   Datafiles are pick-peaked using the *centWave* algorithm \[package `xcms`\].
--   Picked peaks are grouped into **components**.
--   Components are grouped into **clusters**.
+Each LC-MS file in the experiment is processed independently.
 
-1.  Grouping of picked peaks by sample run order
+-   Chromatographic peak detection is enabled by the *centWave* algorithm from `xcms` package.
+
+-   Grouping of chromatographic peaks originating from the same chemical compound into structurally-related units is performed (see [Peak Grouping](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html)).
+
+Alignment
+---------
+
+To align peaks across all samples in the LC-MS experiment, a peak group alignment algorithm, which compares the overall similarity of peak groups is implemented (see [Peak alignment](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html)). If in-house chemical reference database is available, peaks are annotated during sample alignment (see [Peak annotation](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html)). Sample alignment can be performed in real-time during raw LC-MS file acquisition, mzML conversion and initial processing.
+
+Alignment validation and peak filling
+-------------------------------------
+
+*(under development)*
+
+Once samples are aligned, the obtained peak groups are validated. Intensity values for each peak in a group are correlated across all samples. Correlation estimates are then used to build networks of peaks, that behave similarly across all samples. Peaks exhibiting a different pattern in their intensities are put into a new peak-group.
+
+Finally, for samples, in which a peak from a validated peak-group was not detected, peak-filling is performed. Intensity data is obtained for each missing peak using original LC-MS files. In contrast to `xcms` package, *mz* and *rt* values for intensity integration are estimated for each sample separetely. *mz* and *rt* values are taken from two surrounding samples, in which the peak-of-interest was present, and extrapolated.
 
 Installation
 ============
 
 ``` r
 # For devel version
-devtools::install_github("lauzikaite/massFlowR")
+devtools::install_github("lauzikaite/massflowR")
 ```
