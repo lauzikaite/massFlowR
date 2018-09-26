@@ -42,33 +42,44 @@ buildDB <- function(file = NULL){
 #' @examples
 buildTMP <- function(file = NULL, db = NULL, mz_err = 0.01, rt_err = 2, bins = 0.1, db_thrs = 0.5) {
 
-  ## check and add filepaths to template object
   if (is.null(file)) stop("'file' is required")
   if (!file.exists(file)) stop("incorrect filepath for 'file' provided")
 
   samples <- read.csv(file, header = T, stringsAsFactors = F)
-  if (any(!c("filepaths", "run_order") %in% names(samples))) stop("files must contain columns 'filepaths' and 'run_order'")
   samples[,"aligned"] <- FALSE
+  if (any(!c("filepaths", "run_order") %in% names(samples))) stop("files must contain columns 'filepaths' and 'run_order'")
+  if (any(!file.exists(samples$filepaths))) stop("filepaths provided in the table 'file' are not correct")
 
   object <- new("massFlowTemplate")
   object@filepath <- file
+  object@db_filepath <- ifelse(is.null(db), "not used", db@filepath)
   object@samples <- samples
 
   doi_fname <- object@samples$filepaths[object@samples$run_order == 1]
 
   if (is.null(db)) {
-    message("db is not defined. \n Using 1st study sample to build template ... ")
-    tmp <- read.csv(file = doi_fname, header = T, stringsAsFactors = F)
+    message(paste("db is not defined. Building template using sample:" , basename(doi_fname), "..."))
+    tmp <- checkFILE(file = doi_fname)
+    doi <- getCLUSTS(dt = tmp) %>%
+      mutate(tmp_peakid = peakid, tmp_peakgr = peakgr, new_mz = mz, new_rt = rt, chemid = NA, dbid = NA, dbname = NA, cos = NA)
+    write.csv(doi, file = gsub(".csv", "_aligned.csv", doi_fname), quote = T, row.names = F) ## quote = T to preserve complex DB entries with "-"
+    tmp <- tmp %>%
+      select(peakid, mz, rt, into, peakgr) %>%
+      mutate(chemid = NA, dbid = NA, dbname = NA)
+
     } else {
-      if (class(db) != "massFlowDB") stop("db must be a 'massFlowDB' class object.")
-      message("Building template using database and sample: " , doi_fname, "... ")
+      if (class(db) != "massFlowDB") stop("db must be a 'massFlowDB' class object")
+      message(paste("Building template using database and sample:" , basename(doi_fname), "..."))
       out <- addDOI(tmp = db@db, doi_fname = doi_fname, mz_err = mz_err, rt_err = rt_err, bins = bins, add_db = TRUE, db_thrs = db_thrs)
       tmp <- out$tmp
-      message("Template was succesfully built. ")
+      doi <- out$doi
+      message("Template was succesfully built.")
     }
 
   object@tmp <- tmp
   object@samples[object@samples$run_order == 1,"aligned"] <- TRUE
+  object@data[[doi_fname]] <- doi
+
   return(object)
 }
 

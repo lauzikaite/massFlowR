@@ -14,8 +14,8 @@ test_that("Selection of top matches via compareCLUSTERS() is correct", {
   expect_error(top <- compareCLUSTERS(matcos = matcos, add_db = F), "identical cosines were found!")
 
   ## 1-1 is top pair by rank
-  ## 2-2 is second best for tmp peakgr and 1st best for target peakgr
-  ## 3-3 is third best for tmp peakgr and 1st best for target peakgr
+  ## 2-2 is second best for target peakgr (choosing from what is left unassigned)
+  ## 3-3 is third best for target peakgr (choosing from what is left unassigned)
   cos_list <- seq(from = 0.1, to = 1, length.out = 9)
   cos_list <- cos_list[c(9,6,3, 8,5,2, 7,4,1)]
   matcos <- matcos %>%

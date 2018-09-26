@@ -1,10 +1,22 @@
-addCOLS <- function(dt, cname) {
-  add <-cname[!cname %in% names(dt)]
-  if (length(add) != 0) dt[add] <- NA
-  return(dt)
+####---- Check and load file for alignment
+checkFILE <- function(file = NULL) {
+  if (!file.exists(file)) stop("incorrect filepath for: ", file)
+  doi <- read.csv(file, stringsAsFactors = F)
+  required_colnames <- c("peakid", "mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax", "into", "peakgr")
+  if (any(!required_colnames %in% colnames(doi))) {
+    stop("file ", file, "is missing columns: \n",
+         paste0(required_colnames[which(!required_colnames %in% colnames(dt))], collapse = ", "))
+  }
+  return(doi)
 }
 
 
+####---- add columns to dataframe, fill with NA
+addCOLS <- function(dt, cname) {
+  add <- cname[!cname %in% names(dt)]
+  if (length(add) != 0) dt[add] <- NA
+  return(dt)
+}
 
 ####---- get peakgroup clusters based on rt values
 ## requires columns 'peakgr','peakid','rt'
@@ -72,25 +84,7 @@ matchPEAK <- function(p, dt) {
     mutate(target_peakid = p$peakid, target_peakgr = p$peakgr) %>%
     mutate(target_peakgrcls = p$peakgrcls) %>%
     select(target_peakid, target_peakgr, names(dt))
-    # select(target_peakid, target_peakgr, target_peakgrcls, peakid, peakgr, peakgrcls, mz, rt, into)
-
   return(mat)
-
-}
-
-####---- Prepare datafile-of-interest for alignmemt
-getDOI <- function(file = NULL) {
-  if (is.null(file)) stop("file is required")
-  if (!file.exists(file)) stop("incorrect filepath in the provided.\n")
-  doi <- read.csv(file, stringsAsFactors = F)
-  required_colnames <- c("peakid", "mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax", "into", "peakgr")
-  if (any(!required_colnames %in% colnames(doi))) {
-    stop("file is missing columns: ",
-         paste0(required_colnames[which(!required_colnames %in% colnames(dt))], collapse = ", "))
-  }
-
-  doi <- getCLUSTS(dt = doi)
-  return(doi)
 }
 
 ####---- compare all matched template's peaks and find the top matches for every target peakgroup
@@ -220,11 +214,13 @@ compareCLUSTERS <- function(matcos, add_db, db_thrs) {
 
    ## convert to ranks based on cosine
    mattop <- mattop %>%
-     ## if pairs with the highest cosine have identical cosines (only possible when running with simulated datasets), mark for further evaluation
+     ## if pairs with the highest cosine have identical cosines (only possible when running with simulated datasets, to be investigated)
      add_count(cos) %>%
      mutate(duplicated = ifelse(
        n > 1 & cos == max(cos), T, F))
-   if (any(mattop$duplicated == "TRUE")) { stop("identical cosines were found!") }
+   if (any(mattop$duplicated == "TRUE")) {
+     stop("identical cosines were found!")
+   }
 
    ## (A) extract top pairs - each peakgr in the pair are ranked as 1 to each other
    mattop <- mattop %>%
@@ -233,7 +229,7 @@ compareCLUSTERS <- function(matcos, add_db, db_thrs) {
      mutate(template_rank = row_number(desc(cos))) %>%
      group_by(target_peakgr) %>%
      mutate(target_rank = row_number(desc(cos))) %>%
-     ## for each target_peakgr, take the top match (if available)
+     ## for each target peakgr, take the top match (if available)
      group_by(target_peakgr) %>%
      mutate(top_rank =
               if (any(template_rank == 1 & target_rank == 1)) {
@@ -245,12 +241,10 @@ compareCLUSTERS <- function(matcos, add_db, db_thrs) {
      ## for each tmp peakgr, mark if top was assigned, if not, mark top = NA
      group_by(peakgr) %>%
      mutate(top = if (any(na.omit(top_rank) == TRUE)) {
-       ifelse(!is.na(top_rank),
-              ifelse(top_rank == TRUE, TRUE, FALSE),
-              FALSE)
-     } else {
-       NA
-     })
+       ifelse(!is.na(top_rank), ifelse(top_rank == TRUE, TRUE, FALSE), FALSE)
+       } else {
+         NA
+       })
 
    ## (B) extract next best pairs, by taking the pair with the highest cosine among the remaining tmp peakgr
    while (any(is.na(mattop$top))) {
