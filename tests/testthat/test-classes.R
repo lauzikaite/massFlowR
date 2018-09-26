@@ -37,12 +37,13 @@ test_that("initialise massFlowTemplate class object with DB", {
   expect_true(class(tmp) == "massFlowTemplate")
   expect_equal(tmp@samples$filepaths, studyfiles$filepaths)
 
-  expected_peakgrs <- data.frame(peakgr = c(1,2,3),
-                                 doi_peakgr = c(1,8,10), stringsAsFactors = F)
-  obtained_peakgrs <- tmp@tmp %>%
+  expected_peakgrs <- data.frame(peakgr = c(1,8,10),
+                                 tmp_peakgr = c(1,2,3),
+                                 stringsAsFactors = F)
+  obtained_peakgrs <- tmp@data[[1]] %>%
     filter(!is.na(cos)) %>%
-    distinct(peakgr, doi_peakgr) %>%
-    arrange(peakgr)
+    distinct(tmp_peakgr, peakgr) %>%
+    arrange(tmp_peakgr)
 
   expect_equal(expected_peakgrs, obtained_peakgrs)
 })

@@ -9,7 +9,6 @@
 #' Database "peakid" and "peakgr" values will retain unmodified in the template, while every sample in the study will be aligned with them.
 #'
 #' @slot db A \code{data.frame} containing database template. Template must contain
-#' @return
 #' @export
 #'
 #' @examples
@@ -34,7 +33,6 @@ setClass("massFlowDB",
 #' Each study sample must be processed with \code{\link{groupPEAKS}} function first in order to obtain spectral peak groups.
 #' With every round of sample alignment & annotation, template is updated and an intermediate sample alignment output is written as a csv file.
 #'
-#' @return
 #' @export
 #'
 #' @examples

@@ -4,7 +4,7 @@
 \alias{checkSPIKED}
 \title{Function to find and plot peaks corresponding to spiked reference compounds}
 \usage{
-checkSPIKED(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams = T,
+checkSPIKED(fname, pks, raw, spk, out_dir, cwt, add_xcmsparams = T,
   rt_err = 3, mz_err = 0.005)
 }
 \arguments{
@@ -18,9 +18,9 @@ checkSPIKED(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams = T,
 
 \item{out_dir}{A \code{character} specifying directory where output data will be saved.}
 
-\item{paramCWT}{A \code{CentWaveParam} class object with \emph{centWave} parameters that were used to peak-pick the sample of interest. Object can be created by the \emph{xcms::CentWaveParam} function.}
+\item{cwt}{A \code{CentWaveParam} class object with \emph{centWave} parameters that were used to peak-pick the sample of interest. Object can be created by the \emph{xcms::CentWaveParam} function.}
 
-\item{add_xcmsparams}{A \code{logical} whether \emph{centWave} parameters should be added to the plot.}
+\item{add_xcmsparams}{A \code{logical} whether \emph{centWave} parameters should be added to the plot. Default set to TRUE.}
 
 \item{rt_err}{A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 3 (sec).}
 

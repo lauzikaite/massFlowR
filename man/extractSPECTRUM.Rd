@@ -2,12 +2,12 @@
 % Please edit documentation in R/functions-checkSPIKED.R
 \name{extractSPECTRUM}
 \alias{extractSPECTRUM}
-\title{Extract EIC for a peak-of-interest using its range of mz and rt values}
+\title{Extract EIC for a chromatographic peak-of-interest using its mz and rt values}
 \usage{
 extractSPECTRUM(co, raw)
 }
 \arguments{
-\item{co}{A \code{DataFrame} containing rtmin, rtmax, mzmin and mzmax values for peak EIC extraction. Must also include columns 'pno' and 'pair'.}
+\item{co}{A \code{DataFrame} containing rtmin, rtmax, mzmin and mzmax values for peak EIC extraction. Must also include column 'peakid'.}
 
 \item{raw}{A \code{OnDiskMSnExp} class object for the spectrum-of-interest.}
 }
@@ -15,5 +15,5 @@ extractSPECTRUM(co, raw)
 Function returns \code{DataFrame} containing intensity value for each scan in the desired mz/rt range.
 }
 \description{
-Extract EIC for a peak-of-interest using its range of mz and rt values
+Extract EIC for a chromatographic peak-of-interest using its mz and rt values
 }
