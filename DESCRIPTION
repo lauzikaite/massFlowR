@@ -1,8 +1,8 @@
 Package: massFlowR
 Version: 1.0
-Date: 2018-08-23
+Date: 2018-09-26
 Title: LC-MS Data Pre-Processing
-Description: massFlowR performs peak-picking, feature grouping and retention time correction for high-throughput LC-MS experiments.
+Description: massFlowR performs peak-picking, peak alignment and annotation for high-throughput LC-MS experiments.
 Authors@R: person("Elzbieta", "Lauzikaite", email = "e.lauzikaite14@imperial.ac.uk", role = c("aut", "cre"))
 License: GPL-2
 Encoding: UTF-8
@@ -10,13 +10,17 @@ LazyData: true
 ByteCompile: true
 Depends:
     R (>= 3.4.3),
-    dplyr,
-    ggplot2
+    dplyr
 Imports:
     xcms (>= 3.0.0),
     faahKO,
     igraph,
     MSnbase,
+    ggplot2
 RoxygenNote: 6.1.0
-Suggests: 
-    testthat
+Suggests:
+    grid,
+    testthat,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

@@ -9,7 +9,6 @@
 #' Database "peakid" and "peakgr" values will retain unmodified in the template, while every sample in the study will be aligned with them.
 #'
 #' @slot db A \code{data.frame} containing database template. Template must contain
-#' @return
 #' @export
 #'
 #' @examples
@@ -22,9 +21,11 @@ setClass("massFlowDB",
 
 #' Sample alignment and annotation template.
 #'
-#' @slot filepath A \code{character} specifying path to a csv file with details on study sample names and their acquisition (run) order.
-#' @slot samples A \code{data.frame} stores the "filepath" table.
-#' @slot tmp A \code{data.frame} stores sample alignment and annotation template.
+#' @slot filepath A \code{character} specifying the absolute path to a \code{csv} file with study sample names and their acquisition (run) order.
+#' @slot db_filepath A \code{character} specifying the absolute path to the database \code{csv} file (if was used in the template built).
+#' @slot samples A \code{data.frame} storing study sample names and their acquisition order.
+#' @slot tmp A \code{data.frame} storing sample alignment and annotation template.
+#' @slot data A \code{list} containg annotated and aligned peak tables for the already processed samples.
 #'
 #' @details \code{massFlowTemplate} object stores the sample alignment and annotation template.
 #' Template is initiated using the first datafile in the study and (if provided) the chemical reference database (\code{massFlowDB} object).
@@ -32,12 +33,13 @@ setClass("massFlowDB",
 #' Each study sample must be processed with \code{\link{groupPEAKS}} function first in order to obtain spectral peak groups.
 #' With every round of sample alignment & annotation, template is updated and an intermediate sample alignment output is written as a csv file.
 #'
-#' @return
 #' @export
 #'
 #' @examples
 setClass("massFlowTemplate",
          slots = c(
            filepath = "character",
+           db_filepath = "character",
            samples = "data.frame",
-           tmp = "data.frame"))
+           tmp = "data.frame",
+           data = "list"))

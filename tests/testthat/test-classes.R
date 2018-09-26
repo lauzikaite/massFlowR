@@ -2,7 +2,7 @@ context("data classes")
 
 test_that("initialise massFlowDB class object", {
 
-  db <- massFlowDB(file = db_fname)
+  db <- buildDB(file = db_fname)
   db_table <- read.csv(file = db_fname, header = T, stringsAsFactors = F)
 
   # Check object values
@@ -16,7 +16,7 @@ test_that("initialise massFlowDB class object", {
 
 test_that("initialise massFlowTemplate class object", {
 
-  tmp <- massFlowTemplate(file = study_files)
+  tmp <- buildTMP(file = study_files)
   studyfiles <- read.csv(file = study_files, header = T, stringsAsFactors = F)
   tmp_table <- read.csv(studyfiles$filepaths[1], header = T, stringsAsFactors = F)
 
@@ -28,8 +28,8 @@ test_that("initialise massFlowTemplate class object", {
 
 test_that("initialise massFlowTemplate class object with DB", {
 
-  db <- massFlowDB(file = db_fname)
-  tmp <- massFlowTemplate(file = study_files, db = db, rt_err = 10)
+  db <- buildDB(file = db_fname)
+  tmp <- buildTMP(file = study_files, db = db, rt_err = 10)
   studyfiles <- read.csv(file = study_files, header = T, stringsAsFactors = F)
   tmp_table <- read.csv(studyfiles$filepaths[1], header = T, stringsAsFactors = F)
 
@@ -37,12 +37,13 @@ test_that("initialise massFlowTemplate class object with DB", {
   expect_true(class(tmp) == "massFlowTemplate")
   expect_equal(tmp@samples$filepaths, studyfiles$filepaths)
 
-  expected_peakgrs <- data.frame(peakgr = c(1,2,3),
-                                 doi_peakgr = c(1,8,10), stringsAsFactors = F)
-  obtained_peakgrs <- tmp@tmp %>%
+  expected_peakgrs <- data.frame(peakgr = c(1,8,10),
+                                 tmp_peakgr = c(1,2,3),
+                                 stringsAsFactors = F)
+  obtained_peakgrs <- tmp@data[[1]] %>%
     filter(!is.na(cos)) %>%
-    distinct(peakgr, doi_peakgr) %>%
-    arrange(peakgr)
+    distinct(tmp_peakgr, peakgr) %>%
+    arrange(tmp_peakgr)
 
   expect_equal(expected_peakgrs, obtained_peakgrs)
 })

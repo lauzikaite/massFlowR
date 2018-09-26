@@ -17,10 +17,14 @@ With every round of sample alignment & annotation, template is updated and an in
 \section{Slots}{
 
 \describe{
-\item{\code{filepath}}{A \code{character} specifying path to a csv file with details on study sample names and their acquisition (run) order.}
+\item{\code{filepath}}{A \code{character} specifying the absolute path to a \code{csv} file with study sample names and their acquisition (run) order.}
 
-\item{\code{samples}}{A \code{data.frame} stores the "filepath" table.}
+\item{\code{db_filepath}}{A \code{character} specifying the absolute path to the database \code{csv} file (if was used in the template built).}
 
-\item{\code{tmp}}{A \code{data.frame} stores sample alignment and annotation template.}
+\item{\code{samples}}{A \code{data.frame} storing study sample names and their acquisition order.}
+
+\item{\code{tmp}}{A \code{data.frame} storing sample alignment and annotation template.}
+
+\item{\code{data}}{A \code{list} containg annotated and aligned peak tables for the already processed samples.}
 }}
 

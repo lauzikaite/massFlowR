@@ -40,7 +40,7 @@ pickPEAKS <- function(raw, cwt, fname, out_dir) {
     mutate(peakid = row_number()) %>%
     data.frame()
 
-  write.csv(pks, file = paste0(out_dir, "/", fname, "_peaks.csv"), quote = F, row.names = F)
+  # write.csv(pks, file = paste0(out_dir, "/", fname, "_peaks.csv"), quote = F, row.names = F)
 
   return(pks)
 

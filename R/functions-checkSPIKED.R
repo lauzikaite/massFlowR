@@ -5,8 +5,8 @@
 #' @param raw A \code{OnDiskMSnExp} class object for the spiked sample's spectrum, created by the \emph{MSnbase::readMSData} function.
 #' @param spk A \code{DataFrame} containing information about spiked reference compounds, each row is a unique compound.
 #' @param out_dir A \code{character} specifying directory where output data will be saved.
-#' @param paramCWT A \code{CentWaveParam} class object with \emph{centWave} parameters that were used to peak-pick the sample of interest. Object can be created by the \emph{xcms::CentWaveParam} function.
-#' @param add_xcmsparams A \code{logical} whether \emph{centWave} parameters should be added to the plot.
+#' @param cwt A \code{CentWaveParam} class object with \emph{centWave} parameters that were used to peak-pick the sample of interest. Object can be created by the \emph{xcms::CentWaveParam} function.
+#' @param add_xcmsparams A \code{logical} whether \emph{centWave} parameters should be added to the plot. Default set to TRUE.
 #' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 3 (sec).
 #' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.005.
 #'
@@ -14,7 +14,7 @@
 #' @export
 #'
 #' @examples
-checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams = T, rt_err = 3, mz_err = 0.005) {
+checkSPIKED <- function(fname, pks, raw, spk, out_dir, cwt, add_xcmsparams = T, rt_err = 3, mz_err = 0.005) {
 
   ## extract integration values for the datafile of interest
   spk_vals <- spk[,c(match(fname,  colnames(spk)))]
@@ -24,23 +24,22 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams 
 
   for(i in 1:nrow(spk)) {
 
-    ### extract EIC for the MR compound based on targetlynx values
+    ### extract EIC for the compound based on targetlynx values
     mr <- data.frame(mzmin = as.numeric(spk[i,"mz"]) - mz_err,
                      mzmax = as.numeric(spk[i,"mz"]) + mz_err,
                      rtmin = as.numeric(spk[i,"rt_min"])*60 - rt_err,
                      rtmax = as.numeric(spk[i,"rt_max"])*60 + rt_err,
-                     pno = "spiked", # color by pno
+                     peakid = "spiked", # color by peakid
                      pair = 1, # facet_grid by pair nmrumber
                      stringsAsFactors = F)
 
-    spec <-  massFlowR::extractSPECTRUM(co = mr, raw = raw)
+    spec <-  extractSPECTRUM(co = mr, raw = raw)
 
     ## find corresponding peak in the peak table
     pks_match <- pks %>%
       filter(between(rt, mr$rtmin, mr$rtmax)) %>%
       filter(between(mz, mr$mzmin, mr$mzmax)) %>%
-      mutate(pair = 1) %>%
-      rename(pno = dplyr::matches("order_ID|pid|pno")) ## in case old version peak tables are to be used
+      mutate(pair = 1)
 
     ###--- if single match in the peak table was found
     if (nrow(pks_match) == 1) {
@@ -48,7 +47,7 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams 
       message("Single match for compound: ", spk[i,"formula"], ", i = ", i)
 
       ## extract EIC for the corresponding peak using peak's mz and rt range
-      spec_pks <- massFlowR::extractSPECTRUM(co = pks_match, raw = raw)
+      spec_pks <- extractSPECTRUM(co = pks_match, raw = raw)
       spec <- rbind(spec, spec_pks)
       gtitle <- paste0(spk[i,"name"], ": peak was picked")
 
@@ -58,7 +57,7 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams 
 
         message("No match for compound: ", spk[i,"formula"], ", i = ", i)
 
-        pks_match <- data.frame(pno = NA, mz = NA, rt = NA, into = NA, stringsAsFactors = F)
+        pks_match <- data.frame(peakid = NA, mz = NA, rt = NA, into = NA, stringsAsFactors = F)
         gtitle <- paste0(spk[i,"name"], ": peak was NOT picked")
 
       } else {
@@ -68,7 +67,7 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams 
         ## if more than one match, take the peak closest in rt
         rt_close <- which(abs(pks_match$rt - spk[i,"rt"])  == min(abs(pks_match$rt - spk[i,"rt"])))
         pks_match <- pks_match[rt_close,]
-        spec_pks <- massFlowR::extractSPECTRUM(co = pks_match, raw = raw)
+        spec_pks <- extractSPECTRUM(co = pks_match, raw = raw)
         spec <- rbind(spec, spec_pks)
         gtitle <- paste0(spk[i,"name"], ": more than one peak picked, closest match")
 
@@ -78,29 +77,29 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams 
     ###---- universal part for plotting and output
     ## named vector for set color generation, so that "spiked" is always purple, despite how many peaks
     cols <- setNames(viridis::viridis(end = 0.8, alpha = 0.8,
-                                      n = length(unique(spec$pno))),
-                     nm = c("spiked", spec %>% filter(pno != "spiked") %>% distinct(pno) %>% pull()))
+                                      n = length(unique(spec$peakid))),
+                     nm = c("spiked", spec %>% filter(peakid != "spiked") %>% distinct(peakid) %>% pull()))
 
-    g <- ggplot(data = spec) +
-      geom_segment(aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = pno), na.rm = TRUE) +
-      geom_point(aes(x = rtime, y = intensity, colour = pno), na.rm = TRUE) +
-      scale_color_manual(values = cols, name = "") +
-      ylab("Intensity") +
-      xlab("Retention time") +
-      ggtitle(gtitle) +
-      theme_bw() +
-      theme(plot.title = element_text(hjust = 0.5)) +
-      theme(legend.position = "bottom")
+    g <- ggplot2::ggplot(data = spec) +
+      ggplot2::geom_segment(aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = peakid), na.rm = TRUE) +
+      ggplot2::geom_point(aes(x = rtime, y = intensity, colour = peakid), na.rm = TRUE) +
+      ggplot2:: scale_color_manual(values = cols, name = "") +
+      ggplot2::ylab("Intensity") +
+      ggplot2::xlab("Retention time") +
+      ggplot2::ggtitle(gtitle) +
+      ggplot2::theme_bw() +
+      ggplot2::theme(plot.title = element_text(hjust = 0.5)) +
+      ggplot2::theme(legend.position = "bottom")
 
-    if (add_xcmsparams == T & !missing(paramCWT)) {
+    if (add_xcmsparams == T & !missing(cwt)) {
         g <- g +
-          geom_hline(aes(yintercept = paramCWT@prefilter[2],
-                         linetype = paste0("Prefilter: c(", paramCWT@prefilter[1], "," , paramCWT@prefilter[2], ")")),
+          ggplot2::geom_hline(aes(yintercept = cwt@prefilter[2],
+                         linetype = paste0("Prefilter: c(", cwt@prefilter[1], "," , cwt@prefilter[2], ")")),
                      colour= "#1b7837") +
-          geom_hline(aes(yintercept = paramCWT@noise,
-                         linetype = paste("Noise:", paramCWT@noise)),
+          ggplot2::geom_hline(aes(yintercept = cwt@noise,
+                         linetype = paste("Noise:", cwt@noise)),
                      colour= '#762a83') +
-          scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
+          ggplot2::scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
                                 guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837"))))
         }
 
@@ -115,7 +114,7 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams 
                         # spiked_molw = spk[i,"mol_weight"],
                         spiked_mz = spk[i,"mz"],
                         spiked_rt = spk[i,"rt"],
-                        pks_id = pks_match$pno,
+                        pks_id = pks_match$peakid,
                         pks_mz = pks_match$mz,
                         pks_rt = pks_match$rt,
                         pks_into = pks_match$into,
@@ -134,30 +133,13 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, paramCWT, add_xcmsparams 
 ## check list pf pre-selected peaks (can be all from one COMP, can be simply co-eluting, can be from same CLS)
 ## build correlation  network
 ## for selected pairs of the network, plot spectra and output cor values and MZ differences
-checkPEAKS <- function(pks_mat, pks, spiked, spiked_p, eic, raw, out_dir, paramCWT, add_xcmsparams = F, thr = 0.95, use_thr = T) {
+checkPEAKS <- function(pks_mat, pks, spiked, spiked_p, eic, raw, out_dir, cwt, add_xcmsparams = F, thr = 0.95, use_thr = T) {
 
   ## get cor values between all co-eluting peaks, pair-wise
-  pks_mat <- pks_mat %>%
-    rename(pno = dplyr::matches("order_ID|pid|pno"))
+  peakid_all <- pks_mat  %>%
+    pull(peakid)
 
-  pno_all <- pks_mat  %>%
-    pull(pno)
-
-  pks_cor <- buildCOR(co_ind = pno_all, eic = eic, pearson = T)
-
-  ## if only peaks above cor threshold is desired
-  # if (use_thr == T) {
-  #   pks_cor  <- pks_cor %>%
-  #     filter(cor > thr)
-  #   ## update peak numbers
-  #   pno_all <- pks_cor %>%
-  #     select(x,y) %>%
-  #     pull() %>%
-  #     unique()
-  #   ## update peak table
-  #   pks_mat <- pks_mat %>%
-  #     filter(pno %in% pno_all)
-  # }
+  pks_cor <- buildCOR(co_ind = peakid_all, eic = eic, pearson = T)
 
   ## for every peak-pair, extract cor and mz_diff
   pks_cor_mz <- pks_cor %>%
@@ -166,23 +148,23 @@ checkPEAKS <- function(pks_mat, pks, spiked, spiked_p, eic, raw, out_dir, paramC
     mutate(x_y = paste(min(c(x, y)), max(c(x, y)), sep = "_")) %>%
     group_by(x_y) %>%
     slice(1) %>%
-    mutate(mz_x = pks_mat %>% filter(pno == x) %>% pull(mz),
-           mz_y = pks_mat %>% filter(pno == y) %>% pull(mz)) %>%
+    mutate(mz_x = pks_mat %>% filter(peakid == x) %>% pull(mz),
+           mz_y = pks_mat %>% filter(peakid == y) %>% pull(mz)) %>%
     mutate(mz_dif = round(abs(mz_x - mz_y), digits = 2)) %>%
     ungroup()
 
-  ## extract EIC values for every pno
+  ## extract EIC values for every peakid
   spec <- pks_mat %>%
-    group_by(pno) %>%
+    group_by(peakid) %>%
     do(extractSPECTRUM(co = ., raw = raw)) %>%
     ungroup()
 
   ## plot all peaks in one
   ## labels will be mz, color order also mz
   spec <- spec %>%
-    rename(spec_pno = pno) %>%
-    group_by(spec_pno) %>%
-    mutate(mz = pks_mat %>% filter(pno %in% spec_pno) %>% distinct(mz) %>% pull() %>% round(., digits = 3)) %>%
+    rename(spec_peakid = peakid) %>%
+    group_by(spec_peakid) %>%
+    mutate(mz = pks_mat %>% filter(peakid %in% spec_peakid) %>% distinct(mz) %>% pull() %>% round(., digits = 3)) %>%
     arrange(mz)
 
   colors <- setNames(viridis::viridis(end = 0.9, ## avoid bright yellow
@@ -190,27 +172,25 @@ checkPEAKS <- function(pks_mat, pks, spiked, spiked_p, eic, raw, out_dir, paramC
                                       n = length(unique(spec$mz))),
                               nm = spec %>% distinct(mz) %>% pull())
 
-  g <- ggplot(data = spec) +
-    geom_segment(aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(mz)), na.rm = TRUE) +
-    geom_point(aes(x = rtime, y = intensity, colour = as.factor(mz)), na.rm = TRUE) +
-    # scale_color_viridis_d(name = "Peak mz", end = 0.9) +
-    scale_color_manual(values = colors,
+  g <- ggplot2::ggplot(data = spec) +
+    ggplot2::geom_segment(aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(mz)), na.rm = TRUE) +
+    ggplot2::geom_point(aes(x = rtime, y = intensity, colour = as.factor(mz)), na.rm = TRUE) +
+    ggplot2::scale_color_manual(values = colors,
                        name = "Peak mz") +
-    ylab("Intensity") +
-    xlab("Retention time") +
-    theme_bw() +
-    theme(plot.title = element_text(hjust = 0.5))
+    ggplot2::ylab("Intensity") +
+    ggplot2::xlab("Retention time") +
+    ggplot2::theme_bw() +
+    ggplot2::theme(plot.title = element_text(hjust = 0.5))
 
   grid::grid.newpage()
   pdf(width = 8, height = 8,
-      file = paste0(out_dir, "/", fname, "_peaks-",paste0(pks_mat$pno, collapse = "-"),  ".pdf"))
+      file = paste0(out_dir, "/", fname, "_peaks-",paste0(pks_mat$peakid, collapse = "-"),  ".pdf"))
   grid::grid.draw(rbind(ggplotGrob(g), size = "last"))
   dev.off()
 
   buildNETWORK(poi_co_cor = pks_cor,
-               peakgroups = pks_mat %>% rename(peakid = dplyr::matches("order_ID|pid|pno"),
-                                               peakgr = dplyr::matches("comp")), # for newest version
-               co_ind = pno_all,
+               peakgroups = pks_mat,
+               co_ind = peakid_all,
                thr = thr,
                pks = pks,
                p = spiked_p,
@@ -220,52 +200,47 @@ checkPEAKS <- function(pks_mat, pks, spiked, spiked_p, eic, raw, out_dir, paramC
                return = F,
                colors = colors)
 
-  # g <- pks_cor_mz %>%
-  #   group_by(x,y) %>%
-  #   mutate(gtitle = paste0("Cor: ", round(cor, digits = 2), ". MZ diff: ", mz_dif)) %>%
-  #   do(plotPEAKpair(pair = ., spec = spec, spiked = spiked, add_xcmsparams = T, paramCWT = paramCWT, out_dir = out_dir, fname = fname))
-
  return(pks_cor_mz)
 }
 
-plotPEAKpair <- function(pair, spiked, spec, add_xcmsparams, paramCWT, out_dir, fname){
+plotPEAKpair <- function(pair, spiked, spec, add_xcmsparams, cwt, out_dir, fname){
 
   ## extract pair of interest
   spec <- spec %>%
-    filter(pno == pair$x | pno == pair$y)
+    filter(peakid == pair$x | peakid == pair$y)
 
   if (spiked == T) {
     spec <- spec %>%
-      mutate(pno = ifelse(pno == spiked_p, "spiked", pno))
+      mutate(peakid = ifelse(peakid == spiked_p, "spiked", peakid))
   }
 
   cols <- setNames(viridis::viridis(end = 0.8, alpha = 0.8,
-                                    n = length(unique(spec$pno))),
-                   nm = if (spiked == T & "spiked" %in% spec$pno) {
-                     c("spiked", spec %>% filter(pno != "spiked") %>% distinct(pno) %>% pull()) } else {
-                       c(spec %>% filter(pno != "spiked") %>% distinct(pno) %>% pull()) }
+                                    n = length(unique(spec$peakid))),
+                   nm = if (spiked == T & "spiked" %in% spec$peakid) {
+                     c("spiked", spec %>% filter(peakid != "spiked") %>% distinct(peakid) %>% pull()) } else {
+                       c(spec %>% filter(peakid != "spiked") %>% distinct(peakid) %>% pull()) }
   )
 
-  g <- ggplot(data = spec) +
-    geom_segment(aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(pno)), na.rm = TRUE) +
-    geom_point(aes(x = rtime, y = intensity, colour = as.factor(pno)), na.rm = TRUE) +
-    scale_color_manual(values = cols, name = "") +
-    ylab("Intensity") +
-    xlab("Retention time") +
-    ggtitle(pair$gtitle) +
-    theme_bw() +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    theme(legend.position = "bottom")
+  g <- ggplot2::ggplot(data = spec) +
+    ggplot2::geom_segment(aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(peakid)), na.rm = TRUE) +
+    ggplot2::geom_point(aes(x = rtime, y = intensity, colour = as.factor(peakid)), na.rm = TRUE) +
+    ggplot2::scale_color_manual(values = cols, name = "") +
+    ggplot2::ylab("Intensity") +
+    ggplot2::xlab("Retention time") +
+    ggplot2::ggtitle(pair$gtitle) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(plot.title = element_text(hjust = 0.5)) +
+    ggplot2::theme(legend.position = "bottom")
 
-  if (add_xcmsparams == T & !missing(paramCWT)) {
+  if (add_xcmsparams == T & !missing(cwt)) {
     g <- g +
-      geom_hline(aes(yintercept = paramCWT@prefilter[2],
-                     linetype = paste0("Prefilter: c(", paramCWT@prefilter[1], "," , paramCWT@prefilter[2], ")")),
+      ggplot2::geom_hline(aes(yintercept = cwt@prefilter[2],
+                     linetype = paste0("Prefilter: c(", cwt@prefilter[1], "," , cwt@prefilter[2], ")")),
                  colour= "#1b7837") +
-      geom_hline(aes(yintercept = paramCWT@noise,
-                     linetype = paste("Noise:", paramCWT@noise)),
+      ggplot2::geom_hline(aes(yintercept = cwt@noise,
+                     linetype = paste("Noise:", cwt@noise)),
                  colour= '#762a83') +
-      scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
+      ggplot2::scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
                             guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837"))))
   }
 
@@ -278,9 +253,9 @@ plotPEAKpair <- function(pair, spiked, spec, add_xcmsparams, paramCWT, out_dir, 
   return(spec)
 }
 
-#' Extract EIC for a peak-of-interest using its range of mz and rt values
+#' Extract EIC for a chromatographic peak-of-interest using its mz and rt values
 #'
-#' @param co A \code{DataFrame} containing rtmin, rtmax, mzmin and mzmax values for peak EIC extraction. Must also include columns 'pno' and 'pair'.
+#' @param co A \code{DataFrame} containing rtmin, rtmax, mzmin and mzmax values for peak EIC extraction. Must also include column 'peakid'.
 #' @param raw A \code{OnDiskMSnExp} class object for the spectrum-of-interest.
 #'
 #' @return Function returns \code{DataFrame} containing intensity value for each scan in the desired mz/rt range.
@@ -295,7 +270,7 @@ extractSPECTRUM <- function(co, raw) {
 
   spec <- data.frame(rtime = as.numeric(xcms::rtime(eic_co[1])),
              intensity = as.numeric(xcms::intensity(eic_co[1]))) %>%
-    mutate(pno = co$pno)
+    mutate(peakid = co$peakid)
 
   return(spec)
 
