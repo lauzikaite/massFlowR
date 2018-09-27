@@ -5,7 +5,7 @@ massFlowR_dir <- file.path(system.file("tests",package="massFlowR"), "objects")
 dir.create(massFlowR_dir)
 
 ####---- xcms and MSnbase objects
-paramCWT <- xcms::CentWaveParam(ppm = 25,
+cwt <- xcms::CentWaveParam(ppm = 25,
                                 snthresh = 10,
                                 noise = 1000,
                                 prefilter =  c(3, 100),
@@ -14,7 +14,7 @@ paramCWT <- xcms::CentWaveParam(ppm = 25,
                                 fitgauss = FALSE,
                                 verboseColumns = TRUE)
 faahko_raw <-  MSnbase::readMSData(files = faahko_file, mode = "onDisk")
-faahko_chrom <- xcms::findChromPeaks(object = faahko_raw, param = paramCWT)
+faahko_chrom <- xcms::findChromPeaks(object = faahko_raw, param = cwt)
 faahko_pks <- data.frame(xcms::chromPeaks(faahko_chrom))
 faahko_pks_rd <- faahko_pks %>%
   arrange(desc(into)) %>% ## arrange by peak intensity and give a peak number

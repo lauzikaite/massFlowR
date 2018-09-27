@@ -2,7 +2,7 @@ context("groupPEAKS_paral")
 
 test_that("Functions used by groupPEAKS_paral() returs correct output", {
 
-  pickPEAKS_out <- pickPEAKS(raw = faahko_raw, fname = faahko_fname, cwt = paramCWT, out_dir = massFlowR_dir)
+  pickPEAKS_out <- pickPEAKS(raw = faahko_raw, fname = faahko_fname, cwt = cwt, out_dir = massFlowR_dir)
   extractEIC_out <- extractEIC(raw = faahko_raw, pks = faahko_pks_rd)
 
   ## (1) pickPEAKS()

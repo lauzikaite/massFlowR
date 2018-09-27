@@ -2,12 +2,12 @@
 % Please edit documentation in R/constructors.R
 \name{buildDB}
 \alias{buildDB}
-\title{Build a chemical database template.}
+\title{Build a chemical database template}
 \usage{
 buildDB(file = NULL)
 }
 \arguments{
-\item{file}{A \code{character} with path to the the database template file (csv).}
+\item{file}{A \code{character} with absolute path to the the database template file (csv).}
 }
 \value{
 A \code{massFlowDB} class object.

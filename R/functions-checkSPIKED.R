@@ -13,7 +13,6 @@
 #' @return Function returns a \code{DataFrame} with detected peaks for every spiked compound, also plots spectrum for each peak.
 #' @export
 #'
-#' @examples
 checkSPIKED <- function(fname, pks, raw, spk, out_dir, cwt, add_xcmsparams = T, rt_err = 3, mz_err = 0.005) {
 
   ## extract integration values for the datafile of interest
