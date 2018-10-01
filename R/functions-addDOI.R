@@ -33,6 +33,7 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
 
     ## get the first peak among the un-annotated peaks
     p <- doi %>% filter(added == F) %>% slice(1) %>% pull(peakid)
+    
     target <- doi %>% filter(peakid == p)
     target <- doi %>% filter(peakgrcls == target$peakgrcls)
 
@@ -48,9 +49,11 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
     ## add annotated/unmatched DOI peaks to template
     update <- addPEAKS(mattop = mattop, mat = mat, target = target, itmp = itmp, tmp = tmp, doi = doi)
 
+    # if (update$itmp %>% filter(!is.na(doi_peakid)) %>% group_by(doi_peakid) %>% summarise(n = n()) %>% filter(n > 1) %>% nrow() > 0) stop()
+    
     itmp <- update$itmp
     doi <- update$doi
-
+  
     ## update progress bar
     pb$tick()$print()
 

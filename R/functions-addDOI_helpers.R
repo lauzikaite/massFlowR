@@ -351,7 +351,8 @@ addPEAKS <- function(mattop, mat, target, tmp, itmp, doi) {
     utmp <- update$utmp
     ## bind new/modified peaks to itmp
     ttmp <- itmp %>%
-      filter(!peakid %in% (utmp %>% pull(peakid))) ## save a copy of the tmp without the tmp peaks matched by mz/rt window
+      filter(!peakid %in% (utmp %>% pull(peakid))) %>%  ## save a copy of the tmp without the tmp peaks matched by mz/rt window
+      filter(!doi_peakid %in% (utmp %>% filter(!is.na(doi_peakid)) %>% pull(doi_peakid))) ## save a copy of tmp without old doi peaks that now are updated
     itmp <- bind_rows(ttmp, utmp)
   }
 
@@ -431,13 +432,14 @@ addGROUPED <- function(pkg, matpkg, target, mat, previous, itmp, doi) {
     doi[which(doi$peakid %in% na.omit(newpeaks$doi_peakid)),"added"] <- rep(TRUE, length(na.omit(newpeaks$doi_peakid)))
 
     ## add new peaks and updated previous peaks (if any) into the structure of the tmp
-    utmp <- bind_rows(newpeaks, previouspeaks) %>%
-      ## add previous tmp peaks that were originally tmp and did not have to be updated
-      bind_rows(previous %>%
-                  filter(!peakid %in% newpeaks$peakid) %>%
-                  mutate(doi_peakgr = unique(newpeaks$doi_peakgr),
-                         doi_peakgrcls = unique(newpeaks$doi_peakgrcls),
-                         cos = unique(newpeaks$cos)))
+    utmp <- bind_rows(newpeaks, previouspeaks)
+    utmp <- bind_rows(utmp,
+                      previous %>%
+                        filter(!peakid %in% newpeaks$peakid) %>% ## add previous tmp peaks that were originally in the tmp and did not have to be updated
+                        filter(is.na(doi_peakid)) %>%
+                        mutate(doi_peakgr = unique(newpeaks$doi_peakgr),
+                               doi_peakgrcls = unique(newpeaks$doi_peakgrcls),
+                               cos = unique(newpeaks$cos)))
 
     return(list("doi" = doi, "utmp" = utmp))
   }

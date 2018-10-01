@@ -30,7 +30,7 @@ setMethod("alignSAMPLES",
           function(object) {
 
             if (class(object) != "massFlowTemplate") stop("db must be a 'massFlowTemplate' class object")
-            params <- object@paramas
+            params <- object@params
 
             while (any(object@samples$aligned == FALSE)) {
 
