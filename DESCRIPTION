@@ -4,23 +4,31 @@ Date: 2018-09-26
 Title: LC-MS Data Pre-Processing
 Description: massFlowR performs peak-picking, peak alignment and annotation for high-throughput LC-MS experiments in real-time.
 Author: Elzbieta Lauzikaite <e.lauzikaite14@imperial.ac.uk>
+Maintainer: Elzbieta Lauzikaite <e.lauzikaite14@imperial.ac.uk>
 License: GPL-2
 Encoding: UTF-8
 LazyData: true
 ByteCompile: true
 Depends:
-    R (>= 3.4.3),
-    dplyr
+    R (>= 3.5)
 Imports:
     xcms (>= 3.0.0),
+    dplyr,
+    methods,
+    utils,
+    grDevices,
+    grid,
     faahKO,
     igraph,
     MSnbase,
-    ggplot2
+    ggplot2,
+    BiocParallel,
+    tidyr,
+    viridis
 RoxygenNote: 6.1.0
 Suggests:
-    grid,
     testthat,
     knitr,
-    rmarkdown
+    rmarkdown,
+    BiocStyle
 VignetteBuilder: knitr

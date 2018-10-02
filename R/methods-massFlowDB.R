@@ -7,7 +7,7 @@ setMethod("show", signature = "massFlowDB", function(object) {
 
 #' Get the the absolute path to the chemical database file
 #'
-#' @param A \code{massFlowDB} class object
+#' @param object \code{massFlowDB} class object
 #'
 #' @export
 #'
@@ -16,7 +16,7 @@ setMethod("filepath", signature = "massFlowDB", function(object) object@filepath
 
 #' Get the list of chemicals in the database
 #'
-#' @param A \code{massFlowDB} class object
+#' @param object \code{massFlowDB} class object
 #'
 #' @export
 #'

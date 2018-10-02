@@ -24,7 +24,7 @@ addCOLS <- function(dt, cname) {
 getCLUSTS <- function(dt){
 
   ## data frame to store assigned peak-group-clusters' ids
-  cls <- data.frame(peakgr= unique(dt$peakgr), peakgrcls = NA, stringsAsFactors = F)
+  cls <- data.frame(peakgr = unique(dt$peakgr), peakgrcls = NA, stringsAsFactors = F)
 
   ## for every peak group
   for (pg in unique(dt$peakgr)) {
@@ -354,6 +354,7 @@ addPEAKS <- function(mattop, mat, target, tmp, itmp, doi) {
       filter(!peakid %in% (utmp %>% pull(peakid))) %>%  ## save a copy of the tmp without the tmp peaks matched by mz/rt window
       filter(!doi_peakid %in% (utmp %>% filter(!is.na(doi_peakid)) %>% pull(doi_peakid))) ## save a copy of tmp without old doi peaks that now are updated
     itmp <- bind_rows(ttmp, utmp)
+    
   }
 
   return(list("doi" = doi, "itmp" = itmp))
@@ -383,8 +384,11 @@ addGROUPED <- function(pkg, matpkg, target, mat, previous, itmp, doi) {
     update <- addUNGROUPED(target = target, pkg = matpkg$target_peakgr, itmp = itmp, doi = doi)
     return(update)
 
-    } else {
-
+  }
+  else {
+    
+    max_peakid <- max(itmp$peakid) ## store maximum peakid for new peakid generation
+      
     ## if previously grouped doi peaks were a worse fit and have to be removed from peakgr
     if (length(na.omit(previous$doi_peakid)) > 0) {
 
@@ -392,14 +396,16 @@ addGROUPED <- function(pkg, matpkg, target, mat, previous, itmp, doi) {
       previous_peakid <- previous %>%
         filter(!is.na(doi_peakid)) %>%
         pull(doi_peakid)
-      peakid_new <- (max(itmp$peakid) + 1):(max(itmp$peakid) + length(previous_peakid))
+      peakid_new <- (max_peakid + 1):(max_peakid + length(previous_peakid))
       peakgr_new <- max(itmp$peakgr) + 1
-      previouspeaks <- doi %>% ## use original doi values, instead of merged itmp values
+      previouspeaks <- doi %>% ## use original doi values, instead of averaged itmp values
         filter(peakid %in% previous_peakid) %>%
         mutate(doi_peakid = peakid, doi_peakgr = peakgr, doi_peakgrcls = peakgrcls) %>%
         mutate(peakid = peakid_new, peakgr = peakgr_new, peakgrcls = NA, chemid = NA, dbid = NA, dbname = NA, cos = NA) %>%
         select(peakid, mz, rt, into, peakgr, peakgrcls, doi_peakid, doi_peakgr, doi_peakgrcls, chemid, dbid, dbname, cos)
-
+      
+      max_peakid <- max(previouspeaks$peakid)
+      
       ## update doi assignmnent info for the previous peaks
       doi[which(doi$peakid %in% previouspeaks$doi_peakid),
           c("tmp_peakid", "tmp_peakgr", "chemid", "dbid", "dbname", "cos")] <- previouspeaks %>%
@@ -417,13 +423,17 @@ addGROUPED <- function(pkg, matpkg, target, mat, previous, itmp, doi) {
     newpeaks <- doipeaks %>%
       group_by(peakid) %>%
       do(averagePEAKS(p = ., tmppeaks = tmppeaks, matpkg = matpkg)) %>%
+      # ## if tmp peakid was matched by more than one doi peakid, merge doi peakids into one entry 
+      # group_by(peakid) %>% 
+      # do(mergePEAKS(p = .)) %>% 
       ungroup() %>%
       mutate(chemid = unique(tmppeaks$chemid), dbid = unique(tmppeaks$dbid), dbname = unique(tmppeaks$dbname))
 
-    peakid_new <- (max(itmp$peakid) + 1):(max(itmp$peakid) + nrow(newpeaks))
-    newpeaks <- newpeaks %>%
-      mutate(peakid = ifelse(is.na(peakid), peakid_new, peakid))
-
+    if (any(is.na(newpeaks$peakid))) {
+      peakid_new <- (max_peakid + 1):(max_peakid + nrow(newpeaks[which(is.na(newpeaks$peakid)),]))
+      newpeaks[which(is.na(newpeaks$peakid)),"peakid"] <- peakid_new
+    }
+    
     ## update doi peaks with assigned peakgr and peakid
     doi[which(doi$peakid %in% na.omit(newpeaks$doi_peakid)),
         c("tmp_peakid", "tmp_peakgr", "chemid", "dbid", "dbname", "cos")] <- newpeaks %>%
@@ -507,5 +517,18 @@ averagePEAKS <- function(p, tmppeaks, matpkg){
   return(peaks)
 }
 
-
+mergePEAKS <- function(p) {
+  
+  if (nrow(p) > 1) {
+    peak <- p %>% 
+      mutate(doi_peakid = paste0(doi_peakid, collapse = ",")) %>% 
+      filter(into == max(into))
+  }
+  else {
+    peak <- p
+  }
+ 
+  return(peak)
+  
+}
 

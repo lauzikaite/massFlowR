@@ -11,8 +11,10 @@
 #' @param pearson A \code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.
 #' @param clean A \code{logical} whether one-peak peak-groups should be removed (default is TRUE).
 #'
-#' @return Function returns an updated peak table. Column \code{"peakgr"} contains peak-group ID for each peak. Peaks not correlated to any of its co-eluting peaks are removed from the table.
+#' @return Function returns an updated peak table. Column \code{"peakgr"} contains peak-group ID for each peak.
+#' Peaks not correlated to any of its co-eluting peaks are removed from the table.
 #' Function also writes updated peak table in the specified directory.
+#' 
 #' @export
 #'
 
@@ -95,7 +97,7 @@ groupPEAKSspec <- function(pks, eic, out_dir, fname, pearson = TRUE, match = 1, 
 buildCOR <- function(co_ind, eic, pearson) {
   poi_co_cor <- expand.grid(x = co_ind, y = co_ind) %>%
     group_by(x, y) %>%
-    mutate(cor = massFlowR::getCOR(x = x, y = y, eic = eic, pearson = pearson)) %>%
+    mutate(cor = getCOR(x = x, y = y, eic = eic, pearson = pearson)) %>%
     filter(x != y)
 }
 
@@ -168,7 +170,7 @@ buildNETWORK <- function(poi_co_cor, peakgroups, co_ind, match, thr, pks, p, plo
 plotNETWORK <- function(gg, mem, out_dir, fname, match, p, co_ind, colors) {
 
   grid::grid.newpage()
-  pdf(width = 8, height = 8,
+  grDevices::pdf(width = 8, height = 8,
       file = paste0(out_dir, "/", fname, "_peak", p, "_CoNetwork.pdf"))
 
   ## Peak number of the peak of interest
@@ -200,7 +202,7 @@ plotNETWORK <- function(gg, mem, out_dir, fname, match, p, co_ind, colors) {
                       edge.color = "royalblue4",
                       # edge.label = round(igraph::E(gg)$weight, digits = 2), ## labeling edges with cor makes it messy
                       edge.label.color = "royalblue4")
-  dev.off()
+  grDevices::dev.off()
 }
 
 ## function to scale correlation coefficients to make a more clear Fruchterman-Reingold graph

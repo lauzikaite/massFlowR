@@ -7,13 +7,13 @@
 buildDB(file = NULL)
 }
 \arguments{
-\item{file}{A \code{character} with absolute path to the the database template file (csv).}
+\item{file}{\code{character} with absolute path to the the database template file (csv).}
 }
 \value{
 A \code{massFlowDB} class object.
 }
 \description{
-Functions prepares a \code{massFlowDB} class object, which will be used for chromatograpic peaks annotations in study samples.
+Function prepares a \code{massFlowDB} class object, which will be used for chromatograpic peaks annotation and study samples alignment.
 }
 \examples{
 ## Build template using a sample, provided with the package

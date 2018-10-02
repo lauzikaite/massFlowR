@@ -8,7 +8,7 @@
 \S4method{filepath}{massFlowTemplate}(object)
 }
 \arguments{
-\item{A}{\code{massFlowTemplate} class object}
+\item{object}{\code{massFlowTemplate} class object}
 }
 \description{
 Get the the absolute path to the experimental details file, which was used to build the template

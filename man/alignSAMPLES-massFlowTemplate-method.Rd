@@ -8,7 +8,7 @@
 \S4method{alignSAMPLES}{massFlowTemplate}(object)
 }
 \arguments{
-\item{A}{\code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.}
+\item{object}{\code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.}
 }
 \value{
 A \code{massFlowTemplate} class object with updated \code{tmp}, \code{data} slots.
@@ -19,6 +19,6 @@ Merge peak-groups together across samples in the experiment using spectral simil
 }
 \details{
 A sample is aligned to the template, i.e. list of all previously detected peaks, by merging its peaks to the template peaks.
-Matching peaks are found through \emph(m/z) and \emph(rt) windows. To identify true matches, the overall spectral similarity between a peak-group of the sample and all matching template peak-groups is compared.
-Spectral similarity is measured by obtaining the cosine of the angle between two 2D vectors, representing each peak-group's \emph(m/z) and \emph(intensity) values. A peak-group of the sample is merged/grouped with the template's peak-group with which the highest cosine was obtained.
+Matching peaks are found through \emph{m/z} and \emph{rt} windows. To identify true matches, the overall spectral similarity between a peak-group of the sample and all matching template peak-groups is compared.
+Spectral similarity is measured by obtaining the cosine of the angle between two 2D vectors, representing each peak-group's \emph{m/z} and \emph{intensity} values. A peak-group of the sample is merged/grouped with the template's peak-group with which the highest cosine was obtained.
 }

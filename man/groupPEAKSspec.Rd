@@ -27,7 +27,8 @@ groupPEAKSspec(pks, eic, out_dir, fname, pearson = TRUE, match = 1,
 \item{clean}{A \code{logical} whether one-peak peak-groups should be removed (default is TRUE).}
 }
 \value{
-Function returns an updated peak table. Column \code{"peakgr"} contains peak-group ID for each peak. Peaks not correlated to any of its co-eluting peaks are removed from the table.
+Function returns an updated peak table. Column \code{"peakgr"} contains peak-group ID for each peak.
+Peaks not correlated to any of its co-eluting peaks are removed from the table.
 Function also writes updated peak table in the specified directory.
 }
 \description{

@@ -8,7 +8,7 @@
 \S4method{filepath}{massFlowDB}(object)
 }
 \arguments{
-\item{A}{\code{massFlowDB} class object}
+\item{object}{\code{massFlowDB} class object}
 }
 \description{
 Get the the absolute path to the chemical database file

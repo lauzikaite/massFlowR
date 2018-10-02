@@ -8,7 +8,7 @@
 \S4method{chemicals}{massFlowDB}(object)
 }
 \arguments{
-\item{A}{\code{massFlowDB} class object}
+\item{object}{\code{massFlowDB} class object}
 }
 \description{
 Get the list of chemicals in the database

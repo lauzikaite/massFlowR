@@ -10,7 +10,7 @@
 #' @param thr A \code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.
 #' @param plot A \code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png file in the out_dir directory.
 #' @param clean A \code{logical} whether one-peak peak-groups should be removed (default is TRUE).
-#' @param workers A \code{BiocParallel} parameter object to control how and if parallel processing should be performed. Such object can be created by the \emph{SerialParam}, \emph{MulticoreParam} or \emph{SnowParam} functions from the \emph{BiocParallel} package.
+#' @param bpparam A \code{BiocParallel} parameter object to control how and if parallel processing should be performed. Such object can be created by the \emph{SerialParam}, \emph{MulticoreParam} or \emph{SnowParam} functions from the \emph{BiocParallel} package.
 #'
 #' @return For each LC-MS file, function writes a table with picked-peaks and their peak-groups into separate files, in the defined \code{out_dir} directory.
 #' @export

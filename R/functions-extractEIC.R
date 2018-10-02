@@ -7,7 +7,6 @@
 #' @param pks \code{DataFrame} object generated with picked peaks.
 #'
 #' @return Function returns a \code{list} with an EIC for eack peak in the \code{pks} table.
-#' @export
 #'
 #' @examples
 #' raw <- MSnbase::readMSData(dir(system.file("cdf", package = "faahKO"), full.names = TRUE, recursive = TRUE)[[1]], mode = "onDisk")

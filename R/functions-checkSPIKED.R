@@ -182,10 +182,10 @@ checkPEAKS <- function(pks_mat, pks, spiked, spiked_p, eic, raw, out_dir, cwt, a
     ggplot2::theme(plot.title = element_text(hjust = 0.5))
 
   grid::grid.newpage()
-  pdf(width = 8, height = 8,
+  grDevices::pdf(width = 8, height = 8,
       file = paste0(out_dir, "/", fname, "_peaks-",paste0(pks_mat$peakid, collapse = "-"),  ".pdf"))
-  grid::grid.draw(rbind(ggplotGrob(g), size = "last"))
-  dev.off()
+  grid::grid.draw(rbind(ggplot2::ggplotGrob(g), size = "last"))
+  grDevices::dev.off()
 
   buildNETWORK(poi_co_cor = pks_cor,
                peakgroups = pks_mat,
@@ -228,7 +228,7 @@ plotPEAKpair <- function(pair, spiked, spec, add_xcmsparams, cwt, out_dir, fname
     ggplot2::xlab("Retention time") +
     ggplot2::ggtitle(pair$gtitle) +
     ggplot2::theme_bw() +
-    ggplot2::theme(plot.title = element_text(hjust = 0.5)) +
+    ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)) +
     ggplot2::theme(legend.position = "bottom")
 
   if (add_xcmsparams == T & !missing(cwt)) {
@@ -240,14 +240,14 @@ plotPEAKpair <- function(pair, spiked, spec, add_xcmsparams, cwt, out_dir, fname
                      linetype = paste("Noise:", cwt@noise)),
                  colour= '#762a83') +
       ggplot2::scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
-                            guide = guide_legend(override.aes = list(color = c("#762a83", "#1b7837"))))
+                            guide = ggplot2::guide_legend(override.aes = list(color = c("#762a83", "#1b7837"))))
   }
 
   grid::grid.newpage()
-  pdf(width = 10, height = 10,
+  grDevices::pdf(width = 10, height = 10,
       file = paste0(out_dir, "/", fname, "_peakPair-",pair$x, "-", pair$y, ".pdf"))
-  grid::grid.draw(rbind(ggplotGrob(g), size = "last"))
-  dev.off()
+  grid::grid.draw(rbind(ggplot2::ggplotGrob(g), size = "last"))
+  grDevices::dev.off()
 
   return(spec)
 }
@@ -258,9 +258,7 @@ plotPEAKpair <- function(pair, spiked, spec, add_xcmsparams, cwt, out_dir, fname
 #' @param raw A \code{OnDiskMSnExp} class object for the spectrum-of-interest.
 #'
 #' @return Function returns \code{DataFrame} containing intensity value for each scan in the desired mz/rt range.
-#' @export
 #'
-#' @examples
 extractSPECTRUM <- function(co, raw) {
 
   eic_co <- xcms::chromatogram(raw, aggregationFun = "sum",
