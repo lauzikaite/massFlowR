@@ -1,15 +1,15 @@
 #' Build a chemical database template
 #'
+#' Function creates a \code{massFlowDB} class object, which will be used for chromatograpic peaks annotation and study samples alignment.
+#'
 #' @param file \code{character} with absolute path to the the database template file (csv).
-#'
-#' @description Function prepares a \code{massFlowDB} class object, which will be used for chromatograpic peaks annotation and study samples alignment.
-#'
-#' @return A \code{massFlowDB} class object.
+#' 
+#' @return Function returns a \code{massFlowDB} class object.
 #' 
 #' @export
 #' 
 #' @examples
-#' ## Build template using a sample, provided with the package
+#' ## Build database template using a sample file, provided with the package
 #' data_dir <- system.file("testdata", package = "massFlowR")
 #' db_fname <- file.path(data_dir, "DBtemplate.csv")
 #' db <- buildDB(file = db_fname)

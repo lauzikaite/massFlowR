@@ -1,3 +1,9 @@
+#' @aliases show
+#'
+#' @rdname massFlowDB-class
+#' 
+#' @export
+#'
 setMethod("show", signature = "massFlowDB", function(object) {
   cat("A \"massFlowDB\" object \n")
   cat("Database filepath:", object@filepath, "\n")
@@ -5,19 +11,21 @@ setMethod("show", signature = "massFlowDB", function(object) {
 })
 
 
-#' Get the the absolute path to the chemical database file
+#' @aliases filepath
+#' @title Get the the absolute path to the chemical database file
 #'
-#' @param object \code{massFlowDB} class object
-#'
+#' @rdname massFlowDB-class
+#' 
 #' @export
 #'
 setMethod("filepath", signature = "massFlowDB", function(object) object@filepath)
 
 
 #' Get the list of chemicals in the database
+#' @aliases chemicals
 #'
-#' @param object \code{massFlowDB} class object
-#'
+#' @rdname massFlowDB-class
+#' 
 #' @export
 #'
 setMethod("chemicals", signature = "massFlowDB", function(object) unique(object@db$dbname))

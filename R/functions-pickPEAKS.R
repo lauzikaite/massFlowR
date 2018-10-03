@@ -1,3 +1,5 @@
+#' @aliases pickPEAKS
+#' 
 #' @title Peak detection using the centWave method
 #' 
 #' @description High resolution, centroid LC/MS datafiles are pick-peaked using centWave algorithm, implemented by \emph{xcms} package [Tautenhahn 2008].

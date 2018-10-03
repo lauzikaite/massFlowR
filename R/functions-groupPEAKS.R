@@ -1,3 +1,5 @@
+#' @aliases groupPEAKS
+#' 
 #' @title Get peak-groups representing different chemical spectra in each LC-MS datafile
 #' 
 #' @description Function performs peak-picking and peak-grouping for each LC-MS datafile independently.

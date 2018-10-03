@@ -1,16 +1,50 @@
+####---- show - documentation in main massFlowTemplate-class page ----
+#' @aliases show
+#'
+#' @rdname massFlowTemplate-class
+#' 
+#' @export
+#' 
 setMethod("show", signature = "massFlowTemplate", function(object) {
   cat("A \"massFlowTemplate\" object with", nrow(object@samples), " samples")
 })
 
-#' Get the the absolute path to the experimental details file, which was used to build the template
-#'
-#' @param object \code{massFlowTemplate} class object
+####---- filepath - documentation in main massFlowTemplate-class page ----
+#' @aliases filepath
+#' 
+#' @rdname massFlowTemplate-class
 #'
 #' @export
 #'
 setMethod("filepath", signature = "massFlowTemplate", function(object) object@filepath)
 
-#' Align LC-MS experiment samples using groups of structurally-related peaks
+####---- checkSAMPLES - no documentation, as not exported ----
+setMethod("checkSAMPLES",
+          signature = "massFlowTemplate",
+          function(object) {
+            if (class(object) != "massFlowTemplate") stop("db must be a 'massFlowTemplate' class object.")
+            
+            ## extract next-in-line sample and check if it is present (i.e. has been written already)
+            doi_fname <- object@samples$filepaths[which(object@samples$aligned == FALSE)[1]]
+            doi_present <- file.exists(doi_fname) # if FALSE, then loop until TRUE
+            
+            while (!doi_present) {
+              if (!file.exists(doi_fname)) {
+                message(paste("Waiting for file to be written for:", doi_fname, "..."))
+                Sys.sleep(time = 60)
+              }
+              doi_present <- file.exists(doi_fname)
+            }
+            
+            return(doi_fname)
+          }
+)
+
+
+####---- alignSAMPLES - more complex method, has a separate documentation page ----
+#' @aliases alignSAMPLES
+#' 
+#' @title Align LC-MS experiment samples using groups of structurally-related peaks
 #'
 #' @description Merge peak-groups together across samples in the experiment using spectral similarity comparison.
 #'
@@ -20,9 +54,9 @@ setMethod("filepath", signature = "massFlowTemplate", function(object) object@fi
 #'
 #' @param object \code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.
 #'
-#' @return A \code{massFlowTemplate} class object with updated \code{tmp}, \code{data} slots.
+#' @return A \code{\link{massFlowTemplate}} class object with updated \code{tmp}, \code{data} slots.
 #' Method also writes intermediate alignment results for every sample in a csv file.
-#'
+#' 
 #' @export
 #'
 setMethod("alignSAMPLES",
@@ -48,25 +82,3 @@ setMethod("alignSAMPLES",
           }
 
 )
-
-setMethod("checkSAMPLES",
-          signature = "massFlowTemplate",
-          function(object) {
-            if (class(object) != "massFlowTemplate") stop("db must be a 'massFlowTemplate' class object.")
-
-            ## extract next-in-line sample and check if it is present (i.e. has been written already)
-            doi_fname <- object@samples$filepaths[which(object@samples$aligned == FALSE)[1]]
-            doi_present <- file.exists(doi_fname) # if FALSE, then loop until TRUE
-
-            while (!doi_present) {
-              if (!file.exists(doi_fname)) {
-                message(paste("Waiting for file to be written for:", doi_fname, "..."))
-                Sys.sleep(time = 60)
-              }
-              doi_present <- file.exists(doi_fname)
-            }
-
-            return(doi_fname)
-          }
-)
-

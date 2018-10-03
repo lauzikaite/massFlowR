@@ -3,6 +3,7 @@
 \docType{methods}
 \name{alignSAMPLES,massFlowTemplate-method}
 \alias{alignSAMPLES,massFlowTemplate-method}
+\alias{alignSAMPLES}
 \title{Align LC-MS experiment samples using groups of structurally-related peaks}
 \usage{
 \S4method{alignSAMPLES}{massFlowTemplate}(object)
@@ -11,7 +12,7 @@
 \item{object}{\code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.}
 }
 \value{
-A \code{massFlowTemplate} class object with updated \code{tmp}, \code{data} slots.
+A \code{\link{massFlowTemplate}} class object with updated \code{tmp}, \code{data} slots.
 Method also writes intermediate alignment results for every sample in a csv file.
 }
 \description{

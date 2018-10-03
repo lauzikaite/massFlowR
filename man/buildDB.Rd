@@ -10,13 +10,13 @@ buildDB(file = NULL)
 \item{file}{\code{character} with absolute path to the the database template file (csv).}
 }
 \value{
-A \code{massFlowDB} class object.
+Function returns a \code{massFlowDB} class object.
 }
 \description{
-Function prepares a \code{massFlowDB} class object, which will be used for chromatograpic peaks annotation and study samples alignment.
+Function creates a \code{massFlowDB} class object, which will be used for chromatograpic peaks annotation and study samples alignment.
 }
 \examples{
-## Build template using a sample, provided with the package
+## Build database template using a sample file, provided with the package
 data_dir <- system.file("testdata", package = "massFlowR")
 db_fname <- file.path(data_dir, "DBtemplate.csv")
 db <- buildDB(file = db_fname)
