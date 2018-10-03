@@ -1,18 +1,29 @@
-#' @title Get peak-groups in every LC-MS datafiles
-#' @description Function performs peak-picking, based on package \emph{xcms} functionality.
-#' Picked-peaks are then used to build groups of correlated, co-eluting peaks.
+#' @title Get peak-groups representing different chemical spectra in each LC-MS datafile
+#' 
+#' @description Function performs peak-picking and peak-grouping for each LC-MS datafile independently.
+#' 
+#' @details Function performs peak-picking using the \emph{centWave} algorithm from package \emph{xcms}.
+#' Picked-peaks are then grouped into chemical spectra. For each peak in the sample:
+#' \itemize{
+#' \item Co-eluting peaks are found.
+#' \item EIC correlation between all co-eluting peaks is performed.
+#' \item Network of peaks with high EIC correlation (with coefficients above the selected threshold) is built.
+#' }
+#' Co-eluting peaks within a network of high EIC correlation originate from the same chemical compound and therefore form a chemical spectrum.#' 
 #'
-#' @param files A \code{character} with paths to files to be processed.
-#' @param out_dir A \code{character} specifying desired directory for output.
-#' @param cwt A \code{CentWaveParam} class object with parameters for centWave-based peak-picking.
-#' @param match A \code{numeric} defining the number of scans for co-eluting peaks extraction.
+#' @param files \code{character} with paths to mzML file(s) to be processed.
+#' @param out_dir \code{character} specifying desired directory for output.
+#' @param cwt \code{CentWaveParam} class object with parameters for centWave-based peak-picking.
+#' @param match \code{numeric} defining the number of scans for co-eluting peaks extraction.
 #' @param pearson A \code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.
 #' @param thr A \code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.
 #' @param plot A \code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png file in the out_dir directory.
 #' @param clean A \code{logical} whether one-peak peak-groups should be removed (default is TRUE).
-#' @param bpparam A \code{BiocParallel} parameter object to control how and if parallel processing should be performed. Such object can be created by the \emph{SerialParam}, \emph{MulticoreParam} or \emph{SnowParam} functions from the \emph{BiocParallel} package.
+#' @param bpparam A \code{BiocParallel} parameter object to control how and if parallel processing should be performed.
+#' Such object can be created by the \emph{SerialParam}, \emph{MulticoreParam} or \emph{SnowParam} functions from the \emph{BiocParallel} package.
 #'
 #' @return For each LC-MS file, function writes a table with picked-peaks and their peak-groups into separate files, in the defined \code{out_dir} directory.
+#' 
 #' @export
 #'
 groupPEAKS <- function(files, out_dir, cwt, match = 1, pearson = TRUE, thr = 0.95, plot = FALSE, clean = TRUE, bpparam) {
@@ -49,7 +60,7 @@ groupPEAKS_paral <- function(f, out_dir, cwt, match, pearson, thr, plot, clean) 
 
   fname <- strsplit(basename(f), split = "[.]")[[1]][1] # remove filename encoding for simplicity
   raw <- MSnbase::readMSData(f, mode = "onDisk")
-  pks <- pickPEAKS(raw = raw, cwt = cwt, fname = fname, out_dir = out_dir)
+  pks <- pickPEAKS(raw = raw, cwt = cwt, fname = fname)
   eic <- extractEIC(raw = raw, pks = pks)
   groupPEAKSspec(pks = pks, eic = eic, out_dir = out_dir, fname = fname, pearson = pearson, match = match, thr = thr, plot = plot, clean = clean)
 

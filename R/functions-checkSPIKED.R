@@ -80,8 +80,8 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, cwt, add_xcmsparams = T, 
                      nm = c("spiked", spec %>% filter(peakid != "spiked") %>% distinct(peakid) %>% pull()))
 
     g <- ggplot2::ggplot(data = spec) +
-      ggplot2::geom_segment(aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = peakid), na.rm = TRUE) +
-      ggplot2::geom_point(aes(x = rtime, y = intensity, colour = peakid), na.rm = TRUE) +
+      ggplot2::geom_segment(ggplot2::aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = peakid), na.rm = TRUE) +
+      ggplot2::geom_point(ggplot2::aes(x = rtime, y = intensity, colour = peakid), na.rm = TRUE) +
       ggplot2:: scale_color_manual(values = cols, name = "") +
       ggplot2::ylab("Intensity") +
       ggplot2::xlab("Retention time") +
@@ -92,10 +92,10 @@ checkSPIKED <- function(fname, pks, raw, spk, out_dir, cwt, add_xcmsparams = T, 
 
     if (add_xcmsparams == T & !missing(cwt)) {
         g <- g +
-          ggplot2::geom_hline(aes(yintercept = cwt@prefilter[2],
+          ggplot2::geom_hline(ggplot2::aes(yintercept = cwt@prefilter[2],
                          linetype = paste0("Prefilter: c(", cwt@prefilter[1], "," , cwt@prefilter[2], ")")),
                      colour= "#1b7837") +
-          ggplot2::geom_hline(aes(yintercept = cwt@noise,
+          ggplot2::geom_hline(ggplot2::aes(yintercept = cwt@noise,
                          linetype = paste("Noise:", cwt@noise)),
                      colour= '#762a83') +
           ggplot2::scale_linetype_manual(name = "centWave parameters", values = c(2, 2),
@@ -172,8 +172,8 @@ checkPEAKS <- function(pks_mat, pks, spiked, spiked_p, eic, raw, out_dir, cwt, a
                               nm = spec %>% distinct(mz) %>% pull())
 
   g <- ggplot2::ggplot(data = spec) +
-    ggplot2::geom_segment(aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(mz)), na.rm = TRUE) +
-    ggplot2::geom_point(aes(x = rtime, y = intensity, colour = as.factor(mz)), na.rm = TRUE) +
+    ggplot2::geom_segment(ggplot2::aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(mz)), na.rm = TRUE) +
+    ggplot2::geom_point(ggplot2::aes(x = rtime, y = intensity, colour = as.factor(mz)), na.rm = TRUE) +
     ggplot2::scale_color_manual(values = colors,
                        name = "Peak mz") +
     ggplot2::ylab("Intensity") +
@@ -221,8 +221,8 @@ plotPEAKpair <- function(pair, spiked, spec, add_xcmsparams, cwt, out_dir, fname
   )
 
   g <- ggplot2::ggplot(data = spec) +
-    ggplot2::geom_segment(aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(peakid)), na.rm = TRUE) +
-    ggplot2::geom_point(aes(x = rtime, y = intensity, colour = as.factor(peakid)), na.rm = TRUE) +
+    ggplot2::geom_segment(ggplot2::aes(x = rtime, xend = rtime, y = 0, yend = intensity, colour = as.factor(peakid)), na.rm = TRUE) +
+    ggplot2::geom_point(ggplot2::aes(x = rtime, y = intensity, colour = as.factor(peakid)), na.rm = TRUE) +
     ggplot2::scale_color_manual(values = cols, name = "") +
     ggplot2::ylab("Intensity") +
     ggplot2::xlab("Retention time") +
@@ -233,10 +233,10 @@ plotPEAKpair <- function(pair, spiked, spec, add_xcmsparams, cwt, out_dir, fname
 
   if (add_xcmsparams == T & !missing(cwt)) {
     g <- g +
-      ggplot2::geom_hline(aes(yintercept = cwt@prefilter[2],
+      ggplot2::geom_hline(ggplot2::aes(yintercept = cwt@prefilter[2],
                      linetype = paste0("Prefilter: c(", cwt@prefilter[1], "," , cwt@prefilter[2], ")")),
                  colour= "#1b7837") +
-      ggplot2::geom_hline(aes(yintercept = cwt@noise,
+      ggplot2::geom_hline(ggplot2::aes(yintercept = cwt@noise,
                      linetype = paste("Noise:", cwt@noise)),
                  colour= '#762a83') +
       ggplot2::scale_linetype_manual(name = "centWave parameters", values = c(2, 2),

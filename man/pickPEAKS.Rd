@@ -4,7 +4,7 @@
 \alias{pickPEAKS}
 \title{Peak detection using the centWave method}
 \usage{
-pickPEAKS(raw, cwt, fname, out_dir)
+pickPEAKS(raw, cwt, fname)
 }
 \arguments{
 \item{raw}{\code{OnDiskMSnExp} class object for the single LC-MS spectrum of interest. Such object can be created by the \emph{MSnbase::readMSData} function.}
@@ -12,8 +12,6 @@ pickPEAKS(raw, cwt, fname, out_dir)
 \item{cwt}{\code{CentWaveParam} class object with parameters for peak-picking. Object can be created by the \emph{xcms::CentWaveParam} function.}
 
 \item{fname}{\code{character} object specifying datafile name.}
-
-\item{out_dir}{\code{character} object specifying directory where output data will be saved.}
 }
 \value{
 Function returns a \code{DataFrame} object with picked-peaks and centWave details.
@@ -21,9 +19,5 @@ Function returns a \code{DataFrame} object with picked-peaks and centWave detail
 \description{
 High resolution, centroid LC/MS datafiles are pick-peaked using centWave algorithm, implemented by \emph{xcms} package [Tautenhahn 2008].
 
-Required input arguments are identical to the ones required by \emph{CentWaveParam} function in \emph{xcms} package.
-
-Object of class \code{XCMSnExp} is converted to \code{DataFrame} and duplicating peaks with the same \code{rt} and \code{mz} are merged into one.
-
-\emph{pickPEAKS} is applied for a single datafile.
+\emph{pickPEAKS} is applied to a single datafile.
 }

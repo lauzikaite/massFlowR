@@ -8,7 +8,7 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
   ## get peakgr clusters based on their retention time, order them by complexity
   tmp <- getCLUSTS(dt = tmp)
   tmp <- tmp %>%
-    mutate(mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err) %>%
+    mutate(mz_l = .data$mz - mz_err, mz_h = .data$mz + mz_err, rt_l = .data$rt - rt_err, rt_h = .data$rt + rt_err) %>%
     addCOLS(., c("chemid", "dbid", "dbname", ## if not using db to build a template, add missing columns
                  "doi_peakid", "doi_peakgr", "doi_peakgrcls", "cos")) ## columns for storing intermediate results
   ## dataframe for storing intermediate alignment results
@@ -19,9 +19,9 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
   doi_full <- getCLUSTS(dt = doi_full)
   ## dataframe for storing intermediate alignment results
   doi <- doi_full %>%
-    mutate(mz_l = mz - mz_err, mz_h = mz + mz_err, rt_l = rt - rt_err, rt_h = rt + rt_err) %>%
+    mutate(mz_l = .data$mz - mz_err, mz_h = .data$mz + mz_err, rt_l = .data$rt - rt_err, rt_h = .data$rt + rt_err) %>%
     mutate(tmp_peakgr = NA, tmp_peakid = NA, chemid = NA, dbid = NA, dbname = NA, cos = NA, added = F) %>%
-    select(peakid, mz, mz_l, mz_h, rt, rt_l, rt_h, into, peakgr, peakgrcls, tmp_peakid, tmp_peakgr, chemid, dbid, dbname, cos, added)
+    select(.data$peakid, .data$mz, .data$mz_l, .data$mz_h, .data$rt, .data$rt_l, .data$rt_h, .data$into, .data$peakgr, .data$peakgrcls, .data$tmp_peakid, .data$tmp_peakgr, .data$chemid, .data$dbid, .data$dbname, .data$cos, .data$added)
 
   ## initiate progress bar
   pb <- progress_estimated(n = length(unique(doi$peakgrcls)))
@@ -30,15 +30,15 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
   while (any(doi$added == F)) {
 
     ## get the first peak among the un-annotated peaks
-    p <- doi %>% filter(added == F) %>% slice(1) %>% pull(peakid)
+    p <- doi %>% filter(.data$added == F) %>% slice(1) %>% pull(.data$peakid)
     
-    target <- doi %>% filter(peakid == p)
-    target <- doi %>% filter(peakgrcls == target$peakgrcls)
+    target <- doi %>% filter(.data$peakid == p)
+    target <- doi %>% filter(.data$peakgrcls == target$peakgrcls)
 
     ## matching by mz/rt window
     mat <- target %>%
-      group_by(peakid) %>%
-      do(matchPEAK(p = ., dt = tmp)) %>%
+      group_by(.data$peakid) %>%
+      do(matchPEAK(p = .data, dt = tmp)) %>%
       ungroup()
 
     ## extract top matches for every target peakgr
@@ -66,20 +66,20 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
 
   doi_full <- right_join(doi_full,
                          itmp %>%
-                           filter(!is.na(doi_peakid)) %>%
-                           rename(tmp_peakid = peakid, tmp_peakgr = peakgr, peakid = doi_peakid) %>%
-                           rename(new_mz = mz, new_rt = rt) %>%
-                           select(peakid, tmp_peakid, tmp_peakgr, new_mz, new_rt, chemid, dbid, dbname, cos), by = c("peakid"))
+                           filter(!is.na(.data$doi_peakid)) %>%
+                           rename(tmp_peakid = .data$peakid, tmp_peakgr = .data$peakgr, peakid = .data$doi_peakid) %>%
+                           rename(new_mz = .data$mz, new_rt = .data$rt) %>%
+                           select(.data$peakid, .data$tmp_peakid, .data$tmp_peakgr, .data$new_mz, .data$new_rt, .data$chemid, .data$dbid, .data$dbname, .data$cos), by = c("peakid"))
   write.csv(doi_full, file = gsub(".csv", "_aligned.csv", doi_fname), quote = T, row.names = F) ## quote = T to preserve complex DB entries with "-"
 
   ## (E) Update template
   tmp <- itmp %>%
     ## remove intermediate output columns not needed for next round of alignment
-    select(-c(mz_l, mz_h, rt_l, rt_h, peakgrcls, doi_peakid, doi_peakgr, doi_peakgrcls, cos)) %>% 
+    select(-c(.data$mz_l, .data$mz_h, .data$rt_l, .data$rt_h, .data$peakgrcls, .data$doi_peakid, .data$doi_peakgr, .data$doi_peakgrcls, .data$cos)) %>% 
     ## for any tmp peaks that were matched by multiple doi peakids, retain single, most intense doi peakid
-    group_by(peakid) %>% 
-    filter(into == max(into)) %>% 
-    ungroup
+    group_by(.data$peakid) %>% 
+    filter(.data$into == max(.data$into)) %>% 
+    ungroup()
   
   return(list("tmp" = tmp, "doi" = doi_full))
 

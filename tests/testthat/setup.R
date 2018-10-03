@@ -1,8 +1,7 @@
 ####---- sample datafiles
 faahko_file <- system.file('cdf/KO/ko15.CDF', package = "faahKO")
 faahko_fname <- strsplit(basename(faahko_file), split = "[.]")[[1]][1]
-massFlowR_dir <- file.path(system.file("tests",package="massFlowR"), "objects")
-dir.create(massFlowR_dir)
+massFlowR_dir <- file.path(system.file("inst",package ="massFlowR"), "testdata/")
 
 ####---- xcms and MSnbase objects
 cwt <- xcms::CentWaveParam(ppm = 25,
