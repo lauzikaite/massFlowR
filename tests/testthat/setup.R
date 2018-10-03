@@ -16,10 +16,10 @@ test_raw <-  MSnbase::readMSData(files = test_file, mode = "onDisk")
 test_chrom <- xcms::findChromPeaks(object = test_raw, param = cwt)
 test_pks <- data.frame(xcms::chromPeaks(test_chrom))
 test_pks_rd <- test_pks %>%
-  arrange(desc(.data$into)) %>% ## arrange by peak intensity and give a peak number
+  arrange(desc(into)) %>% ## arrange by peak intensity and give a peak number
   mutate(peakid = row_number()) %>%
-  group_by(.data$rt, .data$mz) %>%
-  arrange(.data$peakid) %>%
+  group_by(rt, mz) %>%
+  arrange(peakid) %>%
   filter(row_number() == 1) %>%
   ungroup() %>%
   mutate(peakid = row_number()) %>% ## update peak number after removal of artefactural, duplicating peaks
@@ -43,5 +43,14 @@ experiment <- data.frame(filepaths = grouped_files, run_order = 1:2, stringsAsFa
 write.csv(experiment, file.path(data_dir, "experiment.csv"), quote = F, row.names = FALSE)
 experiment_file <- file.path(data_dir, "experiment.csv")
 
+## write two duplicated csv for sample wt15
+single_table <- read.csv(grouped_files[1], header = T, stringsAsFactors = F)
+experiment_dup_fnames <- c(file.path(data_dir, "test_file1.csv"), file.path(data_dir, "test_file2.csv"))
+write.csv(single_table, experiment_dup_fnames[1], quote = F, row.names = FALSE)
+write.csv(single_table, experiment_dup_fnames[2], quote = F, row.names = FALSE)
+experiment_dup <- data.frame(filepaths = experiment_dup_fnames, run_order = 1:2, stringsAsFactors = F)
+write.csv(experiment_dup, file.path(data_dir, "experiment_dup.csv"), quote = F, row.names = FALSE)
+experiment_dup_file <- file.path(data_dir, "experiment_dup.csv")
+
 ## list db template
-db_fname <- file.path(data_dir, "DBtemplate.csv")
+db_file <- file.path(data_dir, "DBtemplate.csv")
