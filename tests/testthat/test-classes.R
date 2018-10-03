@@ -16,26 +16,22 @@ test_that("initialise massFlowDB class object", {
 
 test_that("initialise massFlowTemplate class object", {
 
-  tmp <- buildTMP(file = study_files)
-  studyfiles <- read.csv(file = study_files, header = T, stringsAsFactors = F)
-  tmp_table <- read.csv(studyfiles$filepaths[1], header = T, stringsAsFactors = F)
+  tmp <- buildTMP(file = experiment_file)
 
   # Check object values
   expect_true(class(tmp) == "massFlowTemplate")
-  expect_equal(tmp@samples$filepaths, studyfiles$filepaths)
+  expect_equal(tmp@samples$filepaths, experiment$filepaths)
 
 })
 
 test_that("initialise massFlowTemplate class object with DB", {
 
   db <- buildDB(file = db_fname)
-  tmp <- buildTMP(file = study_files, db = db, rt_err = 10)
-  studyfiles <- read.csv(file = study_files, header = T, stringsAsFactors = F)
-  tmp_table <- read.csv(studyfiles$filepaths[1], header = T, stringsAsFactors = F)
+  tmp <- buildTMP(file = experiment_file, db = db, rt_err = 10)
 
   # Check object values
   expect_true(class(tmp) == "massFlowTemplate")
-  expect_equal(tmp@samples$filepaths, studyfiles$filepaths)
+  expect_equal(tmp@samples$filepaths, experiment$filepaths)
 
   expected_peakgrs <- data.frame(peakgr = c(1,8,10),
                                  tmp_peakgr = c(1,2,3),

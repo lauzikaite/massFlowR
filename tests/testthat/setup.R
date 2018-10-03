@@ -1,54 +1,47 @@
-####---- sample datafiles
-faahko_file <- system.file('cdf/KO/ko15.CDF', package = "faahKO")
-faahko_fname <- strsplit(basename(faahko_file), split = "[.]")[[1]][1]
-massFlowR_dir <- file.path(system.file("inst",package ="massFlowR"), "testdata/")
+test_files <- system.file(c('cdf/WT/wt15.CDF', 'cdf/WT/wt16.CDF'), package = "faahKO")
+test_file <- test_files[1]
+test_fname <- strsplit(basename(test_files), split = "[.]")[[1]][1]
+data_dir <- system.file("testdata", package = "massFlowR")
 
-####---- xcms and MSnbase objects
+####---- single datafile preparation
 cwt <- xcms::CentWaveParam(ppm = 25,
-                                snthresh = 10,
-                                noise = 1000,
-                                prefilter =  c(3, 100),
-                                peakwidth = c(30, 80),
-                                integrate = 1,
-                                fitgauss = FALSE,
-                                verboseColumns = TRUE)
-faahko_raw <-  MSnbase::readMSData(files = faahko_file, mode = "onDisk")
-faahko_chrom <- xcms::findChromPeaks(object = faahko_raw, param = cwt)
-faahko_pks <- data.frame(xcms::chromPeaks(faahko_chrom))
-faahko_pks_rd <- faahko_pks %>%
-  arrange(desc(into)) %>% ## arrange by peak intensity and give a peak number
+                           snthresh = 10,
+                           noise = 1000,
+                           prefilter =  c(3, 100),
+                           peakwidth = c(30, 80),
+                           integrate = 1,
+                           fitgauss = FALSE,
+                           verboseColumns = TRUE)
+test_raw <-  MSnbase::readMSData(files = test_file, mode = "onDisk")
+test_chrom <- xcms::findChromPeaks(object = test_raw, param = cwt)
+test_pks <- data.frame(xcms::chromPeaks(test_chrom))
+test_pks_rd <- test_pks %>%
+  arrange(desc(.data$into)) %>% ## arrange by peak intensity and give a peak number
   mutate(peakid = row_number()) %>%
-  group_by(rt, mz) %>%
-  arrange(peakid) %>%
+  group_by(.data$rt, .data$mz) %>%
+  arrange(.data$peakid) %>%
   filter(row_number() == 1) %>%
   ungroup() %>%
   mutate(peakid = row_number()) %>% ## update peak number after removal of artefactural, duplicating peaks
   data.frame()
-faahko_eic_rd <- xcms::chromatogram(faahko_raw,
+test_eic_rd <- xcms::chromatogram(test_raw,
                                     rt = data.frame(
-                                      rt_lower = faahko_pks_rd$rtmin,
-                                      rt_upper = faahko_pks_rd$rtmax),
+                                      rt_lower = test_pks_rd$rtmin,
+                                      rt_upper = test_pks_rd$rtmax),
                                     mz = data.frame(
-                                      mz_lower = faahko_pks_rd$mzmin,
-                                      mz_upper = faahko_pks_rd$mzmax))
-faahko_eic_rd <- lapply(1:nrow(faahko_eic_rd), function(ch) {
-  clean(faahko_eic_rd[ch, ], na.rm = T)})
+                                      mz_lower = test_pks_rd$mzmin,
+                                      mz_upper = test_pks_rd$mzmax))
+test_eic_rd <- lapply(1:nrow(test_eic_rd), function(ch) {
+  clean(test_eic_rd[ch, ], na.rm = T)})
 
-####---- massFlowR objects
-data_dir <- system.file("testdata", package = "massFlowR")
-studyfiles <- list.files(pattern = "peakgrs.csv", path = data_dir, full.names = T)
+####---- multiple datafile prepation with the pipeline
+groupPEAKS(files = test_files, out_dir = data_dir, cwt = cwt)
 
-## list of 2 different samples
-studyfiles <- data.frame(filepaths = studyfiles, run_order = 1:length(studyfiles), stringsAsFactors = F)
-write.csv(studyfiles, file.path(data_dir, "studysamples.csv"), quote = F, row.names = FALSE)
-study_files <- file.path(data_dir, "studysamples.csv")
+## prepare csv for file input
+grouped_files <- list.files(pattern = "peakgrs.csv", path = data_dir, full.names = T)
+experiment <- data.frame(filepaths = grouped_files, run_order = 1:2, stringsAsFactors = F)
+write.csv(experiment, file.path(data_dir, "experiment.csv"), quote = F, row.names = FALSE)
+experiment_file <- file.path(data_dir, "experiment.csv")
 
-## list of 2 identical samples
-studyfiles <- data.frame(filepaths = rep(studyfiles$filepaths[1], 2), run_order = 1:2, stringsAsFactors = F)
-write.csv(studyfiles, file.path(data_dir, "samestudysamples.csv"), quote = F, row.names = FALSE)
-same_files <- file.path(data_dir, "samestudysamples.csv")
-
-## db template
+## list db template
 db_fname <- file.path(data_dir, "DBtemplate.csv")
-
-

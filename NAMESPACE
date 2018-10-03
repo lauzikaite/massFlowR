@@ -3,6 +3,7 @@
 export(buildDB)
 export(buildTMP)
 export(checkSPIKED)
+export(extractEIC)
 export(groupPEAKS)
 export(groupPEAKSspec)
 export(pickPEAKS)

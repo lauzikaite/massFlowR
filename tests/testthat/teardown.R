@@ -1,3 +1,3 @@
 ## delete directory with written output
-# unlink(massFlowR_dir, recursive=TRUE)
+unlink(list.files(pattern = "peakgrs|_aligned|experiment.csv", data_dir, full.names = T), recursive=TRUE)
 message("Awesome")
