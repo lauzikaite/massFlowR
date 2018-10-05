@@ -4,15 +4,17 @@
 #'
 #' @description \code{massFlowDB} class encapsulates information provided in the chemical reference database.
 #' 
-#' @details Chemical reference database file lists peaks \code{centWave}-detected in the reference LC-MS datafiles.#' 
+#' @details Chemical reference database file lists peaks \code{centWave}-detected in the reference LC-MS datafiles.
 #' The database file is a single csv file, which must contain columns: "peakid", "mz", "rt", "into", "peakgr", "chemid", "dbid", "dbname".
 #' 
-#' \code{massFlowDB} object will be used to initialise \code{\link{massFlowTemplate-class}} object.
+#' To initialise \code{massFlowDB} object, a constructor function \code{\link{buildDB}} mus be used. 
 #'
 #' @slot filepath \code{character} specifying path to database csv file.
 #' @slot db \code{data.frame} containing database template.
 #' 
 #' @rdname massFlowDB-class
+#' 
+#' @seealso \code{\link{buildDB}}
 #' 
 #' @export
 #'
@@ -49,7 +51,7 @@ setClass("massFlowDB",
 #' @slot data \code{list} containg annotated and aligned peak tables for the already processed samples.
 #' @slot params \code{list} containg alignment and annotation parameters.
 #' 
-#' @seealso \code{\link{alignSAMPLES}}, \code{\link{massFlowDB}}
+#' @seealso \code{\link{buildTMP}}, \code{\link{alignPEAKS}}
 #' 
 #' @rdname massFlowTemplate-class
 #'

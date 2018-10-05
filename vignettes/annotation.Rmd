@@ -1,0 +1,83 @@
+---
+title: "Annotation using chemical reference database"
+output:
+  BiocStyle::html_document:
+    toc_float: true
+vignette: >
+  %\VignetteIndexEntry{Annotation using chemical reference database}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\VignettePackage{massFlowR}
+  %\VignetteKeywords{mass spectrometry, metabolomics}
+---
+
+**Package**: [massFlowR](https://github.com/lauzikaite/massFlowR)<br />
+**Authors**: Elzbieta Lauzikaite<br />
+**Modified**: `r file.info("massFloWR.Rmd")$mtime`<br />
+**Compiled**: `r date()`
+
+```{r  setup, echo = FALSE, results = "asis" }
+BiocStyle::markdown() 
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+Biocpkg <- function (pkg) {
+    sprintf("[%s](http://bioconductor.org/packages/%s)", pkg, pkg)
+}
+options(kpb.suppress_noninteractive = TRUE) ## supressing progress bar
+```
+
+```{r libraries, message = FALSE, echo = FALSE}
+suppressWarnings(library(massFlowR))
+suppressWarnings(library(xcms))
+suppressWarnings(library(dplyr))
+rda_dir <- "/Users/el1514/Documents/Projects/DBannotate/NPC-RPOS-LCE-SubDB"
+db_dir <- "/Users/el1514/Documents/Projects/massFlowR/packageDEV/db"
+```
+
+`massFlowR` performs automatic annotation during peak alignment if LC-MS files for chemical reference compounds are available. To enable annotation, provide a database table in a csv format when initiating peak alignment (see section [peak annotation](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html#peak-annotation)).
+
+Database table can be obtained from raw LC-MS files in two steps:
+
+* Build pseudo chemical spectra (PCS) for each compound using the raw LC-MS file (in mzML/NetCDF format)
+* Build database table
+
+# Chemical spectra extraction
+
+*(code under development)*
+
+Raw LC-MS files had been processed by M.Lewis. Code for corresponding functionality will be added to `massFlowR` package for those that have acquired LC-MS data independently. 
+
+# Database table
+
+## Building database from rda files
+
+Previously processed LC-MS files were recorded in rda files. Function `getDB` can be used to build a database table using these rda files. The generated table will have the following columns:
+
+* `peakid` (unique peak number)
+* `mz` (peak m/z)
+* `rt` (peak retention time, sec)
+* `into` (peak intensity)
+* `peakgr` (unique peak-group, PCS, number)
+* `chemid` (unique database chemical number)
+* `dbid`  (compound identifier)
+* `dbname` (compound chemical name)
+
+```{r db_table}
+# rda_dir <- "absolute_path_to_rda_files"
+# db_dir <- "absolute_path_to_output_directory"
+db_table <- getDB(dir = rda_dir, out_dir = db_dir)
+```
+
+```{r db_table_knitr, echo = FALSE}
+dt <- head(db_table)
+knitr::kable(x = dt,
+             format = "html",
+             row.names = F) %>% 
+  kableExtra::kable_styling(full_width = TRUE, bootstrap_options = c("striped"), position = "left")
+```
+
+# See also
+
+* [Introduction to massFlowR](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html)

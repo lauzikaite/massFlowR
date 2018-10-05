@@ -11,7 +11,7 @@
 #' \item EIC correlation between all co-eluting peaks is performed.
 #' \item Network of peaks with high EIC correlation (with coefficients above the selected threshold) is built.
 #' }
-#' Co-eluting peaks within a network of high EIC correlation originate from the same chemical compound and therefore form a chemical spectrum.#' 
+#' Co-eluting peaks within a network of high EIC correlation originate from the same chemical compound and therefore form a chemical spectrum.
 #'
 #' @param files \code{character} with paths to mzML file(s) to be processed.
 #' @param out_dir \code{character} specifying desired directory for output.
@@ -35,7 +35,8 @@ groupPEAKS <- function(files, out_dir, cwt, match = 1, pearson = TRUE, thr = 0.9
   if (missing(cwt)) { stop("'cwt' has to be specified!") } else {
     if (class(cwt) != "CentWaveParam") { stop("'cwt' has to be 'CentWaveParam' object!") }
   }
-
+  cwt@verboseColumns <- TRUE ## verboseColumns must be TRUE to output column "scpos"
+  
   message("Apex matching window: ", match, " SCPOS")
   message("Correlation estimation: ", ifelse(pearson == TRUE, "Pearson", "Spearman"))
 

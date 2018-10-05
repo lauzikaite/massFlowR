@@ -3,7 +3,7 @@ context("methods for massFlowTemplate")
 test_that("align two identical samples, without DB", {
   
   tmp <- buildTMP(file = experiment_dup_file, rt_err = 10)
-  tmp <- alignSAMPLES(tmp)
+  tmp <- alignPEAKS(tmp)
   tmp_data1 <- tmp@data[[1]]
   tmp_data2 <- tmp@data[[2]]
   

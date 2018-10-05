@@ -1,12 +1,16 @@
-#' Build a chemical database template
+#' @aliases buildDB
+#' 
+#' @title Build a chemical database template
 #'
-#' Function creates a \code{massFlowDB} class object, which will be used for chromatograpic peaks annotation and study samples alignment.
+#' @description Function creates a \code{massFlowDB} class object, which will be used for chromatograpic peaks annotation and study samples alignment.
 #'
 #' @param file \code{character} with absolute path to the the database template file (csv).
 #' 
 #' @return Function returns a \code{massFlowDB} class object.
 #' 
 #' @export
+#' 
+#' @seealso \code{\link{massFlowDB-class}}
 #' 
 #' @examples
 #' ## Build database template using a sample file, provided with the package

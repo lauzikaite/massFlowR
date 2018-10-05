@@ -41,5 +41,5 @@ Picked-peaks are then grouped into chemical spectra. For each peak in the sample
 \item EIC correlation between all co-eluting peaks is performed.
 \item Network of peaks with high EIC correlation (with coefficients above the selected threshold) is built.
 }
-Co-eluting peaks within a network of high EIC correlation originate from the same chemical compound and therefore form a chemical spectrum.#'
+Co-eluting peaks within a network of high EIC correlation originate from the same chemical compound and therefore form a chemical spectrum.
 }

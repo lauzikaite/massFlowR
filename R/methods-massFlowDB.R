@@ -28,5 +28,10 @@ setMethod("filepath", signature = "massFlowDB", function(object) object@filepath
 #' 
 #' @export
 #'
-setMethod("chemicals", signature = "massFlowDB", function(object) unique(object@db$dbname))
+setMethod("chemicals", signature = "massFlowDB", function(object) {
+  cat("Database contains:",  unique(object@db$dbname))
+})
+  
+  
+ 
 

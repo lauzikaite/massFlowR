@@ -48,5 +48,5 @@ Alignment results are stored in slot @data for each sample separately.
 }}
 
 \seealso{
-\code{\link{alignSAMPLES}}, \code{\link{massFlowDB}}
+\code{\link{buildTMP}}, \code{\link{alignPEAKS}}
 }

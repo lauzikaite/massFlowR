@@ -18,8 +18,8 @@ setMethod("show", signature = "massFlowTemplate", function(object) {
 #'
 setMethod("filepath", signature = "massFlowTemplate", function(object) object@filepath)
 
-####---- checkSAMPLES - no documentation, as not exported ----
-setMethod("checkSAMPLES",
+####---- checkNEXT - no documentation, as not exported ----
+setMethod("checkNEXT",
           signature = "massFlowTemplate",
           function(object) {
             if (class(object) != "massFlowTemplate") stop("db must be a 'massFlowTemplate' class object.")
@@ -41,25 +41,36 @@ setMethod("checkSAMPLES",
 )
 
 
-####---- alignSAMPLES - more complex method, has a separate documentation page ----
-#' @aliases alignSAMPLES
+####---- alignPEAKS - more complex method, has a separate documentation page ----
+#' @aliases alignPEAKS
 #' 
-#' @title Align LC-MS experiment samples using groups of structurally-related peaks
+#' @title Align peaks detected in LC-MS samples using spectral similarity comparison
 #'
-#' @description Merge peak-groups together across samples in the experiment using spectral similarity comparison.
+#' @description Method aligns peaks across samples in LC-MS experiment using spectral similarity comparison.
+#' To enable alignment, peaks originating from the same chemical compound were grouped into pseudo chemical spectra (PCS), via function \code{\link{groupPEAKS}}.
 #'
-#' @details A sample is aligned to the template, i.e. list of all previously detected peaks, by merging its peaks to the template peaks.
-#' Matching peaks are found through \emph{m/z} and \emph{rt} windows. To identify true matches, the overall spectral similarity between a peak-group of the sample and all matching template peak-groups is compared.
-#' Spectral similarity is measured by obtaining the cosine of the angle between two 2D vectors, representing each peak-group's \emph{m/z} and \emph{intensity} values. A peak-group of the sample is merged/grouped with the template's peak-group with which the highest cosine was obtained.
+#' @details Peaks are aligned across samples in their original acquisition order.
+#' Template is list of all previously detected and aligned peaks.
+#' For each peak in a sample, \code{alignPEAKS}:
+#' \itemize{
+#' \item Finds all template peaks within a \emph{m/z} and \emph{rt} window.
+#' \item Identifies the true match by comparing the spectral similarity between the peak-group of the peak-of-interest and all matching template's peak-groups.
+#' \item Merges the selected template's peak-group with the peak-group of the peak-of-interest.
+#' \item Updates template's \emph{m/z} and \emph{rt} values for the matching peaks across the template and the sample.
+#' }
+#'
+#' Spectral similarity is measured by obtaining the cosine of the angle between two 2D vectors, representing each peak-group's \emph{m/z} and \emph{intensity} values.
 #'
 #' @param object \code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.
 #'
-#' @return A \code{\link{massFlowTemplate}} class object with updated \code{tmp}, \code{data} slots.
-#' Method also writes intermediate alignment results for every sample in a csv file.
+#' @return Method updates \code{\link{massFlowTemplate}} class object.
+#' Slot @@tmp is updated after each round of sample alignment.
+#' Slot @@data stores alignment results for each sample in the experiment.
+#' Method writes alignment results to a csv file for each sample in the experiment.
 #' 
 #' @export
 #'
-setMethod("alignSAMPLES",
+setMethod("alignPEAKS",
           signature = "massFlowTemplate",
           function(object) {
 
@@ -69,15 +80,15 @@ setMethod("alignSAMPLES",
             while (any(object@samples$aligned == FALSE)) {
 
               message(paste(length(which(object@samples$aligned == F)), "out of" , nrow(object@samples), "samples left to align."))
-              doi_fname <- checkSAMPLES(object)
-              message("Aligning sample: ", basename(doi_fname),  "... ")
+              doi_fname <- checkNEXT(object)
+              message("Aligning to sample: ", basename(doi_fname),  "... ")
               out <- addDOI(tmp = object@tmp, doi_fname = doi_fname, mz_err = params$mz_err, rt_err = params$rt_err, bins = params$bins)
               object@tmp <- out$tmp
               object@samples[object@samples$filepaths == doi_fname,"aligned"] <- TRUE
               object@data[[doi_fname]] <- out$doi
 
             }
-            message("All samples were aligned.")
+            message("Peaks were aligned across all samples.")
             return(object)
           }
 

@@ -22,3 +22,6 @@ db_fname <- file.path(data_dir, "DBtemplate.csv")
 db <- buildDB(file = db_fname)
 
 }
+\seealso{
+\code{\link{massFlowDB-class}}
+}
