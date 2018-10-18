@@ -22,8 +22,7 @@ setMethod("filepath", signature = "massFlowTemplate", function(object) object@fi
 setMethod("checkNEXT",
           signature = "massFlowTemplate",
           function(object) {
-            if (class(object) != "massFlowTemplate") stop("db must be a 'massFlowTemplate' class object.")
-            
+
             ## extract next-in-line sample and check if it is present (i.e. has been written already)
             doi_fname <- object@samples$filepaths[which(object@samples$aligned == FALSE)[1]]
             doi_present <- file.exists(doi_fname) # if FALSE, then loop until TRUE
@@ -74,7 +73,7 @@ setMethod("alignPEAKS",
           signature = "massFlowTemplate",
           function(object) {
 
-            if (class(object) != "massFlowTemplate") stop("db must be a 'massFlowTemplate' class object")
+            if (class(object) != "massFlowTemplate") stop("object must be a 'massFlowTemplate' class object")
             params <- object@params
 
             while (any(object@samples$aligned == FALSE)) {
@@ -93,3 +92,34 @@ setMethod("alignPEAKS",
           }
 
 )
+
+setMethod("validPEAKS",
+          signature = "massFlowTemplate",
+          function(object, bpparam, out_dir) {
+            
+            if (class(object) != "massFlowTemplate") stop("object must be a 'massFlowTemplate' class object")
+            if (missing(bpparam)) bpparam <-BiocParallel::bpparam() ## if paral workers are not defined, use the default backend
+            
+            ## extract intensities for every peak-group from every sample
+            peakgrs_all <- unique(object@tmp$peakgr)[order(unique(object@tmp$peakgr))]
+            peakgrs_all_ints <- lapply(peakgrs_all, FUN = extractINT, object = object)
+            
+            ## retain peak-groups that were present in atleast one sample (removing peak-groups coming from database and not having a single match in the data)
+            peakgrs <- peakgrs_all[which(sapply(peakgrs_all_ints, nrow) > 0)]
+            peakgrs_ints <- peakgrs_all_ints[c(peakgrs)]
+
+            ## validate peak-groups by splitting peak-groups across available workers
+            peakgrs_ints_split <- BiocParallel::bplapply(peakgrs[1:10],
+                                                         FUN = validPEAKS_paral,
+                                                         peakgrs_ints = peakgrs_ints,
+                                                         out_dir = out_dir,
+                                                         BPPARAM = bpparam)
+            
+            
+            
+            message("All peak-groups were succesfully validated.")
+            return(object)
+          }
+          
+)
+
