@@ -109,7 +109,7 @@ setMethod("validPEAKS",
             peakgrs_ints <- peakgrs_all_ints[c(peakgrs)]
 
             ## validate peak-groups by splitting peak-groups across available workers
-            peakgrs_ints_split <- BiocParallel::bplapply(peakgrs[1:10],
+            peakgrs_ints_split <- BiocParallel::bplapply(peakgrs,
                                                          FUN = validPEAKS_paral,
                                                          peakgrs_ints = peakgrs_ints,
                                                          out_dir = out_dir,

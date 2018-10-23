@@ -52,7 +52,7 @@ extractINT <- function(pkg, object) {
   pkg_peakids <- object@tmp$peakid[which(object@tmp$peakgr == pkg)]
   pkg_ints <- lapply(names(object@data), function(s) {
     sample <- object@data[[s]]
-    sample <- sample[which(sample$peakid %in% pkg_peakids),c("peakid","into")]
+    sample <- setNames(sample[which(sample$tmp_peakid %in% pkg_peakids),c("tmp_peakid","into")], c("peakid", "into"))
     sample$filepath <- rep(s, nrow(sample))
     sample$run_order <- rep(object@samples[which(object@samples == s),"run_order"], nrow(sample))
     return(sample)
