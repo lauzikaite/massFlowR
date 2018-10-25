@@ -10,7 +10,6 @@ test_that("initialise massFlowDB class object", {
   expect_equal(db@db, db_table)
 
   # Check getters
-  expect_equal(chemicals(db), unique(db_table$dbname))
   expect_true(filepath(db) == db_file)
   
 })

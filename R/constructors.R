@@ -75,13 +75,14 @@ buildTMP <- function(file = NULL, db = NULL, mz_err = 0.01, rt_err = 2, bins = 0
 
   if (is.null(db)) {
     message(paste("db is not defined. Building template using sample:" , basename(doi_fname), "..."))
-    tmp <- checkFILE(file = doi_fname)
-    doi <- getCLUSTS(dt = tmp) %>%
-      mutate(tmp_peakid = peakid, tmp_peakgr = peakgr, new_mz = mz, new_rt = rt, chemid = NA, dbid = NA, dbname = NA, cos = NA)
+    ## write 1st sample in the standard output format
+    doi <- checkFILE(file = doi_fname)
+    doi <- getCLUSTS(dt = doi)
+    doi[,c("tmp_peakid", "tmp_peakgr", "new_mz", "new_rt")] <- doi[,c("peakid", "peakgr", "mz", "rt")]
+    doi <- addCOLS(dt = doi, cname = c("chemid", "dbid", "dbname", "cos"))
     write.csv(doi, file = gsub(".csv", "_aligned.csv", doi_fname), quote = T, row.names = F) ## quote = T to preserve complex DB entries with "-"
-    tmp <- tmp %>%
-      select(peakid, mz, rt, into, peakgr) %>%
-      mutate(chemid = NA, dbid = NA, dbname = NA)
+    ## build template for 1st sample
+    tmp <- doi[,c("peakid", "mz", "rt", "into", "peakgr", "chemid", "dbid", "dbname")]
 
     } else {
       if (class(db) != "massFlowDB") stop("db must be a 'massFlowDB' class object")

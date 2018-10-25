@@ -7,22 +7,24 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
   ## (A) prepare tmp for grouping with the doi where doi peaks will be added to
   ## get peakgr clusters based on their retention time, order them by complexity
   tmp <- getCLUSTS(dt = tmp)
-  tmp <- tmp %>%
-    mutate(mz_l = .data$mz - mz_err, mz_h = .data$mz + mz_err, rt_l = .data$rt - rt_err, rt_h = .data$rt + rt_err) %>%
-    addCOLS(., c("chemid", "dbid", "dbname", ## if not using db to build a template, add missing columns
-                 "doi_peakid", "doi_peakgr", "doi_peakgrcls", "cos")) ## columns for storing intermediate results
+  tmp <- addERRS(dt = tmp, mz_err = mz_err, rt_err = rt_err)
+  tmp <- addCOLS(dt = tmp,
+                 c("chemid", "dbid", "dbname", ## if not using db to build a template, add missing columns
+                   "doi_peakid", "doi_peakgr", "doi_peakgrcls", "cos")) ## columns for storing intermediate results
   ## dataframe for storing intermediate alignment results
   itmp <- tmp
 
   ## (B) prepare doi for matching against template
   doi_full <- checkFILE(file = doi_fname)
   doi_full <- getCLUSTS(dt = doi_full)
-  ## dataframe for storing intermediate alignment results
-  doi <- doi_full %>%
-    mutate(mz_l = .data$mz - mz_err, mz_h = .data$mz + mz_err, rt_l = .data$rt - rt_err, rt_h = .data$rt + rt_err) %>%
-    mutate(tmp_peakgr = NA, tmp_peakid = NA, chemid = NA, dbid = NA, dbname = NA, cos = NA, added = F) %>%
-    select(.data$peakid, .data$mz, .data$mz_l, .data$mz_h, .data$rt, .data$rt_l, .data$rt_h, .data$into, .data$peakgr, .data$peakgrcls, .data$tmp_peakid, .data$tmp_peakgr, .data$chemid, .data$dbid, .data$dbname, .data$cos, .data$added)
 
+  ## dataframe for storing intermediate alignment results
+  doi <- addERRS(dt = doi_full, mz_err = mz_err, rt_err = rt_err)
+  doi <- addCOLS(dt = doi,
+                 c("tmp_peakgr", "tmp_peakid", "chemid", "dbid", "dbname", "cos"))
+  doi$added <- FALSE
+  doi <- doi[,c("peakid", "mz", "mz_l", "mz_h", "rt", "rt_l", "rt_h", "into", "peakgr", "peakgrcls", "tmp_peakid", "tmp_peakgr", "chemid", "dbid", "dbname", "cos", "added")]
+  
   ## initiate progress bar
   pb <- progress_estimated(n = length(unique(doi$peakgrcls)))
 
@@ -30,16 +32,15 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
   while (any(doi$added == F)) {
 
     ## get the first peak among the un-annotated peaks
-    p <- doi %>% filter(.data$added == F) %>% slice(1) %>% pull(.data$peakid)
+    p <- doi[which(doi$added == FALSE),"peakid"][1]
     
-    target <- doi %>% filter(.data$peakid == p)
-    target <- doi %>% filter(.data$peakgrcls == target$peakgrcls)
+    target <- doi[which(doi$peakid == p),]
+    target <- doi[which(doi$peakgrcls == target$peakgrcls),]
+    if (any(!is.na(target$cos))) stop("check peak-group-cluster selection!")
 
     ## matching by mz/rt window
-    mat <- target %>%
-      group_by(.data$peakid) %>%
-      do(matchPEAK(p = .data, dt = tmp)) %>%
-      ungroup()
+    mat <- apply(target, 1, FUN = matchPEAK, dt = tmp)
+    mat <- do.call(function(...) rbind(..., make.row.names = F), mat)
 
     ## extract top matches for every target peakgr
     mattop <- getTOPmatches(mat = mat, target = target, tmp = tmp, bins = bins, add_db = add_db, db_thrs = db_thrs)

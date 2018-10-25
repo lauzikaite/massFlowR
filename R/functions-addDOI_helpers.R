@@ -1,22 +1,31 @@
 ####---- Check and load file for alignment
 checkFILE <- function(file = NULL) {
   if (!file.exists(file)) stop("incorrect filepath for: ", file)
-  doi <- read.csv(file, stringsAsFactors = F)
+  dt <- read.csv(file, stringsAsFactors = F)
   required_colnames <- c("peakid", "mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax", "into", "peakgr")
-  if (any(!required_colnames %in% colnames(doi))) {
-    stop("file ", file, "is missing columns: \n",
-         paste0(required_colnames[which(!required_colnames %in% colnames(dt))], collapse = ", "))
+  if (any(!required_colnames %in% colnames(dt))) {
+    stop("incorrect file: ", file, " \n ",
+         "missing columns: ", paste0(required_colnames[which(!required_colnames %in% colnames(dt))], collapse = ", "))
   }
-  return(doi)
+  return(dt)
 }
 
 
 ####---- add columns to dataframe, fill with NA
-addCOLS <- function(dt, cname) {
-  add <- cname[!cname %in% names(dt)]
+addCOLS <- function(dt, cnames) {
+  add <- cnames[!cnames %in% names(dt)]
   if (length(add) != 0) dt[add] <- NA
   return(dt)
 }
+
+addERRS <- function(dt, mz_err, rt_err) {
+  dt[,c("mz_l","mz_h", "rt_l", "rt_h")] <- c(dt$"mz" - mz_err,
+                                              dt$"mz" + mz_err,
+                                              dt$"rt" - rt_err,
+                                              dt$"rt" + rt_err)
+  return(dt)
+}
+
 
 ####---- get peakgroup clusters based on rt values
 ## requires columns 'peakgr','peakid','rt'
@@ -27,48 +36,35 @@ getCLUSTS <- function(dt){
   cls <- data.frame(peakgr = unique(dt$peakgr), peakgrcls = NA, stringsAsFactors = F)
 
   ## for every peak group
-  for (pg in unique(dt$peakgr)) {
+  for (pkg in unique(dt$peakgr)) {
 
     ## if peak-group was not assigned to a cluster yet
-    if (is.na(cls[which(cls$peakgr == pg),"peakgrcls"])) {
+    if (is.na(cls[which(cls$peakgr == pkg),"peakgrcls"])) {
 
       ## get unique peak-group-cluster id
       id <- ifelse(all(is.na(cls$peakgrcls)), 1, max(na.omit(cls$peakgrcls)) + 1)
 
       ## find all other peaks in the same RT region as the peak-group
-      peaks <- dt %>%
-        filter(.data$peakgr == pg)
-      cluster <- dt %>%
-        filter(.data$peakgr %in% (cls %>% filter(is.na(.data$peakgrcls)) %>% select(.data$peakgr) %>% pull())) %>% # only search between peak groups that were not clustered yet
-        filter(between(.data$rt, min(peaks$rt), max(peaks$rt))) # use RT region defined by the min and max values
+      peakgroup <- dt[which(dt$peakgr == pkg),]
+      cluster <- dt[which(dt$peakgr %in% cls[which(is.na(cls$peakgrcls)),"peakgr"]),] # only search between peak groups that were not clustered yet
+      cluster <- cluster[which(dplyr::between(cluster$rt, min(peakgroup$rt), max(peakgroup$rt))),]  # use RT region defined by the min and max values
 
       ## add other peaks in the extracted peak-group
-      cluster <- dplyr::bind_rows(cluster,
-                                  dt %>%
-                                    filter(.data$peakgr %in% (cluster %>% distinct(.data$peakgr) %>% pull(.data$peakgr))) %>%
-                                    filter(!.data$peakid  %in% (cluster %>% distinct(.data$peakid) %>% pull(.data$peakid))))
+      cluster <- dt[which(dt$peakgr %in% cluster$peakgr),]
 
       ## update cluster ID assignment table
       cls[which(cls$peakgr %in% unique(cluster$peakgr)),"peakgrcls"] <- rep(id, length(unique(cluster$peakgr)))
 
     }
     else next
-
   }
 
   dt <- dplyr::full_join(dt, cls, by = c("peakgr"))
 
-  ## order peak-groups by their peakgrcomplexity
-  ## and peaks intensity
-  dt_c <- dt %>%
-    group_by(.data$peakgr) %>%
-    summarise(n = n()) %>%
-    arrange(desc(.data$n)) %>%
-    ungroup()
-
-  dt <- dt %>%
-    dplyr::arrange(factor(.data$peakgr, levels = dt_c$peakgr), .data$peakgr, .data$peakid)
-
+  ## order peak-groups by their complexity (number of peaks), but preserve increasing peak-group numbering
+  pkg_order <- order(table(dt$peakgr), decreasing = T)
+  pkg_levels <- factor(dt$peakgr, levels = pkg_order)
+  dt <- dt[order(pkg_levels),]
   return(dt)
 
 }
@@ -76,14 +72,18 @@ getCLUSTS <- function(dt){
 
 ####---- find matches for a peak from one dataset in another
 ## use peak's and dataset's mz and rt regions only
-matchPEAK <- function(p, dt) {
-  mat <- dt %>%
-    ## Using regions of both peaks. Regions defined by user mz and rt error ranges
-    filter(between(.data$mz_l, p$mz_l, p$mz_h) | between(.data$mz_h, p$mz_l, p$mz_h)) %>%
-    filter(between(.data$rt_l, p$rt_l, p$rt_h) | between(.data$rt_h, p$rt_l, p$rt_h)) %>%
-    mutate(target_peakid = p$peakid, target_peakgr = p$peakgr) %>%
-    mutate(target_peakgrcls = p$peakgrcls) %>%
-    select(.data$target_peakid, .data$target_peakgr, names(dt))
+
+matchPEAK <- function(peak, dt) {
+
+  ## find matching peaks using mz/rt windows of both peaks
+  mat <- dt[which(dplyr::between(dt$mz_l, peak["mz_l"], peak["mz_h"]) | dplyr::between(dt$mz_h,  peak["mz_l"], peak["mz_h"])),]
+  mat <- mat[which(dplyr::between(mat$rt_l, peak["rt_l"], peak["rt_h"]) | dplyr::between(mat$rt_h,peak["rt_l"], peak["rt_h"])),]
+
+  mat$"target_peakid" <- peak["peakid"]
+  mat$"target_peakgr" <- peak["peakgr"]
+  mat$"target_peakgrcls" <- peak["peakgrcls"]
+  mat <- mat[,c("target_peakid", "target_peakgr", names(dt))]
+
   return(mat)
 }
 
@@ -91,23 +91,25 @@ matchPEAK <- function(p, dt) {
 getTOPmatches <- function(mat, target, tmp, bins, add_db, db_thrs) {
 
   if (nrow(mat) > 0) {
-    ## (1) add peaks, that belong to the same cluster as the matched cluster(s)
-    ## bind rows, rather than extract from template, so that mat columns 'target_peakgr', 'target_peakid' would be retained
-    allmat <- bind_rows(mat,
-                        tmp %>%
-                          filter(.data$peakgrcls %in% (mat %>% distinct(.data$peakgrcls) %>% pull(.data$peakgrcls))) %>% ## add additional cluster peaks
-                          filter(!.data$peakid %in% (mat %>% distinct(.data$peakid) %>% pull(.data$peakid))) %>% ## but not those, that are already in the mat dataframe
-                          select(.data$peakid, .data$peakgr, .data$peakgrcls, .data$mz, .data$rt, .data$into, .data$chemid)) ## minimise dataframe to the most important columns
-
+    ## extract all peaks, that belong to the same cluster as the matched cluster(s)
+    allmat <- tmp[which(tmp$peakgrcls %in% mat$peakgrcls),]
+    allmat <- dplyr::full_join(mat, allmat, by = names(allmat))
+    
     ## check similarity of each target peakgroup against all its matches in the template
-    matcos <- target %>%
-      rename(target_peakgr = .data$peakgr, target_peakgrcls = .data$peakgrcls) %>% ## must have a different column names to be retained in the final dataframe output
-      ## for each peakgroup in the target
-      group_by(.data$target_peakgr, .data$target_peakgrcls) %>%
-      do(compareSPECTRA(t = ., allmat = allmat, bins = bins))
-
+    ## for each peakgrcls-peakgrc combination
+    target_peakgr <- unique(target[c("peakgr", "peakgrcls")])
+    target_peakgr_cos <- lapply(1:nrow(target_peakgr),
+                                FUN = compareSPECTRA,
+                                target = target,
+                                allmat = allmat,
+                                bins = bins)
+    
+    cos <- setNames(target_peakgr, nm = c("target_peakgr", "target_peakgrcls"))
+    rownames(cos) <- NULL
+    cos[,c("peakgr", "peakgrcls", "cos")] <- do.call(function(...) rbind(..., make.row.names = F), target_peakgr_cos)
+  
     ## compare all matching peakgrs in their clusters, extract top matches
-    mattop <- compareCLUSTERS(matcos = matcos, add_db = add_db, db_thrs = db_thrs)
+    mattop <- compareCLUSTERS(cos = cos, add_db = add_db, db_thrs = db_thrs)
 
     } else {
       mattop <- data.frame(target_peakgr = unique(target$peakgr),
@@ -121,72 +123,91 @@ getTOPmatches <- function(mat, target, tmp, bins, add_db, db_thrs) {
 }
 
 ####---- compare spectra of the target peakgroup and all matching template peakgroups
-compareSPECTRA <- function(t, allmat, bins) {
-
+compareSPECTRA <- function(t, target, allmat, bins) {
+  
   ## extract matches for the single target peakgroup
-  tmat <- allmat %>% filter(target_peakgr == unique(t$target_peakgr))
-
+  tar <- target[which(target$peakgr == target$"peakgr"[t] & target$peakgrcls == target$"peakgrcls"[t]),]
+  # tar <- target[which(target$peakgr == t["peakgr"] & target$peakgrcls == t["peakgrcls"]),]
+  
+  tmat <- allmat[which(allmat$target_peakgr == unique(tar$peakgr)),]
+  
   if (nrow(tmat) > 0) {
-    tmat <- allmat %>%
-      filter(.data$peakgrcls %in% unique(tmat$peakgrcls))
-
+    ## extract matches for the matched peakgrcls
+    tmat <- allmat[which(allmat$peakgrcls == tmat$peakgrcls),]
+    
     ## build total peak table for both the target peaks and all template matches
-    all <- bind_rows(t %>%
-                       select(.data$peakid, peakgr = .data$target_peakgr, peakgrcls = .data$target_peakgrcls, .data$mz, .data$into) %>%
-                        mutate(chemid = NA, dt = "target"),
-                      tmat %>%
-                        select(.data$peakid, .data$peakgr, .data$peakgrcls, .data$mz, .data$into, .data$chemid) %>%
-                        mutate(dt = "tmp"))
-
+    tar$dt <- "target"
+    tmat$dt <- "tmp"
+    all <- rbind(tar[,c("peakid", "peakgr", "peakgrcls", "mz", "into", "dt")],
+                 tmat[,c("peakid", "peakgr", "peakgrcls", "mz", "into", "dt")],
+                 make.row.names = F)
+    
     ## generate mz bins using all peaks
     breaks <- data.frame(breaks = seq(from = min(all$mz), to = max(all$mz), by = bins)) %>%
       mutate(bin = row_number())
-    all <- all %>%
-      mutate(bin = findInterval(.data$mz, breaks$breaks))
-
+    all$bin <- findInterval(x = all$mz, breaks$breaks)
+    
     ## build target vector of the target spectrum
-    target_vec <- full_join(breaks,
-                           all %>%
-                              filter(dt == "target") %>%
-                              group_by(.data$bin) %>% filter(row_number() == 1) %>% ## remove duplicating duplicating bins from different PIDS
-                              select(.data$bin, .data$into),
-                            by = c("bin")) %>%
-      mutate(into = ifelse(is.na(.data$into), 0, .data$into)) %>%
-      mutate(into = scaleVEC(.data$into)) %>% ## scale vector to unit length of 1
-      pull(.data$into)
-
+    target_vec <- dplyr::full_join(breaks,
+                                   all[which(all$dt == "target" & !duplicated(all$bin)),], ## remove duplicating duplicating bins from different PIDS
+                            by = c("bin"))
+    target_vec <- ifelse(is.na(target_vec$into), 0, target_vec$into)
+    target_vec <- scaleVEC(target_vec)
+    
     ## get the cosine of the angle between vectors of the target and the matching template peakgroups
-    cos <- all %>%
-      filter(dt == "tmp") %>%
-      group_by(.data$peakgrcls, .data$peakgr, .data$chemid) %>%
-      do(data.frame(cos = getCOS(breaks = breaks, target_vec = target_vec, matched = .data))) %>% ## named argument cos would become a list if not put inside data.frame()
-      ungroup()
-  }
+    cos <- unique(all[which(all$dt == "tmp"),c("peakgrcls", "peakgr")])
+    cos_angle <- lapply(1:nrow(cos),
+                        FUN = getCOS,
+                        cos = cos, all = all, breaks = breaks, target_vec = target_vec)
+    cos$cos <- unlist(cos_angle)
+  } 
   else {
     cos <- data.frame(peakgrcls = NA, peakgr = NA, cos = NA)
   }
-
+  
   return(cos)
 }
 
-####---- Cosine estimation
-getCOS <- function(breaks, target_vec, matched){
 
-  ## build vector
-  matched_vec <- full_join(breaks,
-                           matched %>%
-                            group_by(.data$bin) %>% filter(row_number() == 1) %>% ## remove duplicating duplicating bins from different PIDS
-                            select(.data$bin, .data$into),
-                          by = c("bin")) %>%
-    mutate(into = ifelse(is.na(.data$into), 0, .data$into)) %>% ## if mz bin has an intensity, use it, otherwise set to 0
-    mutate(into = scaleVEC(.data$into)) %>% ## scale vector to unit length of 1
-    pull(into)
+####---- Cosine estimation between target vector and matched vector
+getCOS <- function(m, cos, all, breaks, target_vec){
+  
+  ## extract matched peaks
+  matched <- all[which(all$dt == "tmp" & all$peakgr == cos$"peakgr"[m] & all$peakgrcls == cos$"peakgrcls"[m]),]
+
+  ## build vector from matched peaks
+  matched_vec <- dplyr::full_join(breaks,
+                                   matched[which(!duplicated(all$bin)),], ## remove duplicating duplicating bins from different PIDS
+                                   by = c("bin"))
+  matched_vec <- ifelse(is.na(matched_vec$into), 0, matched_vec$into)
+  matched_vec <- scaleVEC(matched_vec)
 
   ## find the cosine of the angle
   cos_angle <- (sum(target_vec * matched_vec) )  / ( (sqrt(sum(target_vec * target_vec)))  * ( sqrt(sum(matched_vec * matched_vec)) ) )
+
   return(cos_angle)
 
 }
+
+
+
+# getCOS <- function(breaks, target_vec, matched){
+# 
+#   ## build vector
+#   matched_vec <- full_join(breaks,
+#                            matched %>%
+#                             group_by(.data$bin) %>% filter(row_number() == 1) %>% ## remove duplicating duplicating bins from different PIDS
+#                             select(.data$bin, .data$into),
+#                           by = c("bin")) %>%
+#     mutate(into = ifelse(is.na(.data$into), 0, .data$into)) %>% ## if mz bin has an intensity, use it, otherwise set to 0
+#     mutate(into = scaleVEC(.data$into)) %>% ## scale vector to unit length of 1
+#     pull(into)
+# 
+#   ## find the cosine of the angle
+#   cos_angle <- (sum(target_vec * matched_vec) )  / ( (sqrt(sum(target_vec * target_vec)))  * ( sqrt(sum(matched_vec * matched_vec)) ) )
+#   return(cos_angle)
+# 
+# }
 
 ####---- Scale vector to unit length
 scaleVEC <- function(x) {
@@ -194,18 +215,18 @@ scaleVEC <- function(x) {
 }
 
 ####---- Compare clusters
-compareCLUSTERS <- function(matcos, add_db, db_thrs) {
+compareCLUSTERS <- function(cos, add_db, db_thrs) {
 
   ## if aligning 1st doi in the study with the db, use similarity threshold (db_thrs)
   if (add_db == T) {
-    mattop <- matcos %>%
+    mattop <- cos %>%
       group_by(.data$peakgr) %>%
       mutate(db = ifelse(!is.na(.data$chemid), T, F)) %>%
       filter((.data$db == T & .data$cos > db_thrs) |
                (.data$db == F & .data$cos > 0)) %>%
       ungroup()
   } else {
-    mattop <- matcos %>%
+    mattop <- cos %>%
       filter(.data$cos > 0) %>%
       ungroup()
   }
@@ -254,7 +275,7 @@ compareCLUSTERS <- function(matcos, add_db, db_thrs) {
    mattop <- mattop %>%
      group_by(.data$target_peakgr) %>%
      filter(.data$top == TRUE) %>%
-     select(names(matcos), .data$top) %>%
+     select(names(cos), .data$top) %>%
      ungroup()
 
  }
@@ -262,7 +283,7 @@ compareCLUSTERS <- function(matcos, add_db, db_thrs) {
  ## add target peakgroups that did not have a match, will be needed when updating doi dataframe
  mattop <- mattop %>%
    bind_rows(.,
-             matcos %>%
+             cos %>%
                filter(!.data$target_peakgr %in% mattop$target_peakgr) %>%
                mutate(top = FALSE))
 
