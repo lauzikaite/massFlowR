@@ -34,14 +34,19 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
     ## get the first peak among the un-annotated peaks
     p <- doi[which(doi$added == FALSE),"peakid"][1]
     
+    ## get all peaks from the same cluster as that peak
     target <- doi[which(doi$peakid == p),]
     target <- doi[which(doi$peakgrcls == target$peakgrcls),]
     if (any(!is.na(target$cos))) stop("check peak-group-cluster selection!")
 
-    ## matching by mz/rt window
-    mat <- apply(target, 1, FUN = matchPEAK, dt = tmp)
-    mat <- do.call(function(...) rbind(..., make.row.names = F), mat)
-
+    ## match template peaks by mz/rt window
+    mat <- apply(target, 1, FUN = matchPEAK, tmp = tmp)
+    mat <- if (is.null(mat)) { ## if none matches in the template were found
+      data.frame()
+    } else {
+      do.call(function(...) rbind(..., make.row.names = F), mat)
+    }
+    
     ## extract top matches for every target peakgr
     mattop <- getTOPmatches(mat = mat, target = target, tmp = tmp, bins = bins, add_db = add_db, db_thrs = db_thrs)
 
