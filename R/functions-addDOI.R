@@ -67,26 +67,27 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
   }
 
   ## (D) write grouping output
-  if (!all(doi$peakid %in% itmp$doi_peakid)) { stop("not all PNOs were assigned to TMP!") }
+  if (!all(doi$peakid %in% itmp$doi_peakid)) {
+    stop("not all PNOs were assigned to TMP!")
+  }
   message("\n") ## add empty row to align new messages below the progress bar
 
-  doi_full <- right_join(doi_full,
-                         itmp %>%
-                           filter(!is.na(.data$doi_peakid)) %>%
-                           rename(tmp_peakid = .data$peakid, tmp_peakgr = .data$peakgr, peakid = .data$doi_peakid) %>%
-                           rename(new_mz = .data$mz, new_rt = .data$rt) %>%
-                           select(.data$peakid, .data$tmp_peakid, .data$tmp_peakgr, .data$new_mz, .data$new_rt, .data$chemid, .data$dbid, .data$dbname, .data$cos), by = c("peakid"))
-  write.csv(doi_full, file = gsub(".csv", "_aligned.csv", doi_fname), quote = T, row.names = F) ## quote = T to preserve complex DB entries with "-"
+  doi_out <- setNames(itmp[which(!is.na(itmp$doi_peakid)),c("doi_peakid", "peakid", "peakgr", "mz", "rt", "chemid", "dbid", "dbname", "cos")],
+                      nm = c("peakid", "tmp_peakid", "tmp_peakgr", "new_mz", "new_rt", "chemid", "dbid", "dbname", "cos"))
+  doi_out <- dplyr::full_join(doi_full, doi_out, by = "peakid")
+  write.csv(doi_out, file = gsub(".csv", "_aligned.csv", doi_fname), quote = T, row.names = F) ## quote = T to preserve complex DB entries with "-"
 
   ## (E) Update template
-  tmp <- itmp %>%
-    ## remove intermediate output columns not needed for next round of alignment
-    select(-c(.data$mz_l, .data$mz_h, .data$rt_l, .data$rt_h, .data$peakgrcls, .data$doi_peakid, .data$doi_peakgr, .data$doi_peakgrcls, .data$cos)) %>% 
-    ## for any tmp peaks that were matched by multiple doi peakids, retain single, most intense doi peakid
-    group_by(.data$peakid) %>% 
-    filter(.data$into == max(.data$into)) %>% 
-    ungroup()
+  ## remove intermediate output columns not needed for next round of alignment
+  tmp <- itmp[,names(tmp)]
   
+  ## for any tmp peaks that were matched by multiple doi peakids, retain single, most intense doi peakid
+  peakid <- tmp$peakid[which(duplicated(tmp$peakid))]
+  if (length(peakid_dup) > 0) {
+    rownumber_dup <- unlist(lapply(peakid_dup,
+                                   FUN = removeDUPS,
+                                   tmp =  tmp))
+    tmp <- tmp[-rownumber_dup,]
+  }
   return(list("tmp" = tmp, "doi" = doi_full))
-
 }
