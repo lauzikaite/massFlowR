@@ -98,7 +98,7 @@ setMethod("validPEAKS",
           function(object, bpparam, out_dir) {
             
             if (class(object) != "massFlowTemplate") stop("object must be a 'massFlowTemplate' class object")
-            if (missing(bpparam)) bpparam <-BiocParallel::bpparam() ## if paral workers are not defined, use the default backend
+            if (missing(bpparam)) bpparam <- BiocParallel::bpparam() ## if paral workers are not defined, use the default backend
             
             ## extract intensities for every peak-group from every sample
             peakgrs_all <- unique(object@tmp$peakgr)[order(unique(object@tmp$peakgr))]

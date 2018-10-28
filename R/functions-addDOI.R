@@ -53,6 +53,7 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
     ## add annotated/unmatched DOI peaks to template
     update <- addPEAKS(mattop = mattop, mat = mat, target = target, itmp = itmp, tmp = tmp, doi = doi)
 
+    ## sanity checks
     if (update$itmp %>% filter(!is.na(doi_peakid)) %>% group_by(doi_peakid) %>% summarise(n = n()) %>% filter(n > 1) %>% nrow() > 0) stop("duplicated doi peakid")
     if (update$itmp %>%  group_by(peakid) %>% summarise(n = length(unique(doi_peakgr))) %>% filter(n > 1) %>% nrow() > 0) stop("same peakid to multiple peakgrs")
     if (any(!doi %>% filter(!is.na(tmp_peakid)) %>% pull(peakid) %in% (update$itmp %>% filter(!is.na(doi_peakid)) %>% pull(doi_peakid)))) stop("overwritten doi peakid")
@@ -70,6 +71,14 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
   if (!all(doi$peakid %in% itmp$doi_peakid)) {
     stop("not all PNOs were assigned to TMP!")
   }
+  
+  ## sanity check whether peakids match up
+  peakid_match <- unlist(lapply(unique(doi$tmp_peakgr), function(peakgr) {
+    all(doi[which(doi$tmp_peakgr == peakgr),"tmp_peakid"] %in% itmp[which(itmp$peakgr == peakgr),"peakid"])
+  }))
+  if (any(peakid_match == F)) {
+    stop("tmp_peakid and peakid don't macth up")
+  }
   message("\n") ## add empty row to align new messages below the progress bar
 
   doi_out <- setNames(itmp[which(!is.na(itmp$doi_peakid)),c("doi_peakid", "peakid", "peakgr", "mz", "rt", "chemid", "dbid", "dbname", "cos")],
@@ -79,15 +88,15 @@ addDOI <- function(tmp, doi_fname, mz_err, rt_err, bins, add_db = FALSE, db_thrs
 
   ## (E) Update template
   ## remove intermediate output columns not needed for next round of alignment
-  tmp <- itmp[,names(tmp)]
+  tmp <- itmp[,c("peakid", "mz", "rt", "into", "peakgr", "chemid", "dbid", "dbname")]
   
   ## for any tmp peaks that were matched by multiple doi peakids, retain single, most intense doi peakid
-  peakid <- tmp$peakid[which(duplicated(tmp$peakid))]
+  peakid_dup <- tmp$peakid[which(duplicated(tmp$peakid))]
   if (length(peakid_dup) > 0) {
     rownumber_dup <- unlist(lapply(peakid_dup,
                                    FUN = removeDUPS,
                                    tmp =  tmp))
     tmp <- tmp[-rownumber_dup,]
   }
-  return(list("tmp" = tmp, "doi" = doi_full))
+  return(list("tmp" = tmp, "doi" = doi_out))
 }
