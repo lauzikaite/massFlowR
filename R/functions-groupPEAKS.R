@@ -62,7 +62,14 @@ groupPEAKS <- function(files, out_dir, cwt, match = 1, pearson = TRUE, thr = 0.9
 groupPEAKS_paral <- function(f, out_dir, cwt, match, pearson, thr, plot, clean) {
 
   fname <- strsplit(basename(f), split = "[.]")[[1]][1] # remove filename encoding for simplicity
-  raw <- MSnbase::readMSData(f, mode = "onDisk")
+  raw <- try(MSnbase::readMSData(f, mode = "onDisk"),
+             silent = TRUE)
+  if (class(raw) == "try-error") {
+    message(raw[1])
+    message("readMSDATA fail. Failing mzML file: ", fname)
+    stop()
+    
+  } 
   pks <- pickPEAKS(raw = raw, cwt = cwt, fname = fname)
   eic <- extractEIC(raw = raw, pks = pks)
   groupPEAKSspec(pks = pks, eic = eic, out_dir = out_dir, fname = fname, pearson = pearson, match = match, thr = thr, plot = plot, clean = clean)
