@@ -19,7 +19,18 @@ pickPEAKS <- function(raw, cwt, fname) {
 
   message("Peak-picking file: ", fname, " ...")
 
-  res <- xcms::findChromPeaks(object = raw, param = cwt)
+  ## use try to catch mzML reading error that occurs on macOS
+  res <- try(xcms::findChromPeaks(object = raw,
+                                  param = cwt),
+             silent = TRUE)
+  if (class(res) == "try-error") {
+    error_mes <- res[1]
+    print(error_mes)
+    message("failing mzML file: ", fname)
+    stop()
+    
+  } 
+ 
   pks <- data.frame(xcms::chromPeaks(res))
 
   ## order by intensity

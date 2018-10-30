@@ -23,5 +23,5 @@ db <- buildDB(file = db_fname)
 
 }
 \seealso{
-\code{\link{massFlowDB-class}}
+\code{\link{massFlowDB}} class
 }
