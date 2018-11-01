@@ -9,20 +9,20 @@ cwt <- xcms::CentWaveParam(ppm = 25,
                            noise = 1000,
                            prefilter =  c(3, 100),
                            peakwidth = c(30, 80),
-                           integrate = 1,
-                           fitgauss = FALSE,
                            verboseColumns = TRUE)
 test_raw <-  MSnbase::readMSData(files = test_file, mode = "onDisk")
-test_chrom <- xcms::findChromPeaks(object = test_raw, param = cwt)
-test_pks <- data.frame(xcms::chromPeaks(test_chrom))
+test_res <- xcms::findChromPeaks(object = test_raw, param = cwt)
+test_pks <- data.frame(xcms::chromPeaks(test_res))
 test_pks_rd <- test_pks %>%
-  arrange(desc(into)) %>% ## arrange by peak intensity and give a peak number
+  ## arrange by peak intensity and give a peak number
+  arrange(desc(into)) %>% 
   mutate(peakid = row_number()) %>%
   group_by(rt, mz) %>%
   arrange(peakid) %>%
   filter(row_number() == 1) %>%
   ungroup() %>%
-  mutate(peakid = row_number()) %>% ## update peak number after removal of artefactural, duplicating peaks
+  ## update peak number after removal of artefactural, duplicating peaks
+  mutate(peakid = row_number()) %>% 
   data.frame()
 test_eic_rd <- xcms::chromatogram(test_raw,
                                     rt = data.frame(
@@ -32,7 +32,7 @@ test_eic_rd <- xcms::chromatogram(test_raw,
                                       mz_lower = test_pks_rd$mzmin,
                                       mz_upper = test_pks_rd$mzmax))
 test_eic_rd <- lapply(1:nrow(test_eic_rd), function(ch) {
-  clean(test_eic_rd[ch, ], na.rm = T)})
+  MSnbase::clean(test_eic_rd[ch, ], na.rm = T)})
 
 ####---- multiple datafile prepation with the pipeline
 groupPEAKS(files = test_files, out_dir = data_dir, cwt = cwt)

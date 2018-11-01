@@ -9,14 +9,14 @@ extractEIC(raw, pks)
 \arguments{
 \item{raw}{\code{OnDiskMSnExp} class object for the single datafile of interest.}
 
-\item{pks}{\code{DataFrame} object generated with picked peaks.}
+\item{pks}{\code{DataFrame} object generated with function \code{pickPEAKS}.}
 }
 \value{
 Function returns a \code{list} with an EIC for eack peak in the \code{pks} table.
 Individual peaks' EICs can be plotted using base graphics.
 }
 \description{
-Obtain extracted ion chromatograms (EIC) for all picked peaks, provided by \emph{pickPEAKS} function.
+Obtain extracted ion chromatograms (EIC) for all picked peaks, provided by \code{pickPEAKS} function.
 }
 \examples{
 fname <- dir(system.file("cdf/KO", package = "faahKO"), full.names = TRUE)[[1]]

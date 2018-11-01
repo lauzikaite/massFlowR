@@ -29,7 +29,7 @@ addDOI <-
         "doi_peakgrcls",
         "cos"
       )
-    ) ## columns for storing intermediate results
+    )
     ## dataframe for storing intermediate alignment results
     itmp <- tmp
     

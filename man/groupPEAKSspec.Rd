@@ -4,8 +4,7 @@
 \alias{groupPEAKSspec}
 \title{Group peaks of a single LC-MS spectrum using EIC correlation}
 \usage{
-groupPEAKSspec(pks, eic, out_dir, fname, pearson = TRUE, match = 1,
-  thr = 0.95, plot = FALSE, clean = TRUE, return = FALSE)
+groupPEAKSspec(pks, eic, out_dir, fname, thr = thr, return = FALSE)
 }
 \arguments{
 \item{pks}{\code{DataFrame} containing the peak table, created by \emph{pickPEAKS} function.}
@@ -16,18 +15,15 @@ groupPEAKSspec(pks, eic, out_dir, fname, pearson = TRUE, match = 1,
 
 \item{fname}{\code{character} specifying LC-MS filename.}
 
-\item{pearson}{\code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.}
+\item{thr}{\code{numeric} defining Pearson correlation coefficient threshold, above which peak pairs will be considered as correlated.}
 
-\item{match}{\code{numeric} defining the number of scans for co-eluting peaks extraction.}
-
-\item{thr}{\code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
-
-\item{plot}{\code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved in the out_dir directory.}
-
-\item{clean}{\code{logical} whether one-peak peak-groups should be removed (default is TRUE).}
+\item{return}{\code{logical} whether to return the obtained peak-group table. Set to TRUE if working with function interactivily.}
 }
 \value{
-Function returns an updated peak table. Column \code{"peakgr"} contains peak-group ID for each peak. Peaks not correlated to any of its co-eluting peaks are removed from the table. Function also writes updated peak table in the specified directory.
+Function returns an updated peak table.
+Column \code{"peakgr"} contains peak-group ID for each peak.
+Peaks not correlated to any of its co-eluting peaks are removed from the table.
+Function also writes updated peak table in the specified directory.
 }
 \description{
 Function builds peak-groups of co-eluting peaks that are correlated to each other in a single LC-MS spectrum.

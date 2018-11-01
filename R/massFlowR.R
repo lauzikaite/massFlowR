@@ -10,6 +10,7 @@
 #' }
 #'
 #' @import dplyr
+#' @import foreach
 #' @importFrom grDevices dev.off pdf
 #' @importFrom methods new
 #' @importFrom stats cor median na.omit setNames

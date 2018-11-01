@@ -4,8 +4,7 @@
 \alias{groupPEAKS}
 \title{Get peak-groups representing different chemical spectra in each LC-MS datafile}
 \usage{
-groupPEAKS(files, out_dir, cwt, match = 1, pearson = TRUE,
-  thr = 0.95, plot = FALSE, clean = TRUE, bpparam)
+groupPEAKS(files, out_dir, cwt, ncores = 1, thr = 0.95)
 }
 \arguments{
 \item{files}{\code{character} with paths to mzML file(s) to be processed.}
@@ -14,18 +13,9 @@ groupPEAKS(files, out_dir, cwt, match = 1, pearson = TRUE,
 
 \item{cwt}{\code{CentWaveParam} class object with parameters for centWave-based peak-picking.}
 
-\item{match}{\code{numeric} defining the number of scans for co-eluting peaks extraction.}
+\item{ncores}{\code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.}
 
-\item{pearson}{A \code{logical} whether Pearson Correlation should be used. For \code{pearson = FALSE}, Spearman correlation method will be used.}
-
-\item{thr}{A \code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
-
-\item{plot}{A \code{logical}. For \code{plot = TRUE}, a network graph for each peak in the table will be saved as a png file in the out_dir directory.}
-
-\item{clean}{A \code{logical} whether one-peak peak-groups should be removed (default is TRUE).}
-
-\item{bpparam}{A \code{BiocParallel} parameter object to control how and if parallel processing should be performed.
-Such object can be created by the \emph{SerialParam}, \emph{MulticoreParam} or \emph{SnowParam} functions from the \emph{BiocParallel} package.}
+\item{thr}{\code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
 }
 \value{
 For each LC-MS file, function writes a table with picked-peaks and their peak-groups into separate files, in the defined \code{out_dir} directory.

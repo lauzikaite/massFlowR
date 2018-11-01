@@ -39,9 +39,10 @@ validPEAKS_paral <-
       )
     
     ## split peaks into new peak-groups according to communities
-    pkg_ints$new_peakgr <- sapply(pkg_ints$peakid, function(peakid) {
-      pkg_coms[[match(peakid, names(pkg_coms))]]
-    })
+    pkg_ints$new_peakgr <-
+      sapply(pkg_ints$peakid, function(peakid) {
+        pkg_coms[[match(peakid, names(pkg_coms))]]
+      })
     
     ## plot intensities across all samples
     colors <-
@@ -179,53 +180,58 @@ getINT <- function(s, peak) {
 
 
 #####---- build graph of peaks' intensities correlation across all samples
-buildGRAPH <- function(pkg_cor, cor_thr, title, out_dir, pkg) {
-  g <- igraph::graph_from_data_frame(pkg_cor, directed = FALSE)
-  
-  # colors <- c("royalblue4", "lightgrey", "grey")
-  # edge_colors <- sapply(igraph::E(g)$weight, function(w) {
-  #
-  #   if (w > cor_thr) {
-  #     colors[1]
-  #   } else {
-  #     if (w > 0.5) {
-  #       colors[2]
-  #     } else {
-  #     colors[3]
-  #     }
-  #   }
-  # })
-  # igraph::E(g)[1:(length(E(g)))]$color <-  edge_colors
-  
-  ## scale edge thickness
-  igraph::E(g)$weight <-
-    scaleEDGES(igraph::E(g)$weight, from = 0.01, to = 10)
-  
-  ## make coordinates for vertices based on correlation: scale cor coef to maximise distance
-  ## using Fruchterman-Reingold layout algorithm to prevent overlap
-  coords <- igraph::layout_with_fr(g)
-  
-  ## delete edges between peak pairs with cor < thr
-  g <-
-    igraph::delete.edges(g, igraph::E(g)[[which(igraph::E(g)$weight < cor_thr)]])
-  
-  ## detect community structure in the network where non-correlated pairs are omitted
-  coms <- igraph::cluster_label_prop(g)
-  mem <- igraph::membership(coms)
-  
-  grid::grid.newpage()
-  grDevices::pdf(
-    width = 8,
-    height = 8,
-    file = paste0(out_dir, "/", "peak-group-", pkg, "_network.pdf")
-  )
-  igraph::plot.igraph(
-    g,
-    main = title,
-    sub = paste("Cor threshold:", cor_thr),
-    layout = coords
-  )
-  grDevices::dev.off()
-  
-  return(mem)
-}
+buildGRAPH <-
+  function(pkg_cor,
+           cor_thr,
+           plot = TRUE,
+           title = NULL,
+           out_dir = NULL,
+           pkg = NULL) {
+    g <- igraph::graph_from_data_frame(pkg_cor, directed = FALSE)
+    
+    ## delete edges between peak pairs with cor < thr
+    g <- igraph::delete.edges(g, igraph::E(g)[[which(igraph::E(g)$weight < cor_thr)]])
+    
+    ## detect community structure in the network where non-correlated pairs are omitted
+    coms <- igraph::cluster_label_prop(g)
+    mem <- igraph::membership(coms)
+    
+    if (plot == TRUE) {
+      grid::grid.newpage()
+      grDevices::pdf(
+        width = 8,
+        height = 8,
+        file = paste0(out_dir, "/", "peak-group-", pkg, "_network.pdf")
+      )
+      ## scale edge thickness
+      igraph::E(g)$weight <- scaleEDGES(igraph::E(g)$weight)
+      
+      ## make coordinates for vertices based on correlation: scale cor coef to maximise distance
+      ## using Fruchterman-Reingold layout algorithm to prevent overlap
+      coords <- igraph::layout_with_fr(g)
+      
+      # colors <- c("royalblue4", "lightgrey", "grey")
+      # edge_colors <- sapply(igraph::E(g)$weight, function(w) {
+      #   if (w > cor_thr) {
+      #     colors[1]
+      #   } else {
+      #     if (w > 0.5) {
+      #       colors[2]
+      #     } else {
+      #     colors[3]
+      #     }
+      #   }
+      # })
+      # igraph::E(g)[1:(length(E(g)))]$color <-  edge_colors
+      
+      igraph::plot.igraph(
+        g,
+        main = title,
+        sub = paste("Cor threshold:", cor_thr),
+        layout = coords
+      )
+      grDevices::dev.off()
+    }
+    
+    return(mem)
+  }

@@ -11,13 +11,12 @@ pickPEAKS(raw, cwt, fname)
 
 \item{cwt}{\code{CentWaveParam} class object with parameters for peak-picking. Object can be created by the \emph{xcms::CentWaveParam} function.}
 
-\item{fname}{\code{character} object specifying datafile name.}
+\item{fname}{\code{character} specifying datafile name.}
 }
 \value{
 Function returns a \code{DataFrame} object with picked-peaks and centWave details.
 }
 \description{
-High resolution, centroid LC/MS datafiles are pick-peaked using centWave algorithm, implemented by \emph{xcms} package [Tautenhahn 2008].
-
-\emph{pickPEAKS} is applied to a single datafile.
+High resolution, centroid LC/MS datafiles are peak-picked using centWave algorithm, implemented by \emph{xcms} package [Tautenhahn 2008].
+\code{pickPEAKS} is applied to a single datafile.
 }
