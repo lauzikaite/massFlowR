@@ -96,7 +96,18 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
 ####---- function for bplapply call, not to export
 groupPEAKS_paral <- function(f, out_dir, cwt, thr) {
   fname <- strsplit(basename(f), split = "[.]")[[1]][1]
-  raw <- MSnbase::readMSData(f, mode = "onDisk")
+  
+  ## use try to catch mzML reading error that occurs on macOS
+  raw <- NULL
+  while (is.null(raw)) {
+    raw <- try(MSnbase::readMSData(f, mode = "onDisk"),
+               silent = TRUE)
+    if (class(raw) == "try-error") {
+      message("readMSData fail. failing mzML file: ", fname)
+      message("reruning file ...")
+      raw <- NULL
+    }
+  }
   pks <- pickPEAKS(raw = raw, cwt = cwt, fname = fname)
   eic <- extractEIC(raw = raw, pks = pks)
   groupPEAKSspec(pks = pks, eic = eic, out_dir = out_dir, fname = fname, thr = thr)
