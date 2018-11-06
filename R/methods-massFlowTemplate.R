@@ -1,4 +1,4 @@
-####---- show - documentation in main massFlowTemplate-class page ----
+# show ------------------------------------------------------------------------------------------------------
 #' @aliases show
 #'
 #' @rdname massFlowTemplate-class
@@ -9,19 +9,26 @@ setMethod("show", signature = "massFlowTemplate", function(object) {
   cat("A \"massFlowTemplate\" object with",
       nrow(object@samples),
       " samples")
-})
+  })
 
-####---- filepath - documentation in main massFlowTemplate-class page ----
+# filepath ------------------------------------------------------------------------------------------------------
 #' @aliases filepath
 #'
 #' @rdname massFlowTemplate-class
 #'
 #' @export
 #'
-setMethod("filepath", signature = "massFlowTemplate", function(object)
-  object@filepath)
+setMethod("filepath", signature = "massFlowTemplate", function(object) {
+  object@filepath
+  })
 
-####---- checkNEXT - no documentation, as not exported ----
+# checkNEXT ------------------------------------------------------------------------------------------------------
+#' @title Extract and check the filename of the sample to be processed next
+#'
+#' @param massFlowTemplate
+#'
+#' @return
+#'
 setMethod("checkNEXT",
           signature = "massFlowTemplate",
           function(object) {
@@ -38,12 +45,10 @@ setMethod("checkNEXT",
               }
               doi_present <- file.exists(doi_fname)
             }
-            
             return(doi_fname)
           })
 
-
-####---- alignPEAKS - more complex method, has a separate documentation page ----
+# alignPEAKS ------------------------------------------------------------------------------------------------------
 #' @aliases alignPEAKS
 #'
 #' @title Align peaks detected in LC-MS samples using spectral similarity comparison
@@ -108,24 +113,53 @@ setMethod("alignPEAKS",
             return(object)
           })
 
+# validPEAKS ------------------------------------------------------------------------------------------------------
+#' @aliases validPEAKS
+#'
+#' @title Validate aligned peaks and their corresponding peak-groups
+#'
+#' @param object \code{massFlowTemplate} class object.
+#' @param ncores \code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.
+#' @param out_dir \code{character} specifying desired directory for output.
+#'
+#' @return Method returns validated peak-groups.
+#'
+#' @export
+#'
 setMethod("validPEAKS",
           signature = "massFlowTemplate",
-          function(object, bpparam, out_dir) {
-            if (class(object) != "massFlowTemplate")
+          function(object, ncores = 1, out_dir) {
+            
+            if (class(object) != "massFlowTemplate") {
               stop("object must be a 'massFlowTemplate' class object")
-            if (missing(bpparam))
-              bpparam <-
-                BiocParallel::bpparam() ## if paral workers are not defined, use the default backend
+            }
+            if (!is.numeric(ncores)) {
+              stop("'ncores' has to be numeric value!")
+            }
+            if (ncores < 1) {
+              stop("'ncores' must be set to 1 (serial performance), or higher!")
+            }
+            
+            message("'ncores' set to ", ncores)
+            cl <- parallel::makeCluster(ncores)
+            doParallel::registerDoParallel(cl)
+            if (ncores > 1) {
+              bpparam <- BiocParallel::DoparParam()
+            } else {
+              bpparam <- BiocParallel::SerialParam()
+            }
             
             ## extract intensities for every peak-group from every sample
-            peakgrs_all <-
-              unique(object@tmp$peakgr)[order(unique(object@tmp$peakgr))]
-            peakgrs_all_ints <-
-              lapply(peakgrs_all, FUN = extractINT, object = object)
+            peakgrs_all <- unique(object@tmp$peakgr)
+            peakgrs_all <- peakgrs_all[order(peakgrs_all)]
+            peakgrs_all_ints <- BiocParallel::bplapply(peakgrs_all,
+                                                       FUN = extractINT,
+                                                       object = object,
+                                                       BPPARAM = bpparam)
             
             ## retain peak-groups that were present in atleast one sample (removing peak-groups coming from database and not having a single match in the data)
-            peakgrs <-
-              peakgrs_all[which(sapply(peakgrs_all_ints, nrow) > 0)]
+            peakgrs <- peakgrs_all[which(sapply(peakgrs_all_ints,
+                                                FUN = nrow) > 0)]
             peakgrs_ints <- peakgrs_all_ints[c(peakgrs)]
             
             ## validate peak-groups by splitting peak-groups across available workers
@@ -136,6 +170,10 @@ setMethod("validPEAKS",
               out_dir = out_dir,
               BPPARAM = bpparam
             )
+            parallel::stopCluster(cl)
+            
+            
+            
             
             message("All peak-groups were succesfully validated.")
             return(object)

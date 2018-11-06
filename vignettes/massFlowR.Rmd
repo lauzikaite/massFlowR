@@ -109,11 +109,8 @@ Function `groupPEAKS` processes every LC-MS datafile independently and thus can 
 ## define where processed datafiles should be written
 out_directory <- getwd()
 
-## define multi-core processing 
-bpparam_params <- BiocParallel::MulticoreParam(workers = 2)
-
 ## run peak detection and grouping for the listed faahKO files with two workers
-groupPEAKS(files = faahKO_files, out_dir = out_directory, cwt = cwt_param, bpparam = bpparam_params)
+groupPEAKS(files = faahKO_files, out_dir = out_directory, cwt = cwt_param, ncores = 2)
 ```
 
 # Peak alignment
@@ -225,12 +222,12 @@ Once `massFlowDB` object is built, peak alignment can be initiated via `buildTMP
 
 ```{r massFlowTemplate_with_db}
 ## initiate template using the chemical reference database and first sample in the study
-template <- buildTMP(file = file.path(out_directory, "experiment.csv"), mz_err = 0.01, rt_err = 10, db = database)
+# template <- buildTMP(file = file.path(out_directory, "experiment.csv"), mz_err = 0.01, rt_err = 10, db = database)
 ```
 
 ```{r alignPEAKS_with_db, eval = FALSE}
 ## align peaks across all remaining samples
-template <- alignPEAKS(template)
+# template <- alignPEAKS(template)
 ```
 
 # Alignment validation

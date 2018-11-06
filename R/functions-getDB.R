@@ -44,7 +44,7 @@ getDB <- function(dir, peakgr_thr = 0, compound_thr = 0, out_dir) {
     load(file = db_files[chem])
     if (!exists("chem.file")) { stop("rda file is empty: ", db_files[chem]) }
     
-    peakgrs <- length(chem.file$analytical) # determine the number of peakgroups in the compound's full spectrum
+    peakgrs <- length(chem.file$analytical)
    
     ####---- for each peak group in the compound's file
     compound <- NULL
@@ -56,13 +56,21 @@ getDB <- function(dir, peakgr_thr = 0, compound_thr = 0, out_dir) {
       peakgr <- setNames(pkg_spec[which(into_norm > peakgr_thr),c("MZ", "IT")], nm = c("mz", "into"))
       
       if (nrow(peakgr) > 1) {
-        peakgr$rt <- rep(pkg$rt, nrow(peakgr)) # add RT value for the peakgroup
-        peakgr$peakgr <- rep(gr, nrow(peakgr)) # add peakgroup number
-        compound <- rbind(compound, peakgr) # append to final compound matrix
+        # add RT value for the peakgroup
+        peakgr$rt <- rep(pkg$rt, nrow(peakgr)) 
+        # add peakgroup number
+        peakgr$peakgr <- rep(gr, nrow(peakgr)) 
+        # append to final compound matrix
+        compound <- rbind(compound, peakgr) 
       }
       else {
         next
       }
+    }
+    
+    if (is.null(compound)) {
+      ## omit a compound with no peak-groups with more than 1 peak
+      next
     }
     
     ## normalise all features IT within compound (all peak groups) to %BPI and remove spectrum features with IT < compound_thr
@@ -70,13 +78,16 @@ getDB <- function(dir, peakgr_thr = 0, compound_thr = 0, out_dir) {
     compound <- compound[which(into_norm > compound_thr),]
 
     ## add chemical DB  details
-    compound$chemid <- rep(chem, nrow(compound))
-    compound$dbid <- rep(chem.file$id$NPCID , nrow(compound))
-    compound$dbname <- rep(chem.file$id$name , nrow(compound))
+    compound$chemid <- chem
+    compound$dbid <- chem.file$id$NPCID
+    compound$dbname <- chem.file$id$name
+    # compound$reference <- chem.file$reference$mr.std
     
-    db <- rbind(db, compound) # append to final db matrix 
-    rm(chem.file) # remove table from the environment, to make sure next file is not corrupted
-    # setTxtProgressBar(pb, chem) # update progress bar
+    db <- rbind(db, compound)
+    # remove table from the environment, to make sure next file is not corrupted
+    rm(chem.file) 
+    # update progress bar
+    # setTxtProgressBar(pb, chem) 
     pb$tick()$print()
     
   }  

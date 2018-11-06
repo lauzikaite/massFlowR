@@ -1,3 +1,4 @@
+# groupPEAKS ------------------------------------------------------------------------------------------------------
 #' @aliases groupPEAKS
 #' 
 #' @title Get peak-groups representing different chemical spectra in each LC-MS datafile
@@ -93,7 +94,7 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
   message("Peak-groups for all files were succesfully generated.")
 }
 
-####---- function for bplapply call, not to export
+# groupPEAKS_paral ------------------------------------------------------------------------------------------------------
 groupPEAKS_paral <- function(f, out_dir, cwt, thr) {
   fname <- strsplit(basename(f), split = "[.]")[[1]][1]
   

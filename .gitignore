@@ -1,7 +1,7 @@
 *~
 *.pdf
-
 .Rproj.user
 .Rhistory
 .RData
-
+inst/doc/*.Rmd
+inst/doc/*.R

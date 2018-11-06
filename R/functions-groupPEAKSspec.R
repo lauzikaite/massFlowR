@@ -81,7 +81,16 @@ groupPEAKSspec <- function(pks, eic, out_dir, fname, thr = thr, return = FALSE) 
   }
 }
 
-## Correlate two peaks using correspondig EICs from the list of EIC
+# corEIC ------------------------------------------------------------------------------------------------------
+#' @title Obtain EIC correlation between two peaks
+#' 
+#' @description Function performs extracted ion chromatogram (EIC) correlation of two peaks.
+#'
+#' @param pair \code{matrix} with columns 'from' and 'to', specifying peak identifiers, which correspond to the indeces of a list of EICs.
+#' @param eic \code{list} containing EIC for each picked-peak in a sample. 
+#'
+#' @return Function returns EIC correlation coefficient.
+#'
 corEIC <- function(pair, eic) {
   x <- pair["from"]
   y <- pair["to"]

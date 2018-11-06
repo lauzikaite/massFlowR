@@ -17,7 +17,7 @@ cleanPEAKS(rn, dt_unique, dt)
 Function returns a single peak entry for the unique \emph{m/z} and \emph{rt} combination.
 }
 \description{
-Function for every duplicated peak returns a single entry. 
+Function for every duplicated peak returns a single entry.
 Peak duplication can appear because of:
 \itemize{
 \item artefacts in centWave peak table (identical mz/rt) (inside \code{\link{pickPEAKS}} function)
