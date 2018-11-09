@@ -66,7 +66,7 @@ addDOI <-
       )]
     
     ## initiate progress bar
-    pb <- progress_estimated(n = length(unique(doi$peakgrcls)))
+    pb <- dplyr::progress_estimated(n = length(unique(doi$peakgrcls)))
     
     ## (C) for every doi peak, find matching tmp peaks (if any)
     while (any(doi$added == F)) {
@@ -76,8 +76,11 @@ addDOI <-
       ## get all peaks from the same cluster as that peak
       target <- doi[which(doi$peakid == p), ]
       target <- doi[which(doi$peakgrcls == target$peakgrcls), ]
-      if (any(!is.na(target$cos)))
+      
+      ## sanity check
+      if (any(!is.na(target$cos))) {
         stop("check peak-group-cluster selection!")
+      }
       
       ## match template peaks by mz/rt window
       mat <- apply(target, 1, FUN = matchPEAK, tmp = tmp)
@@ -189,13 +192,21 @@ addDOI <-
                "dbname")]
     
     ## for any tmp peaks that were matched by multiple doi peakids, retain single, most intense doi peakid
-    peakid_dup <- tmp$peakid[which(duplicated(tmp$peakid))]
-    if (length(peakid_dup) > 0) {
-      rownumber_dup <- unlist(lapply(peakid_dup,
-                                     FUN = removeDUPS,
-                                     tmp =  tmp))
-      tmp <- tmp[-rownumber_dup, ]
-    }
+    # peakid_dup <- tmp$peakid[which(duplicated(tmp$peakid))]
+    # if (length(peakid_dup) > 0) {
+    #   rownumber_dup <- unlist(lapply(peakid_dup,
+    #                                  FUN = removeDUPS,
+    #                                  tmp =  tmp))
+    #   tmp <- tmp[-rownumber_dup, ]
+    # }
+    
+    tmp_unique <- unique(tmp[,c("mz", "rt")])
+    tmp_clean <- lapply(1:nrow(tmp_unique),
+                        FUN = cleanPEAKS,
+                        dt_unique = tmp_unique,
+                        dt = tmp)
+    tmp <- do.call("rbindCLEAN", tmp_clean)
+    
     write.csv(tmp,
               file = tmp_fname,
               quote = T,

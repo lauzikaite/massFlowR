@@ -698,11 +698,11 @@ averagePEAKS <- function(peak, matched_peaks, matched_top, cnames) {
 
 ####---- if any peaks in the final template matched by multiple doi peaks, retain the most intense value
 ## return rownames to be removed from the final tmp
-removeDUPS <- function(peakid, tmp) {
-  dup_tmp <- tmp[which(tmp$peakid == peakid),]
-  rnumber_max <-
-    rownames(dup_tmp)[which(dup_tmp$into == max(dup_tmp$into))]
-  rnumber <-
-    as.numeric(rownames(dup_tmp)[which(rownames(dup_tmp) != rnumber_max)])
-  return(rnumber)
-}
+# removeDUPS <- function(peakid, tmp) {
+#   dup_tmp <- tmp[which(tmp$peakid == peakid),]
+#   rnumber_max <-
+#     rownames(dup_tmp)[which(dup_tmp$into == max(dup_tmp$into))]
+#   rnumber <-
+#     as.numeric(rownames(dup_tmp)[which(rownames(dup_tmp) != rnumber_max)])
+#   return(rnumber)
+# }

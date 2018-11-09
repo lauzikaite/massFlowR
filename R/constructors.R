@@ -1,3 +1,4 @@
+# buildDB ------------------------------------------------------------------------------------------------------
 #' @aliases buildDB
 #'
 #' @title Build a chemical database template
@@ -50,6 +51,8 @@ buildDB <- function(file = NULL) {
   return(object)
 }
 
+
+# buildTMP --------------------------------------------------------------------------------------------------------
 #' Build a sample alignment and annotation template
 #'
 #' Functions builds a \code{massFlowTemplate} class object, which stores study sample information.
@@ -167,6 +170,7 @@ buildTMP <-
   }
 
 
+# loadALIGNED -----------------------------------------------------------------------------------------------------
 #' Build sample alignment and annotation template using already aligned samples
 #'
 #' Function handles the construction of \code{massFlowTemplate} class object from already aligned samples.
