@@ -1,3 +1,4 @@
+setGeneric("show", function(object) standardGeneric("show"))
 setGeneric("filepath", function(object) standardGeneric("filepath"))
 setGeneric("chemicals", function(object) standardGeneric("chemicals"))
 setGeneric("alignPEAKS", function(object) standardGeneric("alignPEAKS"))

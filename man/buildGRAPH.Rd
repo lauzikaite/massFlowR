@@ -19,7 +19,7 @@ buildGRAPH(pkg_cor, cor_thr, plot = TRUE, title = NULL,
 \item{out_dir}{\code{character} specifying absolute path to output directory, where a PNG would be written.}
 }
 \value{
-
+Function returns community membership for each peak.
 }
 \description{
 Function build a correlation network of peaks using \emph{igraph} package functionality.

@@ -15,6 +15,8 @@ setMethod("show", signature = "massFlowTemplate", function(object) {
 #' @aliases filepath
 #'
 #' @rdname massFlowTemplate-class
+#' 
+#' @param object \code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.
 #'
 #' @export
 #'
@@ -24,10 +26,12 @@ setMethod("filepath", signature = "massFlowTemplate", function(object) {
 
 # checkNEXT ------------------------------------------------------------------------------------------------------
 #' @title Extract and check the filename of the sample to be processed next
+#' 
+#' @rdname massFlowTemplate-class
 #'
-#' @param massFlowTemplate
+#' @param object \code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.
 #'
-#' @return
+#' @return Method returns filename to be processed next.
 #'
 setMethod("checkNEXT",
           signature = "massFlowTemplate",

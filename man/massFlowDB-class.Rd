@@ -18,6 +18,13 @@
 
 \S4method{chemicals}{massFlowDB}(object)
 }
+\arguments{
+\item{object}{\code{massFlowDB} class object}
+
+\item{object}{\code{massFlowDB} class object}
+
+\item{object}{\code{massFlowDB} class object}
+}
 \description{
 \code{massFlowDB} class encapsulates information provided in the chemical reference database.
 }

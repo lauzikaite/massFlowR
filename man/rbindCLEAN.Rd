@@ -7,7 +7,7 @@
 rbindCLEAN(...)
 }
 \arguments{
-\item{...}{}
+\item{...}{list of dataframes}
 }
 \value{
 Function returns a data frame.

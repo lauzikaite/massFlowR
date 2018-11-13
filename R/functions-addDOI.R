@@ -1,7 +1,24 @@
-####---- Add DOI peaks to the DB annotations table
-## add DATAFILE (doi) to the the TEMPLATE (tmp)
-## template could be either the master peak table, or a DATABASE (if building template for the first time)
-## returns a template
+# addDOI ----------------------------------------------------------------------------------------------------------
+#' @title Align and add peaks from a sample to the template
+#'
+#' @description Function is used by method \code{\link{alignPEAKS}}.
+#' Function aligns all peaks in a datafile-of-interest (DOI) with the template (TMP).
+#' Many of the required parameters are identical to the constructor function \code{\link{buildTMP}}.
+#'
+#' @param tmp \code{data.frame} with latest template version.
+#' @param tmp_fname \code{character} specifying absolute path where updated template will be written to.
+#' @param doi_fname \code{character} specifying absolute path of the datafile-of-interest csv file.
+#' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
+#' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
+#' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.1).
+#' @param add_db \code{logical} whether sample is being aligned to the database template. Set to FALSE by default.
+#' @param db_thrs \code{numeric} specifying spectral similarity index threshold for peak-groups being added to the database template. Only to be used if add_db set to TRUE.
+#'
+#' @seealso \code{\link{alignPEAKS}} method.
+#'
+#' @return Function returns updated TMP and DOI.
+#' Both TMP and DOI are written to a csv file in the same directory as the original peak table for the sample.
+#'
 addDOI <-
   function(tmp,
            tmp_fname,
@@ -19,7 +36,7 @@ addDOI <-
                    rt_err = rt_err)
     tmp <- addCOLS(
       dt = tmp,
-      c(
+      cnames = c(
         "chemid",
         "dbid",
         "dbname",
@@ -66,7 +83,8 @@ addDOI <-
       )]
     
     ## initiate progress bar
-    pb <- dplyr::progress_estimated(n = length(unique(doi$peakgrcls)))
+    pb <-
+      dplyr::progress_estimated(n = length(unique(doi$peakgrcls)))
     
     ## (C) for every doi peak, find matching tmp peaks (if any)
     while (any(doi$added == F)) {
@@ -81,6 +99,8 @@ addDOI <-
       if (any(!is.na(target$cos))) {
         stop("check peak-group-cluster selection!")
       }
+      
+      # if (target$peakgr %in% 19 | target$peakgr %in% 68) stop()
       
       ## match template peaks by mz/rt window
       mat <- apply(target, 1, FUN = matchPEAK, tmp = tmp)
@@ -192,25 +212,20 @@ addDOI <-
                "dbname")]
     
     ## for any tmp peaks that were matched by multiple doi peakids, retain single, most intense doi peakid
-    # peakid_dup <- tmp$peakid[which(duplicated(tmp$peakid))]
-    # if (length(peakid_dup) > 0) {
-    #   rownumber_dup <- unlist(lapply(peakid_dup,
-    #                                  FUN = removeDUPS,
-    #                                  tmp =  tmp))
-    #   tmp <- tmp[-rownumber_dup, ]
-    # }
-    
-    tmp_unique <- unique(tmp[,c("mz", "rt")])
-    tmp_clean <- lapply(1:nrow(tmp_unique),
-                        FUN = cleanPEAKS,
-                        dt_unique = tmp_unique,
-                        dt = tmp)
+    tmp_unique <- unique(tmp[, c("mz", "rt")])
+    tmp_clean <- lapply(
+      1:nrow(tmp_unique),
+      FUN = cleanPEAKS,
+      dt_unique = tmp_unique,
+      dt = tmp
+    )
     tmp <- do.call("rbindCLEAN", tmp_clean)
     
+    ## quote = T to preserve complex DB entries with "-"
     write.csv(tmp,
               file = tmp_fname,
               quote = T,
-              row.names = F) ## quote = T to preserve complex DB entries with "-"
+              row.names = F)
     
     return(list("tmp" = tmp, "doi" = doi_out))
   }

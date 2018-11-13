@@ -1,5 +1,6 @@
-context("addDOI")
+context("addDOI_helpers")
 
+# checkFILE---------------------------------------------------------------------------------------------------
 test_that("Checking grouped peaks csv tables via checkFILE is correct", {
   
   ## correct file
@@ -18,10 +19,10 @@ test_that("Checking grouped peaks csv tables via checkFILE is correct", {
   expected_error <- paste("incorrect file:", wrong_file_filepath, "\n", "missing columns: peakid, mz")
   expect_error(massFlowR:::checkFILE(file = wrong_file_filepath), expected_error)
   unlink(x = wrong_file_filepath)
-  
 })
 
 
+# getCLUSTS -------------------------------------------------------------------------------------------------------
 test_that("Clustering of peak-groups via getCLUSTS is correct", {
   
   dt <- massFlowR:::checkFILE(file = grouped_files[[1]])
@@ -36,9 +37,33 @@ test_that("Clustering of peak-groups via getCLUSTS is correct", {
 })
 
 
+# orderPEAKS ------------------------------------------------------------------------------------------------------
+test_that("Peak-group ordering by complexity and intensity via orderPEAKS is correct", {
+  ## according to how many peaks per peak-group
+  ordered <- order(table(single_table$peakgr), decreasing = T)
+  ordered <- factor(single_table$peakgr, levels = ordered)
+  table_ordered <- single_table[order(ordered), ]
+  
+  ## according to peak intensity (aka peakid)
+  peaks_ordered <- sapply(unique(table_ordered$peakgr), function(pkg) {
+    ord <- order(table_ordered[which(table_ordered$peakgr == pkg),"peakid"])
+    if (all(ord == 1:length(ord))) {
+      TRUE
+    } else {
+      FALSE
+    }
+  })
+  expect_true(all(unlist(peaks_ordered)))
+  
+  ## compare peakid order in orderPEAKS output
+  orderPEAKS_out <- orderPEAKS(dt = single_table)
+  expect_true(all(orderPEAKS_out$peakid == table_ordered$peakid))
+  
+})
 
 
-test_that("Selection of top matches via compareCLUSTERS() is correct", {
+# compareCLUSTERS -------------------------------------------------------------------------------------------------
+test_that("Selection of top matches via compareCLUSTERS is correct", {
 
   ## sample table consists of 3 target peakgrs, each matched by the same 3 template peakgrs
   cos_list <- c(seq(from = 0.1, to = 1, length.out = 8), 1)

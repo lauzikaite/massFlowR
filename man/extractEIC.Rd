@@ -18,15 +18,3 @@ Individual peaks' EICs can be plotted using base graphics.
 \description{
 Obtain extracted ion chromatograms (EIC) for all picked peaks, provided by \code{pickPEAKS} function.
 }
-\examples{
-fname <- dir(system.file("cdf/KO", package = "faahKO"), full.names = TRUE)[[1]]
-raw <- MSnbase::readMSData(fname, mode = "onDisk")
-cwt <-  xcms::CentWaveParam(ppm = 25, snthresh = 10, noise = 0,
-prefilter = c(3, 100), peakwidth = c(30, 80))
-pks <- pickPEAKS(raw = raw, fname = basename(fname), cwt = cwt)
-eic <- extractEIC(raw = raw, pks = pks)
-
-## now you can plot a single peak's EIC
-plot(eic[[1]])
-
-}

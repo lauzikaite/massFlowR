@@ -33,7 +33,7 @@ cleanPEAKS <- function(rn, dt_unique, dt) {
 #'
 #' @description Function binds a list of data frames into a single data frame and removes inherited row names.
 #'
-#' @param ...
+#' @param ... list of dataframes
 #'
 #' @return Function returns a data frame.
 #'
@@ -87,9 +87,9 @@ getCORmat <- function(ind) {
 #' @param cor_thr \code{numeric} specifying a threshold for correlation coefficient below which peak pairs are omitted from the network.
 #' @param plot \code{logical} whether to save a PNG of the built network.
 #' @param title \code{character} specifying name for the plot, required if PLOT = TRUE.
-#' @param out_dir \code{character} specifying absolute path to output directory, where a PNG would be written. 
-#'
-#' @return
+#' @param out_dir \code{character} specifying absolute path to output directory, where a PNG would be written.
+#' 
+#' @return Function returns community membership for each peak.
 #'
 buildGRAPH <-
   function(pkg_cor,

@@ -33,10 +33,9 @@ getDB <- function(dir, peakgr_thr = 0, compound_thr = 0, out_dir) {
   if (peakgr_thr != 0) message("peakgr_thr value above 0 is selected. Recommended value is 0")
   if (compound_thr != 0) message("compound_thr above 0 is selected. Recommended value is 0")
 
-  db_files <- list.files(path = dir, pattern = "*.rda", full.names = T) # list DB compound rda files
-  pb <- progress_estimated(n = length(db_files))
-  # pb <- txtProgressBar(min = 0, max = length(db_files), style = 3)  # get progress bar
-  
+  db_files <- list.files(path = dir, pattern = "*.rda", full.names = T) 
+  pb <- dplyr::progress_estimated(n = length(db_files))
+
   ####---- for each DB compound
   db <- NULL
   for (chem in 1:length(db_files)) {
@@ -93,9 +92,13 @@ getDB <- function(dir, peakgr_thr = 0, compound_thr = 0, out_dir) {
   }  
   
   ## get unique peakgr numbers
-  peakgr_ids <- db %>%
-    dplyr::group_by_(.dots = c("chemid", "peakgr")) %>% 
-    dplyr::group_indices()
+  ids <- unique(db[, c("chemid", "peakgr")])
+  peakgr_ids <- unlist(lapply(1:nrow(ids), function(i) {
+    id <- ids[i,]
+    n <- nrow(db[which(db$chemid == id[["chemid"]] &
+                         db$peakgr == id[["peakgr"]]),])
+    rep(i, n)
+  }))
   db$peakgr <- peakgr_ids
   
   ## arrange peaks and get unique peak numbers

@@ -2,6 +2,8 @@
 #'
 #' @rdname massFlowDB-class
 #' 
+#' @param object \code{massFlowDB} class object
+#' 
 #' @export
 #'
 setMethod("show", signature = "massFlowDB", function(object) {
@@ -16,6 +18,8 @@ setMethod("show", signature = "massFlowDB", function(object) {
 #'
 #' @rdname massFlowDB-class
 #' 
+#' @param object \code{massFlowDB} class object
+#' 
 #' @export
 #'
 setMethod("filepath", signature = "massFlowDB", function(object) object@filepath)
@@ -25,6 +29,8 @@ setMethod("filepath", signature = "massFlowDB", function(object) object@filepath
 #' @aliases chemicals
 #'
 #' @rdname massFlowDB-class
+#' 
+#' @param object \code{massFlowDB} class object
 #' 
 #' @export
 #'

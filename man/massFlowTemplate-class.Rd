@@ -8,11 +8,22 @@
 \alias{show}
 \alias{filepath,massFlowTemplate-method}
 \alias{filepath}
+\alias{checkNEXT,massFlowTemplate-method}
 \title{massFlowTemplate, a class for sample alignment and annotation}
 \usage{
 \S4method{show}{massFlowTemplate}(object)
 
 \S4method{filepath}{massFlowTemplate}(object)
+
+\S4method{checkNEXT}{massFlowTemplate}(object)
+}
+\arguments{
+\item{object}{\code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.}
+
+\item{object}{\code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.}
+}
+\value{
+Method returns filename to be processed next.
 }
 \description{
 This class enables the alignment and annotation of LC-MS samples.

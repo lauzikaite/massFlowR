@@ -57,12 +57,12 @@ buildDB <- function(file = NULL) {
 #'
 #' Functions builds a \code{massFlowTemplate} class object, which stores study sample information.
 #'
-#' @param file A \code{character} with path to the csv file, specifying samples filenames and their acquisition order.
-#' @param db \code{NULL}, or a \code{massFlowDB} class object, built with \code{massFlowDB()} function.
-#' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
-#' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
-#' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.1).
-#' @param db_thrs A \code{numeric} specifying spectra similarity threshold (cosine) for first template generation with the database template (default set to 0.5).
+#' @param file \code{character} for absolute path to the csv file, specifying samples filenames and their acquisition order.
+#' @param db \code{NULL}, or a \code{massFlowDB} class object, built with \code{buildDB} function.
+#' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
+#' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
+#' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).
+#' @param db_thrs \code{numeric} specifying spectra similarity threshold (cosine) for first template generation with the database template (default set to 0).
 #'
 #' @return A \code{massFlowTemplate} class object.
 #'
@@ -73,7 +73,7 @@ buildTMP <-
            mz_err = 0.01,
            rt_err = 2,
            bins = 0.01,
-           db_thrs = 0.5) {
+           db_thrs = 0) {
     if (is.null(file)) {
       stop("'file' is required")
     }
@@ -119,7 +119,7 @@ buildTMP <-
         doi[, c("peakid", "peakgr", "mz", "rt")]
       doi <-
         addCOLS(dt = doi,
-                cname = c("chemid", "dbid", "dbname", "cos"))
+                cnames = c("chemid", "dbid", "dbname", "cos"))
       write.csv(
         doi,
         file = gsub(".csv", "_aligned.csv", doi_fname),
@@ -182,8 +182,8 @@ buildTMP <-
 #' @param db \code{NULL}, or a \code{massFlowDB} class object, built with \code{massFlowDB()} function.
 #' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
-#' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.1).
-#' @param db_thrs A \code{numeric} specifying spectra similarity threshold (cosine) for first template generation with the database template (default set to 0.5).
+#' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).
+#' @param db_thrs A \code{numeric} specifying spectra similarity threshold (cosine) for first template generation with the database template (default set to 0).
 #'
 #' @return A \code{massFlowTemplate} class object.
 #'
@@ -197,7 +197,7 @@ loadALIGNED <-
            mz_err = 0.01,
            rt_err = 2,
            bins = 0.01,
-           db_thrs = 0.5) {
+           db_thrs = 0) {
     if (is.null(file)) {
       stop("'file' is required")
     }

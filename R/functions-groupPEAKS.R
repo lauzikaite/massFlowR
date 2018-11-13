@@ -134,9 +134,9 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
 #' @param cwt \code{CentWaveParam} class object with parameters for peak-picking. Object can be created by the \emph{xcms::CentWaveParam} function.
 #' @param thr \code{numeric} defining Pearson correlation coefficient threshold, above which peak pairs will be considered as correlated. 
 #'
-#' @return 
+#' @return Function returns a list with filename, status and error message (deafult is NULL, gets overwritten by tryCatch is function fails).
 #' 
-groupPEAKS_paral <- function(f, out_dir, cwt, thr, ...) {
+groupPEAKS_paral <- function(f, out_dir, cwt, thr) {
   fname <- strsplit(basename(f), split = "[.]")[[1]][1]
   raw <- readDATA(f = f)
   pks <- pickPEAKS(raw = raw, cwt = cwt, fname = fname)
@@ -157,7 +157,6 @@ groupPEAKS_paral <- function(f, out_dir, cwt, thr, ...) {
 #'
 #' @return Function returns \code{OnDiskMSnExp} class object.
 #'
-#' @examples
 readDATA <- function(f) {
   
   ## use try to catch mzML reading error that occurs only on macOS
@@ -167,7 +166,6 @@ readDATA <- function(f) {
     raw <- try(MSnbase::readMSData(f, mode = "onDisk"),
                silent = TRUE)
     if (class(raw) == "try-error") {
-      message("readMSData fail. failing mzML file: ", fname)
       message("reruning file ...")
       raw <- NULL
     }
@@ -201,7 +199,6 @@ pickPEAKS <- function(raw, cwt, fname) {
                                     param = cwt),
                silent = TRUE)
     if (class(res) == "try-error") {
-      message("pickPEAKS fail. failing mzML file: ", fname)
       message("reruning file ...")
       res <- NULL
     }
@@ -235,17 +232,6 @@ pickPEAKS <- function(raw, cwt, fname) {
 #'
 #' @return Function returns a \code{list} with an EIC for eack peak in the \code{pks} table.
 #' Individual peaks' EICs can be plotted using base graphics.
-#'
-#' @examples
-#' fname <- dir(system.file("cdf/KO", package = "faahKO"), full.names = TRUE)[[1]]
-#' raw <- MSnbase::readMSData(fname, mode = "onDisk")
-#' cwt <-  xcms::CentWaveParam(ppm = 25, snthresh = 10, noise = 0,
-#' prefilter = c(3, 100), peakwidth = c(30, 80))
-#' pks <- pickPEAKS(raw = raw, fname = basename(fname), cwt = cwt)
-#' eic <- extractEIC(raw = raw, pks = pks)
-#'
-#' ## now you can plot a single peak's EIC
-#' plot(eic[[1]])
 #'
 extractEIC <- function(raw, pks) {
   eic <- xcms::chromatogram(

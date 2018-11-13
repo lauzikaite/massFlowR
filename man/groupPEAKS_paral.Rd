@@ -4,7 +4,7 @@
 \alias{groupPEAKS_paral}
 \title{Perform peak-picking and grouping into Extracted Chemical Spectra for a single file}
 \usage{
-groupPEAKS_paral(f, out_dir, cwt, thr, ...)
+groupPEAKS_paral(f, out_dir, cwt, thr)
 }
 \arguments{
 \item{f}{\code{character} specifying absolute path to a single mzML/CDF file.}
@@ -16,9 +16,11 @@ groupPEAKS_paral(f, out_dir, cwt, thr, ...)
 \item{thr}{\code{numeric} defining Pearson correlation coefficient threshold, above which peak pairs will be considered as correlated.}
 }
 \value{
-
+Function returns a list with filename, status and error message (deafult is NULL, gets overwritten by tryCatch is function fails).
 }
 \description{
 Function enabes parallel or serial implementation of peak-picking and grouping.
 This function is called from inside \code{\link{groupPEAKS}}, for each sample in the experiment separately.
+Function is a wrapper for multiple individual raw file processing steps, which depend on \code{MSnbase} functionality.
+To overcome raw file reading into memory issues associated with MacOS, each function is within a while and try loop.
 }
