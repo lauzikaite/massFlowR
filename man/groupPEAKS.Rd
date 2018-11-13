@@ -15,7 +15,7 @@ groupPEAKS(files, out_dir, cwt, ncores = 1, thr = 0.95)
 
 \item{ncores}{\code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.}
 
-\item{thr}{\code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated.}
+\item{thr}{\code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated. Default set to 0.95.}
 }
 \value{
 For each LC-MS file, function writes a table with picked-peaks and their peak-groups into separate files, in the defined \code{out_dir} directory.
