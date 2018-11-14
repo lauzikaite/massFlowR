@@ -38,50 +38,50 @@ validPEAKS_paral <-
         out_dir = out_dir
         )
     
-    ## split peaks into new peak-groups according to communities
-    pkg_ints$new_peakgr <-
-      sapply(pkg_ints$peakid, function(peakid) {
-        pkg_coms[[match(peakid, names(pkg_coms))]]
-      })
-    
-    ## plot intensities across all samples
-    colors <-
-      setNames(viridis::magma(
-        end = 0.9,
-        ## avoid bright yellow
-        begin = 0.2,
-        ## avoid dark purple
-        n = length(unique(pkg_ints$new_peakgr))
-      ),
-      nm = unique(pkg_ints$new_peakgr))
-    
-    ## linetype according to how many peaks in a group
-    peaks_per <- sapply(pkg_ints$new_peakgr, function(peakgr) {
-      length(unique(pkg_ints[which(pkg_ints$new_peakgr == peakgr), "peakid"]))
-    })
-    linetype <- setNames(sapply(peaks_per, function(p) {
-      if (p > 2) {
-        "solid"
-      } else {
-        if (p == 2) {
-          "dashed"
-        } else {
-          "dotted"
-        }
-      }
-    }), nm = sapply(peaks_per, function(p) {
-      if (p > 2) {
-        ">2"
-      } else {
-        if (p == 2) {
-          2
-        } else {
-          1
-        }
-      }
-    }))
-    pkg_ints$peaks_per <- names(linetype)
-    
+    # ## split peaks into new peak-groups according to communities
+    # pkg_ints$new_peakgr <-
+    #   sapply(pkg_ints$peakid, function(peakid) {
+    #     pkg_coms[[match(peakid, names(pkg_coms))]]
+    #   })
+    # 
+    # ## plot intensities across all samples
+    # colors <-
+    #   setNames(viridis::magma(
+    #     end = 0.9,
+    #     ## avoid bright yellow
+    #     begin = 0.2,
+    #     ## avoid dark purple
+    #     n = length(unique(pkg_ints$new_peakgr))
+    #   ),
+    #   nm = unique(pkg_ints$new_peakgr))
+    # 
+    # ## linetype according to how many peaks in a group
+    # peaks_per <- sapply(pkg_ints$new_peakgr, function(peakgr) {
+    #   length(unique(pkg_ints[which(pkg_ints$new_peakgr == peakgr), "peakid"]))
+    # })
+    # linetype <- setNames(sapply(peaks_per, function(p) {
+    #   if (p > 2) {
+    #     "solid"
+    #   } else {
+    #     if (p == 2) {
+    #       "dashed"
+    #     } else {
+    #       "dotted"
+    #     }
+    #   }
+    # }), nm = sapply(peaks_per, function(p) {
+    #   if (p > 2) {
+    #     ">2"
+    #   } else {
+    #     if (p == 2) {
+    #       2
+    #     } else {
+    #       1
+    #     }
+    #   }
+    # }))
+    # pkg_ints$peaks_per <- names(linetype)
+    # 
     # gg <-  ggplot2::ggplot(data = pkg_ints) +
     #   ggplot2::geom_line(
     #     ggplot2::aes(
@@ -124,10 +124,12 @@ validPEAKS_paral <-
 
 
 ####---- extract peak-group intensities from every sample
-extractINT <- function(pkg, object) {
+extractINT <- function(pkg, object, samples) {
   pkg_peakids <- object@tmp$peakid[which(object@tmp$peakgr == pkg)]
-  snames <- names(object@data)
   
+  
+  ## for every sample, extract intensities for peakgr of interest
+  snames <- names(object@data)
   pkg_ints <- lapply(snames, function(s) {
     sample <- object@data[[s]]
     sample <-
@@ -137,6 +139,7 @@ extractINT <- function(pkg, object) {
     sample$run_order <-
       rep(object@samples[which(snames == s), "run_order"],
           nrow(sample))
+    sample$sample_no <- rep(which(snames == s), nrow(sample))
     return(sample)
   })
   
