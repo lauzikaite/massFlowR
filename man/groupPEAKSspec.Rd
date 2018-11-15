@@ -4,7 +4,7 @@
 \alias{groupPEAKSspec}
 \title{Group peaks of a single LC-MS spectrum using EIC correlation}
 \usage{
-groupPEAKSspec(pks, eic, out_dir, fname, thr = thr, return = FALSE)
+groupPEAKSspec(pks, eic, out_dir, fname, thr, return = FALSE)
 }
 \arguments{
 \item{pks}{\code{DataFrame} containing the peak table, created by \emph{pickPEAKS} function.}

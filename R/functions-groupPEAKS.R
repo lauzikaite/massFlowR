@@ -85,10 +85,6 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
           )
         },
         error = function(err) {
-          message('-----')
-          message(paste('Error processing file:', f))
-          message(err$message)
-          message('\n-----')
           return(list(fname = f, status = "FAILED", error = err$message))
         })
         parallel::stopCluster(cl)
@@ -112,13 +108,12 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
   files <- names(result[which(result_status == "FAILED")])
   
   if (length(files) > 0) {
-    message(length(files), " files failed. Processing failed files ... \n")
+    message(" \n", length(files), " files failed. Processing failed files ...")
     message("Generated error messages for failed files:\n")
-    message(paste0(sapply(result[files], "[[", "error"), " \n"))
+    message(paste0(sapply(result[files], "[[", "error")))
   }
   }
   message("Peak-groups for all files were succesfully generated.")
-  return(result)
 }
 
 # groupPEAKS_paral ------------------------------------------------------------------------------------------------------
