@@ -24,7 +24,7 @@ buildDB <- function(file = NULL) {
     stop("file is required")
   }
   if (any(!file.exists(file))) {
-    stop("incorrect filepath provided")
+    stop("incorrect filepath provided: ", file)
   }
   
   object <- new("massFlowDB")
@@ -58,22 +58,19 @@ buildDB <- function(file = NULL) {
 #' Functions builds a \code{massFlowTemplate} class object, which stores study sample information.
 #'
 #' @param file \code{character} for absolute path to the csv file, specifying samples filenames and their acquisition order.
-#' @param db \code{NULL}, or a \code{massFlowDB} class object, built with \code{buildDB} function.
 #' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).
-#' @param db_thrs \code{numeric} specifying spectra similarity threshold (cosine) for first template generation with the database template (default set to 0).
 #'
 #' @return A \code{massFlowTemplate} class object.
 #'
 #' @export
 buildTMP <-
   function(file = NULL,
-           db = NULL,
            mz_err = 0.01,
            rt_err = 2,
-           bins = 0.01,
-           db_thrs = 0) {
+           bins = 0.01
+           ) {
     if (is.null(file)) {
       stop("'file' is required")
     }
@@ -84,84 +81,51 @@ buildTMP <-
     if (any(!c("filepaths", "run_order") %in% names(samples))) {
       stop("files must contain columns 'filepaths' and 'run_order'")
     }
-    if (any(!file.exists(samples$filepaths))) {
+    ## stop only if none of the filepaths exist - some may still being processed on another machine
+    if (all(!file.exists(samples$filepaths))) {
       stop("filepaths provided in the table 'file' are not correct")
     }
     
     object <- new("massFlowTemplate")
     object@filepath <- file
-    object@db_filepath <- ifelse(is.null(db), "not used", db@filepath)
     object@samples <- samples
     object@samples[, "aligned"] <- FALSE
     object@params <-
-      list(
-        mz_err = mz_err,
-        rt_err = rt_err,
-        bins = bins,
-        db_thrs = db_thrs
-      )
+      list(mz_err = mz_err,
+           rt_err = rt_err,
+           bins = bins)
     tmp_fname <-
       gsub(".csv", "_template.csv", object@filepath)
     doi_first <- min(object@samples$run_order)
     doi_fname <-
       object@samples$filepaths[object@samples$run_order == doi_first]
-    
-    if (is.null(db)) {
-      message(paste(
-        "db is not defined. Building template using sample:" ,
-        basename(doi_fname),
-        "..."
-      ))
-      ## write 1st sample in the standard output format
-      doi <- checkFILE(file = doi_fname)
-      doi <- getCLUSTS(dt = doi)
-      doi[, c("tmp_peakid", "tmp_peakgr", "new_mz", "new_rt")] <-
-        doi[, c("peakid", "peakgr", "mz", "rt")]
-      doi <-
-        addCOLS(dt = doi,
-                cnames = c("chemid", "dbid", "dbname", "cos"))
-      write.csv(
-        doi,
-        file = gsub(".csv", "_aligned.csv", doi_fname),
-        quote = T,
-        row.names = F
-      ) ## quote = T to preserve complex DB entries with "-"
-      ## build template from 1st sample
-      tmp <-
-        doi[, c("peakid",
-                "mz",
-                "rt",
-                "into",
-                "peakgr",
-                "chemid",
-                "dbid",
-                "dbname")]
-      
-    } else {
-      if (class(db) != "massFlowDB") {
-        stop("db must be a 'massFlowDB' class object")
-      }
-      message(paste(
-        "Building template using database and sample:",
-        basename(doi_fname),
-        "..."
-      ))
-      out <-
-        addDOI(
-          tmp = db@db,
-          tmp_fname = tmp_fname,
-          doi_fname = doi_fname,
-          mz_err = mz_err,
-          rt_err = rt_err,
-          bins = bins,
-          add_db = TRUE,
-          db_thrs = db_thrs
-        )
-      tmp <- out$tmp
-      doi <- out$doi
-      message("Template was succesfully built.")
-    }
-    
+
+    message(paste("Building template using sample:",
+                  basename(doi_fname),
+                  "..."))
+    ## write 1st sample in the standard output format
+    doi <- checkFILE(file = doi_fname)
+    doi <- getCLUSTS(dt = doi)
+    doi[, c("tmp_peakid", "tmp_peakgr", "new_mz", "new_rt")] <-
+      doi[, c("peakid", "peakgr", "mz", "rt")]
+    doi <-
+      addCOLS(dt = doi,
+              cnames = c("cos"))
+    write.csv(
+      doi,
+      file = gsub(".csv", "_aligned.csv", doi_fname),
+      ## quote = T to preserve complex DB entries with "-"
+      quote = T,
+      row.names = F
+    ) 
+    ## build template from 1st sample
+    tmp <-
+      doi[, c("peakid",
+              "mz",
+              "rt",
+              "into",
+              "peakgr")]
+
     object@tmp <- tmp
     object@samples[object@samples$run_order == doi_first, "aligned"] <-
       TRUE
@@ -183,7 +147,6 @@ buildTMP <-
 #' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).
-#' @param db_thrs A \code{numeric} specifying spectra similarity threshold (cosine) for first template generation with the database template (default set to 0).
 #'
 #' @return A \code{massFlowTemplate} class object.
 #'
@@ -196,8 +159,7 @@ loadALIGNED <-
            db = NULL,
            mz_err = 0.01,
            rt_err = 2,
-           bins = 0.01,
-           db_thrs = 0) {
+           bins = 0.01) {
     if (is.null(file)) {
       stop("'file' is required")
     }
@@ -208,7 +170,7 @@ loadALIGNED <-
     if (any(!c("filepaths", "run_order") %in% names(samples))) {
       stop("files must contain columns 'filepaths' and 'run_order'")
     }
-    if (any(!file.exists(samples$filepaths))) {
+    if (all(!file.exists(samples$filepaths))) {
       stop("filepaths provided in the table 'file' are not correct")
     }
     
@@ -224,7 +186,6 @@ loadALIGNED <-
     
     object <- new("massFlowTemplate")
     object@filepath <- file
-    object@db_filepath <- ifelse(is.null(db), "not used", db@filepath)
     object@samples <- samples
     object@samples[, "aligned"] <- FALSE
     object@samples[samples_aligned, "aligned"] <- TRUE
@@ -232,8 +193,7 @@ loadALIGNED <-
       list(
         mz_err = mz_err,
         rt_err = rt_err,
-        bins = bins,
-        db_thrs = db_thrs
+        bins = bins
       )
     object@tmp <- tmp
     

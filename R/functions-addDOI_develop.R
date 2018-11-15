@@ -16,7 +16,7 @@
 #' @return Function returns updated TMP and DOI.
 #' Both TMP and DOI are written to a csv file in the same directory as the original peak table for the sample.
 #'
-addDOI <-
+addDOI_develop <-
   function(tmp,
            tmp_fname,
            doi_fname,
@@ -72,36 +72,36 @@ addDOI <-
     
     ## (C) for every doi peak, find matching tmp peaks (if any)
     while (any(doi$added == F)) {
-      
       ## get the first peak among the un-annotated peaks
-      p <- doi[which(doi$added == FALSE), "peakid"][1]
+    
       
-      ## get all peaks from the same cluster as that peak
-      target <- doi[which(doi$peakid == p),]
-      target <- doi[which(doi$peakgrcls == target$peakgrcls),]
+      ## save target as a list for each peakgr in the peakgrcls
+      ## use indeces (INDECES AND PEAKIDS DON'T MATCHUP AFTER CLUSTER GENERATION!)
+      p <- which(doi$added == FALSE)[1]
 
-      ## sanity check
-      if (any(!is.na(target$cos))) {
-        stop("check peak-group-cluster selection!")
-      }
-      ## match template peaks by mz/rt window
-      mat <- apply(target, 1, FUN = matchPEAK, tmp = tmp)
-      mat <-
-        if (is.null(mat)) {
-          ## if none matches in the template were found
-          data.frame()
-        } else {
-          do.call(function(...)
-            rbind(..., make.row.names = F), mat)
-        }
-      # extract top matches for every target peakgr
-      mattop <-
-        getTOPmatches(
-          mat = mat,
-          target = target,
-          tmp = tmp,
-          bins = bins
-        )
+      target_ind <- which(doi$peakgrcls == doi[p,"peakgrcls"])
+      target_peakgrs <- unique(doi[target_ind,"peakgr"])
+      target <- lapply(target_peakgrs, function(peakgr) {
+        which(doi$peakgr == peakgr)
+      })
+      names(target) <- target_peakgrs
+
+      ## return indeces of tmp peaks that match target peaks
+      ## 1. list names equal to target peak indeces
+      ## 2. list entries equal to tmp peak indeces, peak-by-peak
+      mat <- lapply(target, FUN = matchPEAK2, doi = doi, tmp = tmp)
+
+
+
+      ## get cosines for every target peakgr and matched peakgr
+      target_cos <- lapply(1:length(target),
+                           FUN = comparePEAKGR,
+                           target = target, doi = doi, mat = mat, tmp = tmp, bins = bins)
+      cos <- do.call("rbindCLEAN", target_cos)
+      
+      ## STOPPED HERE
+      
+      
       
       ## add annotated/unmatched DOI peaks to template
       update <-

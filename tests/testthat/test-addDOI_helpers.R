@@ -74,7 +74,7 @@ test_that("Selection of top matches via compareCLUSTERS is correct", {
                     chemid = c(rep(NA, 9)),
                     cos = cos_list,
                     stringsAsFactors = F)
-  expect_error(top <- massFlowR:::compareCLUSTERS(cos = cos, add_db = F), "identical cosines were found!")
+  expect_error(top <- massFlowR:::compareCLUSTERS(cos = cos), "identical cosines were found!")
 
   ## 1-1 is top pair by rank
   ## 2-2 is second best for target peakgr (choosing from what is left unassigned)
@@ -84,7 +84,7 @@ test_that("Selection of top matches via compareCLUSTERS is correct", {
   cos <- cos %>%
     mutate(cos = cos_list)
 
-  top <- massFlowR:::compareCLUSTERS(cos = cos, add_db = F)
+  top <- massFlowR:::compareCLUSTERS(cos = cos)
   expected_top <- data.frame(target_peakgr = c(1,2,3),
                              target_peakgrcls = rep(1,3),
                              peakgr = c(1,2,3),

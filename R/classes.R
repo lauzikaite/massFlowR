@@ -43,7 +43,6 @@ setClass("massFlowDB",
 #' }
 #'
 #' @slot filepath \code{character} specifying the absolute path to a \code{csv} file with study sample names and their acquisition (run) order.
-#' @slot db_filepath \code{character} specifying the absolute path to the database \code{csv} file (if was used in the template built).
 #' @slot samples \code{data.frame} storing study sample names and their acquisition order.
 #' @slot tmp \code{data.frame} storing sample alignment and annotation template.
 #' @slot data \code{list} containg annotated and aligned peak tables for the already processed samples.
@@ -59,7 +58,7 @@ setClass(
   "massFlowTemplate",
   slots = c(
     filepath = "character",
-    db_filepath = "character",
+    # db_filepath = "character",
     samples = "data.frame",
     tmp = "data.frame",
     data = "list",

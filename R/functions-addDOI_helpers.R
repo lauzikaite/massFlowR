@@ -41,10 +41,10 @@ addERRS <- function(dt, mz_err, rt_err) {
   dt[, c("mz_l",
          "mz_h",
          "rt_l",
-         "rt_h")] <- c(dt$"mz"-mz_err,
-                       dt$"mz"+mz_err,
-                       dt$"rt"-rt_err,
-                       dt$"rt"+rt_err)
+         "rt_h")] <- c(dt$"mz" - mz_err,
+                       dt$"mz" + mz_err,
+                       dt$"rt" - rt_err,
+                       dt$"rt" + rt_err)
   return(dt)
 }
 
@@ -70,14 +70,14 @@ getCLUSTS <- function(dt) {
         ifelse(all(is.na(cls$peakgrcls)), 1, max(na.omit(cls$peakgrcls)) + 1)
       
       ## find all other peaks in the same RT region as the peak-group
-      peakgroup <- dt[which(dt$peakgr == pkg), ]
+      peakgroup <- dt[which(dt$peakgr == pkg),]
       cluster <-
-        dt[which(dt$peakgr %in% cls[which(is.na(cls$peakgrcls)), "peakgr"]), ] # only search between peak groups that were not clustered yet
+        dt[which(dt$peakgr %in% cls[which(is.na(cls$peakgrcls)), "peakgr"]),] # only search between peak groups that were not clustered yet
       cluster <-
-        cluster[which(dplyr::between(cluster$rt, min(peakgroup$rt), max(peakgroup$rt))), ]  # use RT region defined by the min and max values
+        cluster[which(dplyr::between(cluster$rt, min(peakgroup$rt), max(peakgroup$rt))),]  # use RT region defined by the min and max values
       
       ## add other peaks in the extracted peak-group
-      cluster <- dt[which(dt$peakgr %in% cluster$peakgr), ]
+      cluster <- dt[which(dt$peakgr %in% cluster$peakgr),]
       
       ## update cluster ID assignment table
       cls[which(cls$peakgr %in% unique(cluster$peakgr)), "peakgrcls"] <-
@@ -98,7 +98,7 @@ getCLUSTS <- function(dt) {
 orderPEAKS <- function(dt) {
   pkg_order <- order(table(dt$peakgr), decreasing = T)
   pkg_levels <- factor(dt$peakgr, levels = pkg_order)
-  dt <- dt[order(pkg_levels),]
+  dt <- dt[order(pkg_levels), ]
   return(dt)
 }
 
@@ -109,10 +109,10 @@ matchPEAK <- function(peak, tmp) {
   ## find matching template peaks using mz/rt windows of both peaks
   mat <-
     tmp[which(dplyr::between(tmp$mz_l, peak["mz_l"], peak["mz_h"]) |
-                dplyr::between(tmp$mz_h,  peak["mz_l"], peak["mz_h"])), ]
+                dplyr::between(tmp$mz_h,  peak["mz_l"], peak["mz_h"])),]
   mat <-
     mat[which(dplyr::between(mat$rt_l, peak["rt_l"], peak["rt_h"]) |
-                dplyr::between(mat$rt_h, peak["rt_l"], peak["rt_h"])), ]
+                dplyr::between(mat$rt_h, peak["rt_l"], peak["rt_h"])),]
   
   if (nrow(mat) > 0) {
     mat$"target_peakid" <- peak["peakid"]
@@ -127,13 +127,41 @@ matchPEAK <- function(peak, tmp) {
   }
 }
 
+matchPEAK2 <- function(peakgr, doi, tmp) {
+  mat <- lapply(peakgr, FUN = matchPEAK3, doi = doi, tmp = tmp)
+  if (length(mat)!= length(peakgr)) {
+    stop("matchPEAK3 returns mistake!")
+  }
+  return(mat)
+  
+}
+  
+matchPEAK3 <- function(peak, doi, tmp) {
+  
+  target_peak <- doi[peak,c("mz_l", "mz_h", "rt_l", "rt_h")]
+  matches_mz <- tmp[which(dplyr::between(tmp$mz_l, target_peak$mz_l, target_peak$mz_h) |
+                           dplyr::between(tmp$mz_h,  target_peak$mz_l, target_peak$mz_h)),]
+  matches_mz_rt <- which(dplyr::between(matches_mz$rt_l, target_peak$rt_l, target_peak$rt_h) |
+                     dplyr::between(matches_mz$rt_h, target_peak$rt_l, target_peak$rt_h))
+  if (length(matches_mz_rt) > 0) {
+    tmp_ind <- as.numeric(rownames(matches_mz)[matches_mz_rt])
+  } else {
+    tmp_ind <- 0
+  }
+  return(tmp_ind)
+}
+
+
+
 ####---- compare all matched template's peaks and find the top matches for every target peakgroup
-getTOPmatches <- function(mat, target, tmp, bins, add_db, db_thrs) {
+getTOPmatches <- function(mat, target, tmp, bins) {
   if (nrow(mat) > 0) {
-    ## extract all peaks, that belong to the same cluster as the matched cluster(s)
-    allmat <- tmp[which(tmp$peakgrcls %in% mat$peakgrcls), ]
-    allmat <- dplyr::full_join(mat, allmat, by = names(allmat))
     
+    ## extract all peaks, that belong to the same cluster as the matched cluster(s)
+    ## this will add all peakgr peaks that were not directly matched by mz/rt
+    allmat <- tmp[which(tmp$peakgrcls %in% mat$peakgrcls),]
+    allmat <- dplyr::full_join(mat, allmat, by = names(allmat))
+  
     ## check similarity of each target peakgroup against all its matches in the template
     ## for each peakgrcls-peakgrc combination:
     ## build final comparison table with both target and template peak-groups
@@ -148,58 +176,119 @@ getTOPmatches <- function(mat, target, tmp, bins, add_db, db_thrs) {
       allmat = allmat,
       bins = bins
     )
-    cos <-
-      do.call(function(...)
-        rbind(..., make.row.names = F), target_peakgr_cos)
-    
-    ## add chemical db info
-    chemid <- sapply(cos$peakgr, function(peakgr) {
-      if (is.na(peakgr)) {
-        NA
-      } else {
-        unique(mat[which(mat$peakgr == peakgr), "chemid"])
-      }
-    })
-    cos$chemid <- unlist(chemid)
+    cos <- do.call("rbindCLEAN", target_peakgr_cos)
     
     ## compare all matching peakgrs in their clusters, extract top matches
     mattop <-
-      compareCLUSTERS(cos = cos,
-                      add_db = add_db,
-                      db_thrs = db_thrs)
+      compareCLUSTERS(cos = cos)
     
   } else {
     mattop <- data.frame(
       target_peakgr = unique(target$peakgr),
       target_peakgrcls = unique(target$peakgrcls),
+      peakgrcls = NA,
+      peakgr = NA,
+      top = F,
       stringsAsFactors = F
-    ) %>%
-      mutate(
-        peakgrcls = NA,
-        peakgr = NA,
-        cos = NA,
-        top = FALSE
-      )
+    )
   }
   
   return(mattop)
   
 }
 
+comparePEAKGR <- function(peakgr, target, doi, mat, tmp, bins) {
+  
+  ## extract peaks for this target peakgr
+  target_peaks <- doi[target[[peakgr]],c("mz", "into")]
+  
+  ## extract matched peaks
+  ## 1. extract all tmp peaks, that belong to the same clusters as the peaks matched directly by mz/rt
+  matched_ind <- unlist(mat[[peakgr]])
+  
+  matched_peaks <- tmp[matched_ind,c("peakgr", "peakgrcls")]
+  matched_peakgrcls <- unique(matched_peaks$peakgrcls)
+  matched_peakgrs <- unique(matched_peaks$peakgr)
+  matched_peaks_all <- tmp[which(tmp$peakgrcls %in% matched_peakgrcls), c("mz", "into", "peakgr", "peakgrcls")]
+
+  ## get total mz range between the target peaks and all matched template peaks
+  ## generate mz bins using all peaks
+  all_peaks <- c(target_peaks$mz, matched_peaks_all$mz)
+  breaks <-
+    data.frame(breaks = seq(
+      from = min(all_peaks),
+      to = max(all_peaks),
+      by = bins
+    ))
+  breaks$bin <- 1:nrow(breaks)
+  
+  ## build target vector of the target peak-group spectrum
+  target_peaks$bin <- findInterval(x = target_peaks$mz, breaks$breaks)
+  ## remove duplicating duplicating bins
+  target_vec <- target_peaks[which(!duplicated(target_peaks$bin)),c("bin", "into")]
+  target_vec <- dplyr::full_join(breaks,
+                                  target_vec,
+                                  by = c("bin"))
+  target_vec <- ifelse(is.na(target_vec$into), 0, target_vec$into)
+  target_vec <- scaleVEC(target_vec)
+  
+  ## for every matched peakgr, find cosine
+  matched_peakgrs_cos <- sapply(matched_peakgrs,
+         FUN = getCOS2,
+         target_vec = target_vec,
+         breaks = breaks,
+         matched_peaks_all = matched_peaks_all)
+  matched_peakgrs_cos <- data.frame(
+    target_peakgr = names(target)[[peakgr]],
+    matched_peakgr = matched_peakgrs,
+    cos = matched_peakgrs_cos)
+
+  return(matched_peakgrs_cos)
+}
+
+getCOS2 <- function(peakgr, target_vec, breaks, matched_peaks_all) {
+  
+  ## build vector from matched peaks
+  matched_vec <- matched_peaks_all[which(matched_peaks_all$peakgr == peakgr),]
+  matched_vec$bin <- findInterval(x = matched_vec$mz, breaks$breaks)
+  ## remove duplicating duplicating bins
+  matched_vec <- matched_vec[which(!duplicated(matched_vec$bin)),c("bin", "into")]
+  matched_vec <- dplyr::full_join(breaks,
+                                 matched_vec,
+                                 by = c("bin"))
+  matched_vec <- ifelse(is.na(matched_vec$into), 0, matched_vec$into)
+  matched_vec <- scaleVEC(matched_vec)
+  
+  ## find the cosine of the angle
+  cos_angle <-
+    (sum(target_vec * matched_vec))  / ((sqrt(sum(
+      target_vec * target_vec
+    )))  * (sqrt(sum(
+      matched_vec * matched_vec
+    ))))
+  
+  return(cos_angle)
+}
+
+
+
+
 ####---- compare spectra of the target peakgroup and all matching template peakgroups
 compareSPECTRA <- function(t, target, allmat, bins) {
+  
   ## extract matching template peaks for the single doi target peakgroup
   matched_peaks <-
     allmat[which(allmat$target_peakgr == t["target_peakgr"]), ]
   
   if (nrow(matched_peaks) > 0) {
+    
     ## extract target peaks
     target_peaks <-
-      target[which(target$peakgr == t["target_peakgr"]), ]
+      target[which(target$peakgr == t["target_peakgr"]),]
     
     ## add matches that are not matched by target peaks directly
     matched_peaks <-
-      allmat[which(allmat$peakgr %in% unique(matched_peaks$peakgr)), ]
+      allmat[which(allmat$peakgr %in% unique(matched_peaks$peakgr)),]
     
     ## build total peak table for both the target peaks and all template matches
     matched_peaks["dt"] <- "tmp"
@@ -220,9 +309,9 @@ compareSPECTRA <- function(t, target, allmat, bins) {
     all_peaks$bin <- findInterval(x = all_peaks$mz, breaks$breaks)
     
     ## build target vector of the target peak-group spectrum
-    target_vec <- all_peaks[which(all_peaks$dt == "target"), ]
+    target_vec <- all_peaks[which(all_peaks$dt == "target"),]
     target_vec <- dplyr::full_join(breaks,
-                                   target_vec[which(!duplicated(target_vec$bin)), ], ## remove duplicating duplicating bins
+                                   target_vec[which(!duplicated(target_vec$bin)),], ## remove duplicating duplicating bins
                                    by = c("bin"))
     target_vec <- ifelse(is.na(target_vec$into), 0, target_vec$into)
     target_vec <- scaleVEC(target_vec)
@@ -256,9 +345,9 @@ getCOS <- function(m, all_peaks, breaks, target_vec) {
   ## build vector from matched peaks
   matched_vec <-
     all_peaks[which(all_peaks$dt == "tmp" &
-                      all_peaks$peakgr == m), ]
+                      all_peaks$peakgr == m),]
   matched_vec <- dplyr::full_join(breaks,
-                                  matched_vec[which(!duplicated(matched_vec$bin)), ], ## remove duplicating duplicating bins from different PIDS
+                                  matched_vec[which(!duplicated(matched_vec$bin)),], ## remove duplicating duplicating bins from different PIDS
                                   by = c("bin"))
   matched_vec <-
     ifelse(is.na(matched_vec$into), 0, matched_vec$into)
@@ -281,32 +370,121 @@ scaleVEC <- function(x) {
   x / (sqrt(sum(x * x)))
 }
 
+# compareCLUSTERS2 <- function(cos) {
+#   
+#   ## convert target-focused object to dataframe
+#   saply(cos, function(peakgr) {
+#     
+#     
+#   }
+#   
+#  
+#   
+#   ## for each target peakgr, extract top match
+#   
+#   
+#   
+#   
+#   
+#   
+#   
+#   ## take only positive cosines
+#   mattop <- cos[which(cos$cos > 0), ]
+#   
+#   ## convert to ranks based on cosine
+#   if (nrow(mattop) > 0) {
+#     ## if pairs with the highest cosine have identical cosines (only possible when running with simulated datasets, to be investigated)
+#     if (nrow(mattop[which(mattop$cos == max(mattop$cos)), ]) > 1) {
+#       stop("identical cosines were found!")
+#     }
+#     # mattop <- mattop %>%
+#     #   add_count(.data$cos) %>%
+#     #   mutate(duplicated = ifelse(.data$n > 1 &
+#     #                                .data$cos == max(.data$cos), T, F))
+#     # if (any(mattop$duplicated == "TRUE")) {
+#     #   stop("identical cosines were found!")
+#     # }
+#     
+#     ## (A) extract top pairs - each peakgr in the pair are ranked as 1 to each other
+#     mattop <- mattop %>%
+#       ## for each template and target peakgr separately, order the matches based on cosine
+#       group_by(.data$peakgr) %>%
+#       mutate(template_rank = row_number(desc(.data$cos))) %>%
+#       group_by(.data$target_peakgr) %>%
+#       mutate(target_rank = row_number(desc(.data$cos))) %>%
+#       ## for each target peakgr, take the top match (if available)
+#       # group_by(.data$target_peakgr) %>%
+#       mutate(top_rank =
+#                if (any(.data$template_rank == 1 &
+#                        .data$target_rank == 1)) {
+#                  ifelse(.data$template_rank == 1 &
+#                           .data$target_rank == 1,
+#                         TRUE,
+#                         FALSE)
+#                } else {
+#                  ## NA indicates that no TOP was assigned for this peakgr
+#                  NA
+#                }) %>%
+#       ## for each tmp peakgr, mark if top was assigned, if not, mark top = NA
+#       group_by(.data$peakgr) %>%
+#       mutate(top = if (any(na.omit(.data$top_rank) == TRUE)) {
+#         ifelse(!is.na(.data$top_rank),
+#                ifelse(.data$top_rank == TRUE, TRUE, FALSE),
+#                FALSE)
+#       } else {
+#         NA
+#       })
+#     
+#     ## (B) extract next best pairs, by taking the pair with the highest cosine among the remaining tmp peakgr
+#     while (any(is.na(mattop$top))) {
+#       mattop <- maximiseASSIGNMENT(dt = mattop)
+#     }
+#     
+#     mattop <- mattop %>%
+#       group_by(.data$target_peakgr) %>%
+#       filter(.data$top == TRUE) %>%
+#       select(names(cos), .data$top) %>%
+#       ungroup()
+#     
+#   }
+#   
+#   ## add target peakgroups that did not have a match, will be needed when updating doi dataframe
+#   mattop <- mattop %>%
+#     bind_rows(
+#       .,
+#       cos %>%
+#         filter(!.data$target_peakgr %in% mattop$target_peakgr) %>%
+#         mutate(top = FALSE)
+#     )
+#   
+#   return(mattop)
+#   
+# }
+
+
+
+
+
+
+
 ####---- Compare clusters and decide on top-pairs
-compareCLUSTERS <- function(cos, add_db, db_thrs) {
-  ## if aligning 1st doi in the study with the db, use similarity threshold (db_thrs)
-  if (add_db == T) {
-    mattop <- cos %>%
-      group_by(.data$peakgr) %>%
-      mutate(db = ifelse(!is.na(.data$chemid), T, F)) %>%
-      filter((.data$db == T & .data$cos > db_thrs) |
-               (.data$db == F & .data$cos > 0)) %>%
-      ungroup()
-  } else {
-    mattop <- cos %>%
-      filter(.data$cos > 0) %>%
-      ungroup()
-  }
+compareCLUSTERS <- function(cos) {
+  ## take only positive cosines
+  mattop <- cos[which(cos$cos > 0), ]
   
+  ## convert to ranks based on cosine
   if (nrow(mattop) > 0) {
-    ## convert to ranks based on cosine
-    mattop <- mattop %>%
-      ## if pairs with the highest cosine have identical cosines (only possible when running with simulated datasets, to be investigated)
-      add_count(.data$cos) %>%
-      mutate(duplicated = ifelse(.data$n > 1 &
-                                   .data$cos == max(.data$cos), T, F))
-    if (any(mattop$duplicated == "TRUE")) {
+    ## if pairs with the highest cosine have identical cosines (only possible when running with simulated datasets, to be investigated)
+    if (nrow(mattop[which(mattop$cos == max(mattop$cos)), ]) > 1) {
       stop("identical cosines were found!")
     }
+    # mattop <- mattop %>%
+    #   add_count(.data$cos) %>%
+    #   mutate(duplicated = ifelse(.data$n > 1 &
+    #                                .data$cos == max(.data$cos), T, F))
+    # if (any(mattop$duplicated == "TRUE")) {
+    #   stop("identical cosines were found!")
+    # }
     
     ## (A) extract top pairs - each peakgr in the pair are ranked as 1 to each other
     mattop <- mattop %>%
@@ -417,9 +595,6 @@ addPEAKS <- function(mattop, mat, target, tmp, itmp, doi) {
     "into",
     "peakgr",
     "peakgrcls",
-    "chemid",
-    "dbid",
-    "dbname",
     "doi_peakid",
     "doi_peakgr",
     "doi_peakgrcls",
@@ -429,19 +604,19 @@ addPEAKS <- function(mattop, mat, target, tmp, itmp, doi) {
   ## for every target/doi peakgr
   for (target_peakgr in unique(mattop$target_peakgr)) {
     ## 1. extract target/doi peaks that must be added to tmp
-    target_peaks <- target[which(target$peakgr == target_peakgr), ]
+    target_peaks <- target[which(target$peakgr == target_peakgr),]
     
     ## 2. extract top matched tmp peakgr
     matched <-
-      mattop[which(mattop$target_peakgr == target_peakgr), ]
-    matched_top <- matched[which(matched$top == T), ]
+      mattop[which(mattop$target_peakgr == target_peakgr),]
+    matched_top <- matched[which(matched$top == T),]
     top_matched_peakgr <-
       ifelse(nrow(matched_top) > 0, matched_top$peakgr, 0)
     ## extract tmp peaks that must be merged/averaged with doi peaks
     matched_peaks <- mat[which(
       mat$peakgr == matched_top$peakgr &
         mat$target_peakgr == matched_top$target_peakgr
-    ), ]
+    ),]
     
     ## if target peakgr was only assigned to tmp peakgr because of overall spectral similarity without exact matches
     if (nrow(matched_peaks) == 0) {
@@ -457,7 +632,7 @@ addPEAKS <- function(mattop, mat, target, tmp, itmp, doi) {
       ## 3. extract tmp peaks of the top matched tmp peakgr:
       ## these include both original tmp peaks, and doi peaks previously added to the tmp
       previous_peaks <-
-        itmp[which(itmp$peakgr == top_matched_peakgr), ]
+        itmp[which(itmp$peakgr == top_matched_peakgr),]
       
       ## "cos" column with NA or non-existing column would break cos value comparison
       if (nrow(previous_peaks) > 0) {
@@ -496,9 +671,9 @@ addPEAKS <- function(mattop, mat, target, tmp, itmp, doi) {
     doi <- update$doi
     utmp <- update$utmp
     ttmp1 <-
-      itmp[which(!itmp$peakid %in% utmp$peakid), ] ## save tmp copy without the tmp peaks matched by mz/rt window
+      itmp[which(!itmp$peakid %in% utmp$peakid),] ## save tmp copy without the tmp peaks matched by mz/rt window
     ttmp2 <-
-      ttmp1[which(!ttmp1$doi_peakid %in% na.omit(utmp$doi_peakid)), ]  ## save tmp copy without old doi peaks that now are updated
+      ttmp1[which(!ttmp1$doi_peakid %in% na.omit(utmp$doi_peakid)),]  ## save tmp copy without old doi peaks that now are updated
     itmp <- dplyr::bind_rows(ttmp2, utmp)
     
   }
@@ -543,7 +718,7 @@ addGROUPED <-
       
       prev_doi_peaks$peakid <- prev_doi_peakid_new
       prev_doi_peaks$peakgr <- prev_doi_peakgr_new
-      prev_doi_peaks[, c("peakgrcls", "chemid", "chemid", "dbid", "dbname", "cos")] <-
+      prev_doi_peaks[, c("peakgrcls", "cos")] <-
         NA
       prev_doi_peaks <- prev_doi_peaks[, cnames]
       
@@ -566,18 +741,12 @@ addGROUPED <-
       matched_top = matched_top,
       cnames = cnames
     )
-    new_doi_peaks <-
-      do.call(function(...)
-        rbind(..., make.row.names = F), new_doi_peaks)
+    new_doi_peaks <- do.call("rbindCLEAN", new_doi_peaks)
     
-    ## 2. add chemical db metadata
-    new_doi_peaks[, c("chemid", "dbid", "dbname")] <-
-      unique(matched_peaks[, c("chemid", "dbid", "dbname")])
-    
-    ## 3. generate peakid for newly added doi peaks without exact peak matches
+    ## 2. generate peakid for newly added doi peaks without exact peak matches
     if (any(is.na(new_doi_peaks$peakid))) {
       peakid_new <-
-        (max_peakid + 1):(max_peakid + nrow(new_doi_peaks[which(is.na(new_doi_peaks$peakid)), ]))
+        (max_peakid + 1):(max_peakid + nrow(new_doi_peaks[which(is.na(new_doi_peaks$peakid)),]))
       new_doi_peaks[which(is.na(new_doi_peaks$peakid)), "peakid"] <-
         peakid_new
     }
@@ -591,7 +760,7 @@ addGROUPED <-
       previous_peaks[which(
         !previous_peaks$peakid %in% new_doi_peaks$peakid &
           is.na(previous_peaks$doi_peakid)
-      ), ]
+      ),]
     if (nrow(original_peaks) > 0) {
       original_peaks[, "doi_peakgr"] <- unique(new_doi_peaks$doi_peakgr)
       original_peaks[, "doi_peakgrcls"] <-
@@ -609,18 +778,12 @@ addGROUPED <-
         "peakgr",
         "tmp_peakid",
         "tmp_peakgr",
-        "chemid",
-        "dbid",
-        "dbname",
         "cos")
     udoi <- setNames(utmp[which(!is.na(utmp$doi_peakid)),
                           c("doi_peakid",
                             "doi_peakgr",
                             "peakid",
                             "peakgr",
-                            "chemid",
-                            "dbid",
-                            "dbname",
                             "cos")],
                      nm = doinames)
     doi[match(udoi$peakid, doi$peakid), doinames] <-
@@ -643,14 +806,14 @@ addUNGROUPED <- function(target_peaks, itmp, doi, cnames) {
     utmp[, c("peakid", "peakgr", "peakgrcls")]
   utmp$peakid <- peakid_new
   utmp$peakgr <- peakgr_new
-  utmp[, c("peakgrcls", "chemid", "dbid", "dbname", "cos")] <- NA
+  utmp[, c("peakgrcls", "cos")] <- NA
   utmp <- utmp[, cnames]
   
   ## update doi
   doi[match(na.omit(utmp$doi_peakid), doi$peakid),
-      c("tmp_peakid", "tmp_peakgr", "chemid", "dbid", "dbname", "cos")] <-
+      c("tmp_peakid", "tmp_peakgr", "cos")] <-
     utmp[which(!is.na(utmp$doi_peakid)),
-         c("peakid", "peakgr", "chemid", "dbid", "dbname", "cos")]
+         c("peakid", "peakgr", "cos")]
   doi[match(na.omit(utmp$doi_peakid), doi$peakid), "added"] <- TRUE
   
   return(list("doi" = doi, "utmp" = utmp))
@@ -662,14 +825,14 @@ addUNGROUPED <- function(target_peaks, itmp, doi, cnames) {
 averagePEAKS <- function(peak, matched_peaks, matched_top, cnames) {
   ## select closest tmp peak
   closest <-
-    matched_peaks[which(matched_peaks$target_peakid == peak["peakid"]), ]
+    matched_peaks[which(matched_peaks$target_peakid == peak["peakid"]),]
   
   if (nrow(closest) > 0) {
     ## find mz difference between the target peakid and the matched tmp peakid
     closest$dif <- abs(peak["mz"] - closest$mz)
-    closest <- closest[which(closest$dif == min(closest$dif)), ]
+    closest <- closest[which(closest$dif == min(closest$dif)),]
     ## if more than 1 peakid has the same MZ difference to target, take the most intense peakid
-    closest <- closest[which(closest$into == max(closest$into)), ]
+    closest <- closest[which(closest$into == max(closest$into)),]
     
     if (nrow(closest) > 1) {
       stop("averagePEAKS fails to select a single peak from multiple keys")
@@ -693,14 +856,3 @@ averagePEAKS <- function(peak, matched_peaks, matched_top, cnames) {
   closest <- closest[, cnames]
   return(closest)
 }
-
-####---- if any peaks in the final template matched by multiple doi peaks, retain the most intense value
-## return rownames to be removed from the final tmp
-# removeDUPS <- function(peakid, tmp) {
-#   dup_tmp <- tmp[which(tmp$peakid == peakid),]
-#   rnumber_max <-
-#     rownames(dup_tmp)[which(dup_tmp$into == max(dup_tmp$into))]
-#   rnumber <-
-#     as.numeric(rownames(dup_tmp)[which(rownames(dup_tmp) != rnumber_max)])
-#   return(rnumber)
-# }
