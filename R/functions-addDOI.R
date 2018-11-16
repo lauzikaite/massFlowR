@@ -95,6 +95,7 @@ addDOI <-
             rbind(..., make.row.names = F), mat)
         }
       # extract top matches for every target peakgr
+      # system.time({
       mattop <-
         getTOPmatches(
           mat = mat,
@@ -102,6 +103,28 @@ addDOI <-
           tmp = tmp,
           bins = bins
         )
+      # })
+      # user  system elapsed 
+      # 0.507   0.077   0.584 
+      
+      # user  system elapsed 
+      # 0.336   0.054   0.390 
+      
+      # system.time({
+      #   mattop <-
+      # mattop <-
+      #   getTOPmatches2(
+      #     mat = mat,
+      #     target = target,
+      #     tmp = tmp,
+      #     bins = bins
+      #   )
+      # })
+      # user  system elapsed 
+      # 0.515   0.068   0.585 
+      
+      # user  system elapsed 
+      # 0.298   0.042   0.339 
       
       ## add annotated/unmatched DOI peaks to template
       update <-
