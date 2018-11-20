@@ -6,3 +6,4 @@
 .RData
 inst/doc/*.Rmd
 inst/doc/*.R
+inst/doc

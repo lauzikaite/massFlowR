@@ -4,21 +4,16 @@
 \alias{buildTMP}
 \title{Build a sample alignment and annotation template}
 \usage{
-buildTMP(file = NULL, db = NULL, mz_err = 0.01, rt_err = 2,
-  bins = 0.01, db_thrs = 0)
+buildTMP(file = NULL, mz_err = 0.01, rt_err = 2, bins = 0.01)
 }
 \arguments{
 \item{file}{\code{character} for absolute path to the csv file, specifying samples filenames and their acquisition order.}
-
-\item{db}{\code{NULL}, or a \code{massFlowDB} class object, built with \code{buildDB} function.}
 
 \item{mz_err}{\code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.}
 
 \item{rt_err}{\code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).}
 
 \item{bins}{\code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).}
-
-\item{db_thrs}{\code{numeric} specifying spectra similarity threshold (cosine) for first template generation with the database template (default set to 0).}
 }
 \value{
 A \code{massFlowTemplate} class object.

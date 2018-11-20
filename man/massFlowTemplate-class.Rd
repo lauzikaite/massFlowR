@@ -47,8 +47,6 @@ Alignment results are stored in slot @data for each sample separately.
 \describe{
 \item{\code{filepath}}{\code{character} specifying the absolute path to a \code{csv} file with study sample names and their acquisition (run) order.}
 
-\item{\code{db_filepath}}{\code{character} specifying the absolute path to the database \code{csv} file (if was used in the template built).}
-
 \item{\code{samples}}{\code{data.frame} storing study sample names and their acquisition order.}
 
 \item{\code{tmp}}{\code{data.frame} storing sample alignment and annotation template.}

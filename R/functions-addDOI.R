@@ -74,11 +74,11 @@ addDOI <-
     while (any(doi$added == F)) {
       
       ## get the first peak among the un-annotated peaks
-      p <- doi[which(doi$added == FALSE), "peakid"][1]
+      p <- doi[doi$added == FALSE, "peakid"][1]
       
       ## get all peaks from the same cluster as that peak
-      target <- doi[which(doi$peakid == p),]
-      target <- doi[which(doi$peakgrcls == target$peakgrcls),]
+      target <- doi[doi$peakid == p,]
+      target <- doi[doi$peakgrcls == target$peakgrcls,]
 
       ## sanity check
       if (any(!is.na(target$cos))) {
@@ -91,11 +91,9 @@ addDOI <-
           ## if none matches in the template were found
           data.frame()
         } else {
-          do.call(function(...)
-            rbind(..., make.row.names = F), mat)
+          do.call("rbindCLEAN", mat)
         }
       # extract top matches for every target peakgr
-      # system.time({
       mattop <-
         getTOPmatches(
           mat = mat,
@@ -103,28 +101,6 @@ addDOI <-
           tmp = tmp,
           bins = bins
         )
-      # })
-      # user  system elapsed 
-      # 0.507   0.077   0.584 
-      
-      # user  system elapsed 
-      # 0.336   0.054   0.390 
-      
-      # system.time({
-      #   mattop <-
-      # mattop <-
-      #   getTOPmatches2(
-      #     mat = mat,
-      #     target = target,
-      #     tmp = tmp,
-      #     bins = bins
-      #   )
-      # })
-      # user  system elapsed 
-      # 0.515   0.068   0.585 
-      
-      # user  system elapsed 
-      # 0.298   0.042   0.339 
       
       ## add annotated/unmatched DOI peaks to template
       update <-

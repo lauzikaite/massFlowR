@@ -10,7 +10,7 @@ test_that("checkNEXT() returns the correct filename", {
 })
 
 
-# two identical tables---------------------------------------------------------------------------------------------------
+# align identical tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two identical samples via alignPEAKS() is correct", {
   
   tmp <- buildTMP(file = experiment_dup_file, rt_err = 10)
@@ -88,7 +88,7 @@ test_that("alignment of two different samples via alignPEAKS() is correct", {
   
 })
   
-# two almost identical tables---------------------------------------------------------------------------------------------------
+# align almost identical tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two ALMOST identical samples via alignPEAKS() is correct", {
   
   tmp <- buildTMP(file = experiment_mess_file, rt_err = 10)
