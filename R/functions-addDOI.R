@@ -29,11 +29,9 @@ addDOI <-
     tmp <- addERRS(dt = tmp,
                    mz_err = mz_err,
                    rt_err = rt_err)
-    tmp <-
-      addCOLS(
-        dt = tmp,
-        cnames = c("doi_peakid", "doi_peakgr", "doi_peakgrcls", "cos")
-      )
+    tmp[, c("doi_peakid", "doi_peakgr", "doi_peakgrcls", "cos")] <-
+      NA
+  
     ## dataframe for storing intermediate alignment results
     itmp <- tmp
     
@@ -45,8 +43,7 @@ addDOI <-
     doi <- addERRS(dt = doi_full,
                    mz_err = mz_err,
                    rt_err = rt_err)
-    doi <- addCOLS(dt = doi,
-                   c("tmp_peakgr", "tmp_peakid", "cos"))
+    doi[, c("tmp_peakgr", "tmp_peakid", "cos")] <- NA
     doi$added <- FALSE
     doi <-
       doi[, c(
@@ -72,14 +69,13 @@ addDOI <-
     
     ## (C) for every doi peak, find matching tmp peaks (if any)
     while (any(doi$added == F)) {
-      
       ## get the first peak among the un-annotated peaks
       p <- doi[doi$added == FALSE, "peakid"][1]
       
       ## get all peaks from the same cluster as that peak
-      target <- doi[doi$peakid == p,]
-      target <- doi[doi$peakgrcls == target$peakgrcls,]
-
+      target <- doi[doi$peakid == p, ]
+      target <- doi[doi$peakgrcls == target$peakgrcls, ]
+      
       ## sanity check
       if (any(!is.na(target$cos))) {
         stop("check peak-group-cluster selection!")
@@ -144,7 +140,8 @@ addDOI <-
     if (any(peakid_match == F)) {
       stop("tmp_peakid and peakid don't macth up")
     }
-    message("\n") ## add empty row to align new messages below the progress bar
+    ## add empty row to align new messages below the progress bar
+    message("\n")
     
     doi_out <-
       setNames(itmp[which(!is.na(itmp$doi_peakid)), c("doi_peakid",
@@ -167,7 +164,7 @@ addDOI <-
       file = gsub(".csv", "_aligned.csv", doi_fname),
       quote = T,
       row.names = F
-    ) ## quote = T to preserve complex DB entries with "-"
+    )
     
     ## (E) Update template
     ## remove intermediate output columns not needed for next round of alignment

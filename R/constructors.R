@@ -108,9 +108,7 @@ buildTMP <-
     doi <- getCLUSTS(dt = doi)
     doi[, c("tmp_peakid", "tmp_peakgr", "new_mz", "new_rt")] <-
       doi[, c("peakid", "peakgr", "mz", "rt")]
-    doi <-
-      addCOLS(dt = doi,
-              cnames = c("cos"))
+    doi[,c("cos")] <- NA
     write.csv(
       doi,
       file = gsub(".csv", "_aligned.csv", doi_fname),

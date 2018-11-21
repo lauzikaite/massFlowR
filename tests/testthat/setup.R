@@ -66,7 +66,7 @@ biggest <- single_table %>%
   filter(peakgr == biggest_pkg) %>%
   slice(1:(n()/2))
 
-mess <- bind_rows(single_table %>%
+noisy <- bind_rows(single_table %>%
                     filter(peakgr != biggest_pkg),
                   ## return the original peakgr with half and minus 1 peaks
                   biggest %>% 
@@ -82,18 +82,23 @@ mess <- bind_rows(single_table %>%
                      peakgr = max(single_table$peakgr) + 1,
                      peakid = NULL) %>% 
               select(- rt_new))
-messy_pkg <- max(mess$peakgr)  
-mess <- mess %>% 
+noisy_pkg <- max(noisy$peakgr)  
+noisy <- noisy %>% 
   ## arrange by peak intensity and give a peak number
   arrange(desc(into)) %>% 
   mutate(peakid = row_number())
 
-experiment_mess_fnames <- c(file.path(data_dir, "test_file1.csv"), file.path(data_dir, "test_file3.csv"))
-write.csv(mess, experiment_mess_fnames[2], quote = F, row.names = FALSE)
-experiment_mess <- data.frame(filepaths = experiment_mess_fnames, run_order = 1:2, stringsAsFactors = F)
-write.csv(experiment_mess, file.path(data_dir, "experiment_mess.csv"), quote = F, row.names = FALSE)
-experiment_mess_file <- file.path(data_dir, "experiment_mess.csv")
+experiment_noisy_fnames <- c(file.path(data_dir, "test_file1.csv"), file.path(data_dir, "test_file3.csv"))
+write.csv(noisy, experiment_noisy_fnames[2], quote = F, row.names = FALSE)
+experiment_noisy <- data.frame(filepaths = experiment_noisy_fnames, run_order = 1:2, stringsAsFactors = F)
+write.csv(experiment_noisy, file.path(data_dir, "experiment_noisy.csv"), quote = F, row.names = FALSE)
+experiment_noisy_file <- file.path(data_dir, "experiment_noisy.csv")
 
 ## list db template
 ## template includes three first peak-groups of sample wt15
 db_file <- file.path(data_dir, "DBtemplate.csv")
+
+## alignPEAKS parameters
+rt_err <- 10
+mz_err <- 0.01
+bins <- 0.01

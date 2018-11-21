@@ -13,7 +13,7 @@ test_that("checkNEXT() returns the correct filename", {
 # align identical tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two identical samples via alignPEAKS() is correct", {
   
-  tmp <- buildTMP(file = experiment_dup_file, rt_err = 10)
+  tmp <- buildTMP(file = experiment_dup_file, rt_err = rt_err)
   tmp <- alignPEAKS(tmp)
   tmp_data1 <- tmp@data[[1]]
   tmp_data2 <- tmp@data[[2]]
@@ -35,7 +35,7 @@ test_that("alignment of two identical samples via alignPEAKS() is correct", {
 
 test_that("alignment of two different samples via alignPEAKS() is correct", {
   
-  tmp <- buildTMP(file = experiment_file, rt_err = 10)
+  tmp <- buildTMP(file = experiment_file, rt_err = rt_err)
   tmp <- alignPEAKS(tmp)
   tmp_tmp <- tmp@tmp
   tmp_data1 <- tmp@data[[1]]
@@ -91,7 +91,7 @@ test_that("alignment of two different samples via alignPEAKS() is correct", {
 # align almost identical tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two ALMOST identical samples via alignPEAKS() is correct", {
   
-  tmp <- buildTMP(file = experiment_mess_file, rt_err = 10)
+  tmp <- buildTMP(file = experiment_noisy_file, rt_err = rt_err)
   tmp <- alignPEAKS(tmp)
   
   tmp_tmp <- tmp@tmp
@@ -109,8 +109,8 @@ test_that("alignment of two ALMOST identical samples via alignPEAKS() is correct
   expect_equal(nrow(pkg_grouped_2), (nrow(pkg_grouped_1)/2 - 1))
   expect_true(all(pkg_grouped_2$tmp_peakid %in% pkg_grouped_1$tmp_peakid))
   
-  ## checking whether addDOI correctly "kicked-out" previously grouped messy peakgr
-  expect_true(all(is.na(tmp_data2[which(tmp_data2$tmp_peakgr == messy_pkg),"cos"])))
-  expect_false(any(tmp_tmp[which(tmp_tmp$peakgr == messy_pkg),"peakid"] %in%  tmp_data1$tmp_peakid))
+  ## checking whether addDOI correctly "kicked-out" previously grouped noisy peakgr
+  expect_true(all(is.na(tmp_data2[which(tmp_data2$tmp_peakgr == noisy_pkg),"cos"])))
+  expect_false(any(tmp_tmp[which(tmp_tmp$peakgr == noisy_pkg),"peakid"] %in%  tmp_data1$tmp_peakid))
 })
 

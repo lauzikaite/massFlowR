@@ -31,7 +31,6 @@ test_that("Checking grouped peaks csv tables via checkFILE is correct", {
   unlink(x = wrong_file_filepath)
 })
 
-
 # getCLUSTS -------------------------------------------------------------------------------------------------------
 test_that("Clustering of peak-groups via getCLUSTS is correct", {
   dt <- massFlowR:::checkFILE(file = grouped_files[[1]])
@@ -47,14 +46,14 @@ test_that("Clustering of peak-groups via getCLUSTS is correct", {
   
 })
 
-
 # orderPEAKS ------------------------------------------------------------------------------------------------------
 test_that("Peak-group ordering by complexity and intensity via orderPEAKS is correct",
           {
             ## according to how many peaks per peak-group
-            ordered <- order(table(single_table$peakgr), decreasing = T)
+            ordered <-
+              order(table(single_table$peakgr), decreasing = T)
             ordered <- factor(single_table$peakgr, levels = ordered)
-            table_ordered <- single_table[order(ordered),]
+            table_ordered <- single_table[order(ordered), ]
             
             ## according to peak intensity (aka peakid)
             peaks_ordered <-
@@ -75,22 +74,172 @@ test_that("Peak-group ordering by complexity and intensity via orderPEAKS is cor
             
           })
 
+# addERRS ---------------------------------------------------------------------------------------------------------
+test_that("addERR adds mz/rt windows correctly", {
+  dt <- test_pks_rd
+  dt[, c("mz_l",
+         "mz_h",
+         "rt_l",
+         "rt_h")] <- c(dt$"mz"-mz_err,
+                       dt$"mz"+mz_err,
+                       dt$"rt"-rt_err,
+                       dt$"rt"+rt_err)
+  addERRS_out <-
+    addERRS(dt = test_pks_rd,
+            mz_err = mz_err,
+            rt_err = rt_err)
+  expect_identical(dt, addERRS_out)
+  expect_true(addERRS_out[1, "mz_l"] == (test_pks_rd[1, "mz"] - mz_err))
+})
 
 # matchPEAK -------------------------------------------------------------------------------------------------------
 test_that("matchPEAK", {
+  ####---- match a table againts itself
+  dt <- addERRS(dt = single_table,
+                mz_err = mz_err,
+                rt_err = rt_err)
+  matchPEAK_out <- apply(dt, 1, FUN = matchPEAK, tmp = dt)
+  matchPEAK_out <- do.call("rbindCLEAN", matchPEAK_out)
   
+  expect_true(all(unlist(lapply(unique(single_table$peakid), function(peak) {
+    peak_matched <-
+      matchPEAK_out[matchPEAK_out$target_peakid == peak, "peakid"]
+    peak_matched == peak
+  }))))
+  expect_true(all(unlist(lapply(unique(single_table$peakid), function(peak) {
+    peak_matched <-
+      matchPEAK_out[matchPEAK_out$target_peakid == peak, "mz"]
+    peak_target <- single_table[single_table$peakid == peak, "mz"]
+    peak_matched == peak_target
+  }))))
   
+  ####---- match against table with multiple matches
+  dt1 <- addERRS(dt = single_table,
+                 mz_err = mz_err,
+                 rt_err = rt_err)
+  peak_n <- 100
+  dt2 <- bind_rows(dt1, dt1[peak_n,])
   
+  matchPEAK_out <- apply(dt1, 1, FUN = matchPEAK, tmp = dt2)
+  matchPEAK_out <- do.call("rbindCLEAN", matchPEAK_out)
+  expect_true(matchPEAK_out$peakid[which(table(matchPEAK_out$peakid) > 1)] == peak_n)
+  expect_true(table(matchPEAK_out$peakid)[peak_n] == 2)
+  
+  ####---- match against table without matches for selected peak
+  dt1 <- addERRS(dt = single_table,
+                 mz_err = mz_err,
+                 rt_err = rt_err)
+  peak_n <- 100
+  dt2 <- dt1[dt1$peakid != peak_n,]
+  matchPEAK_out <- apply(dt1, 1, FUN = matchPEAK, tmp = dt2)
+  matchPEAK_out <- do.call("rbindCLEAN", matchPEAK_out)
+  expect_false(peak_n %in% matchPEAK_out$target_peakid)
+  expect_equal(nrow(matchPEAK_out), nrow(dt2))
+})
+
+# getCOS ----------------------------------------------------------------------------------------------------------
+test_that("getCOS calculates cosines correctly", {
+  ####---- identical peakgrs
+  dt1 <- single_table
+  dt2 <- single_table
+  mat <- dt1 %>%
+    mutate(target_peakgr = peakgr)
+  target <- dt1
+  target_peakgrs <- unique(dt2$peakgr)
+  cos <- lapply(
+    target_peakgrs,
+    FUN = getCOS,
+    target = target,
+    mat = mat,
+    tmp = dt1,
+    bins = bins
+  )
+  cos <- do.call("rbindCLEAN", cos)
+  expect_true(nrow(cos) == length(target_peakgrs))
+  expect_true(all(round(cos$cos, digits = 10) == 1))
+  
+  ####---- compare the noisy peakgr and its original peakgr between two almost identical tables
+  dt1 <-
+    read.csv(experiment_noisy_fnames[1],
+             header = T,
+             stringsAsFactors = F)
+  dt2 <-
+    read.csv(experiment_noisy_fnames[2],
+             header = T,
+             stringsAsFactors = F)
+  target <- dt2[dt2$peakgr == noisy_pkg,]
+  mat <- dt1[dt1$peakgr == biggest_pkg,]
+  mat$target_peakgr <- noisy_pkg
+  getCOS_out <-
+    getCOS(
+      t_peakgr = noisy_pkg,
+      target = target,
+      mat = mat,
+      tmp = dt1,
+      bins = bins
+    )
+  expect_true(class(getCOS_out) == "data.frame")
+  expect_true(getCOS_out$target_peakgr == noisy_pkg)
+  expect_true(getCOS_out$peakgr == biggest_pkg)
+  expect_true(getCOS_out$cos < 1)
+  
+  ####---- when no exact peak matches for the target peakgr are available
+  ## this situation can happen if peakgrcls was selected with a peakgr that do not have exact matches to the target
+  t_peakgr <- 1
+  dt1 <-
+    read.csv(experiment_noisy_fnames[1],
+             header = T,
+             stringsAsFactors = F)
+  dt1 <- dt1[dt1$peakgr != t_peakgr,]
+  dt2 <-
+    read.csv(experiment_noisy_fnames[2],
+             header = T,
+             stringsAsFactors = F)
+  target <- dt2[dt2$peakgr == t_peakgr,]
+  ## create empty mat data frame which would normally contain peakgrs/peakgrcls peaks
+  mat <- dt1[dt1$peakgr == t_peakgr,] %>%
+    mutate(target_peakgr = t_peakgr)
+  getCOS_out <-
+    getCOS(
+      t_peakgr = t_peakgr,
+      target = target,
+      mat = mat,
+      tmp = dt1,
+      bins = bins
+    )
+  expect_true(is.null(getCOS_out))
+  
+  ####---- two different tables
+  dt1 <-
+    read.csv(grouped_files[1],
+             header = T,
+             stringsAsFactors = F)
+  dt2 <-
+    read.csv(grouped_files[2],
+             header = T,
+             stringsAsFactors = F)
+  dt1 <- addERRS(dt = dt1,
+                 mz_err = mz_err,
+                 rt_err = rt_err)
+  dt2 <- addERRS(dt = dt2,
+                 mz_err = mz_err,
+                 rt_err = rt_err)
+  t_peakgr <- 26
+  target <- dt2[dt2$peakgr == t_peakgr,]
+  mat <- apply(target, 1, FUN = matchPEAK, tmp = dt1)
+  mat <- do.call("rbindCLEAN", mat)
+  getCOS_out <-
+    getCOS(
+      t_peakgr = t_peakgr,
+      target = target,
+      mat = mat,
+      tmp = dt1,
+      bins = bins
+    )
+  expect_true(class(getCOS_out) == "data.frame")
+  expect_true(round(getCOS_out$cos, digits = 8) == 0.00612543)
   
 })
-  
-
-
-
-
-
-
-
 
 # compareCOS -------------------------------------------------------------------------------------------------
 test_that("Selection of top matches via compareCOS is correct", {
