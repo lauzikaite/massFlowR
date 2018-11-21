@@ -8,4 +8,5 @@ doc
 .RData
 inst/doc/*.Rmd
 inst/doc/*.R
-inst/doc
+vignettes/*.html
+vignettes/*.R

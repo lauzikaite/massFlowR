@@ -26,7 +26,8 @@ knitr::opts_chunk$set(
 Biocpkg <- function (pkg) {
     sprintf("[%s](http://bioconductor.org/packages/%s)", pkg, pkg)
 }
-options(kpb.suppress_noninteractive = TRUE) ## supressing progress bar
+## supressing progress bar
+options(kpb.suppress_noninteractive = TRUE) 
 ```
 
 ```{r libraries, message = FALSE, echo = FALSE}
@@ -34,6 +35,7 @@ options(kpb.suppress_noninteractive = TRUE) ## supressing progress bar
 suppressWarnings(library(massFlowR))
 suppressWarnings(library(xcms))
 suppressWarnings(library(dplyr))
+out_directory <- getwd()
 ```
 
 # Overview
@@ -107,7 +109,7 @@ Function `groupPEAKS` processes every LC-MS datafile independently and thus can 
 
 ```{r peak_grouping}
 ## define where processed datafiles should be written
-out_directory <- getwd()
+# out_directory <- "absolute_path_to_output_directory"
 
 ## run peak detection and grouping for the listed faahKO files with two workers
 groupPEAKS(files = faahKO_files, out_dir = out_directory, cwt = cwt_param, ncores = 2)
@@ -198,46 +200,25 @@ knitr::kable(x = dt,
   kableExtra::kable_styling(full_width = TRUE, bootstrap_options = c("striped"), position = "left")
 ```
 
-# Peak annotation
-
-If in-house chemical reference database is available, peaks are automatically annotated during sample alignment. For more details how to build a database file, see [annotation using database](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/annotation.html))).
-
-To enable peak annotation during sample alignment, first a `massFlowDB` class object must be built.
-
-```{r buildDB}
-## define path to the database file, use the sample file provided with the package
-database_file <- file.path(system.file("testdata", package = "massFlowR"), "DBtemplate.csv")
-
-## build a database template object
-database <- buildDB(file = database_file)
-
-## check what the database template consists of
-chemicals(database)
-
-## check how database table looks using slot "db"
-database@db
-```
-
-Once `massFlowDB` object is built, peak alignment can be initiated via `buildTMP`function,  using `massFlowDB` object as one of the inputs.
-
-```{r massFlowTemplate_with_db}
-## initiate template using the chemical reference database and first sample in the study
-# template <- buildTMP(file = file.path(out_directory, "experiment.csv"), mz_err = 0.01, rt_err = 10, db = database)
-```
-
-```{r alignPEAKS_with_db, eval = FALSE}
-## align peaks across all remaining samples
-# template <- alignPEAKS(template)
-```
-
 # Alignment validation
 
 *(under development)*
 
 Once peaks are aligned across all samples, the obtained PCSs are validated. Intensity values for each peak in a group are correlated across all samples. Correlation estimates are then used to build networks of peaks, that behave similarly across all samples. Peaks exhibiting a different pattern in their intensities are put into a new PCS.
 
-Finally, for samples, in which a peak from a validated PCS was not detected, peak-filling is performed. Intensity data is obtained for each missing peak using original LC-MS files. In contrast to `xcms` package, *m/z* and *rt* values for intensity integration are estimated for each sample separetely. *m/z* and *rt* values are taken from two surrounding samples, in which the peak-of-interest was present, and extrapolated. 
+For each PCS, a set of representative peaks, which detection in samples is consistent, are identified. Intensity values of these peaks are then reported for each sample. For samples in which representative peaks are not present, intensity data is re-integrated using original LC-MS files. In contrast to `xcms` package, *m/z* and *rt* values for intensity integration are estimated for each sample separetely. *m/z* and *rt* values are taken from two surrounding samples, in which the peak-of-interest was present, and extrapolated. 
+
+# Peak annotation
+
+*(under development)*
+
+If in-house chemical reference database is available, PCS are annotated using representative peaks. For more details how to build a database file, see [annotation using database](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/annotation.html))).
 
 # See also
 
 * [Automatic peak annotation](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/annotation.html)
+
+```{r teardown, message = FALSE, echo = FALSE}
+unlink(list.files(path = out_directory, pattern = ".csv", full.names = T))
+```
+

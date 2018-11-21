@@ -32,8 +32,8 @@ options(kpb.suppress_noninteractive = TRUE) ## supressing progress bar
 suppressWarnings(library(massFlowR))
 suppressWarnings(library(xcms))
 suppressWarnings(library(dplyr))
-rda_dir <- "/Users/el1514/Documents/Projects/DBannotate/NPC-RPOS-LCE-SubDB"
-db_dir <- "/Users/el1514/Documents/Projects/massFlowR/packageDEV/db"
+rda_dir <- "~/Documents/Projects/DBannotate/NPC-RPOS-LCE-SubDB"
+db_dir <- "~/Documents/Projects/massFlowR/packageDEV/db"
 ```
 
 `massFlowR` performs automatic annotation during peak alignment if LC-MS files for chemical reference compounds are available. To enable annotation, provide a database table in a csv format when initiating peak alignment (see section [peak annotation](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html#peak-annotation)).
