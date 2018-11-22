@@ -25,13 +25,25 @@
 #'
 getDB <- function(dir, peakgr_thr = 0, compound_thr = 0, out_dir) {
 
-  if (missing(dir)) stop("dir is required")
-  if (!dir.exists(dir)) stop("provided path to dir is incorrect!")
-  if (missing(out_dir)) stop("out_dir is required")
-  if (!dir.exists(out_dir)) stop("provided path to out_dir is incorrect!")
+  if (missing(dir)) {
+    stop("dir is required")
+  }
+  if (!dir.exists(dir)) {
+    stop("provided path to dir is incorrect!")
+  }
+  if (missing(out_dir)) {
+    stop("out_dir is required")
+  }
+  if (!dir.exists(out_dir)) {
+    stop("provided path to out_dir is incorrect!")
+  }
   
-  if (peakgr_thr != 0) message("peakgr_thr value above 0 is selected. Recommended value is 0")
-  if (compound_thr != 0) message("compound_thr above 0 is selected. Recommended value is 0")
+  if (peakgr_thr != 0) {
+    message("peakgr_thr value above 0 is selected. Recommended value is 0")
+  }
+  if (compound_thr != 0) {
+    message("compound_thr above 0 is selected. Recommended value is 0")
+  }
 
   db_files <- list.files(path = dir, pattern = "*.rda", full.names = T) 
   pb <- dplyr::progress_estimated(n = length(db_files))
@@ -41,7 +53,9 @@ getDB <- function(dir, peakgr_thr = 0, compound_thr = 0, out_dir) {
   for (chem in 1:length(db_files)) {
     
     load(file = db_files[chem])
-    if (!exists("chem.file")) { stop("rda file is empty: ", db_files[chem]) }
+    if (!exists("chem.file")) {
+      stop("rda file is empty: ", db_files[chem])
+      }
     
     peakgrs <- length(chem.file$analytical)
    

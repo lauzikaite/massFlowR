@@ -13,6 +13,7 @@
 #' @import foreach
 #' @importFrom grDevices dev.off pdf
 #' @importFrom methods new
+#' @importFrom methods show
 #' @importFrom stats cor median na.omit setNames
 #' @importFrom utils packageVersion read.csv write.csv
 "_PACKAGE"

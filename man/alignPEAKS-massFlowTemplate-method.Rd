@@ -9,7 +9,7 @@
 \S4method{alignPEAKS}{massFlowTemplate}(object)
 }
 \arguments{
-\item{object}{\code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.}
+\item{object}{\code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.}
 }
 \value{
 Method updates \code{\link{massFlowTemplate}} class object.
@@ -33,4 +33,7 @@ For each peak in a sample, \code{alignPEAKS}:
 }
 
 Spectral similarity is measured by obtaining the cosine of the angle between two 2D vectors, representing each peak-group's \emph{m/z} and \emph{intensity} values.
+}
+\seealso{
+\code{\link{buildTMP}}, \code{\link{validPEAKS}}, \code{\link{massFlowTemplate-class}}
 }

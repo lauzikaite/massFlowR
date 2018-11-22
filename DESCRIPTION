@@ -10,11 +10,11 @@ Encoding: UTF-8
 LazyData: true
 ByteCompile: true
 Depends:
-    R (>= 3.5)
+    R (>= 3.5),
 Imports:
+    methods,
     xcms (>= 3.0.0),
     dplyr,
-    methods,
     utils,
     grDevices,
     grid,
@@ -35,3 +35,18 @@ Suggests:
     rmarkdown,
     BiocStyle
 VignetteBuilder: knitr
+Collate: 
+    'classes.R'
+    'constructors.R'
+    'functions-addDOI.R'
+    'functions-addDOI_helpers.R'
+    'functions-getDB.R'
+    'functions-groupPEAKS.R'
+    'functions-groupPEAKSspec.R'
+    'functions-validPEAKS_paral.R'
+    'generics.R'
+    'massFlowR.R'
+    'methods-massFlowDB.R'
+    'methods-massFlowTemplate.R'
+    'utils.R'
+    'zzz.R'

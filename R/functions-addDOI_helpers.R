@@ -27,18 +27,6 @@ checkFILE <- function(file = NULL) {
   return(dt)
 }
 
-
-# addCOLS ---------------------------------------------------------------------------------------------------------
-## add missing columns to dataframe, fill with NA
-# addCOLS <- function(dt, cnames) {
-#   add <- cnames[!cnames %in% names(dt)]
-#   if (length(add) != 0) {
-#     dt[add] <- NA
-#   }
-#   return(dt)
-# }
-
-
 # addERRS ---------------------------------------------------------------------------------------------------------
 ## add error windows using user-defined mz/rt values
 addERRS <- function(dt, mz_err, rt_err) {
@@ -356,29 +344,34 @@ addPEAKS <- function(mattop, mat, target, tmp, itmp, doi) {
     matched <-
       mattop[which(mattop$target_peakgr == t_peakgr &
                      mattop$top == T), ]
-    top_matched_peakgr <-
-      ifelse(nrow(matched) > 0, matched$peakgr, 0)
     
-    ## extract tmp peaks that must be merged/averaged with doi peaks
-    t_peakgr_mat <- mat[which(mat$peakgr == matched$peakgr &
-                                mat$target_peakgr == matched$target_peakgr), ]
-    matched_peaks <-
-      tmp[tmp$peakid %in% t_peakgr_mat$peakid, ]
-    matched_peaks$target_peakid <- t_peakgr_mat$target_peakid
+    ## if target peakgr does not have an assigned tmp peakgr to be merged with
+    ## can happen when:
+    ## a) cosine was too low and another peakgr was better than current combination
+    ## b) target peakgr didn't have a single peak matching in the tmp (cosine 0)
+    if (nrow(matched) == 0) {
+        ## add target peaks as new
+        update <-
+          addUNGROUPED(
+            target_peaks = target_peaks,
+            itmp = itmp,
+            doi = doi,
+            cnames = cnames
+          )
     
-    ## if target peakgr was only assigned to tmp peakgr because of overall spectral similarity without exact matches
-    if (nrow(matched_peaks) == 0) {
-      ## add target peaks as new
-      update <-
-        addUNGROUPED(
-          target_peaks = target_peaks,
-          itmp = itmp,
-          doi = doi,
-          cnames = cnames
-        )
     } else {
+
+      ## extract tmp peaks that must be merged/averaged with doi peaks
+      t_peakgr_mat <- mat[which(mat$peakgr == matched$peakgr &
+                                  mat$target_peakgr == matched$target_peakgr), ]
+      matched_peaks <-
+        dplyr::left_join(t_peakgr_mat[, c("peakid", "peakgr", "target_peakid", "target_peakgr")],
+                         tmp[, c("peakid", "peakgr", "peakgrcls","mz", "rt", "into")],
+                         by = c("peakid", "peakgr"))
+      
       ## 3. extract tmp peaks of the top matched tmp peakgr:
       ## these include both original tmp peaks, and doi peaks previously added to the tmp
+      top_matched_peakgr <- matched$peakgr
       previous_peaks <-
         itmp[which(itmp$peakgr == top_matched_peakgr), ]
       

@@ -1,10 +1,12 @@
 # show ------------------------------------------------------------------------------------------------------
-#' @aliases show
-#'
+#' @include classes.R
+#' 
 #' @rdname massFlowTemplate-class
-#'
+#' 
+#' @param object \code{massFlowTemplate} class object
+#' 
 #' @export
-#'
+#' 
 setMethod("show", signature = "massFlowTemplate", function(object) {
   cat("A \"massFlowTemplate\" object with",
       nrow(object@samples),
@@ -12,14 +14,17 @@ setMethod("show", signature = "massFlowTemplate", function(object) {
   })
 
 # filepath ------------------------------------------------------------------------------------------------------
-#' @aliases filepath
-#'
-#' @rdname massFlowTemplate-class
+#' @include classes.R
 #' 
-#' @param object \code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.
-#'
+#' @rdname massFlowTemplate-class
+#'  
+#' @title Obtain absolute path to metadata file of the experiment.
+#' 
+#' @description Function returs the absolute path to the \code{csv} file used when building the \code{massFlowTemplate} object.
+#' File contains study sample names and their acquisition (run) order.
+#' 
 #' @export
-#'
+#' 
 setMethod("filepath", signature = "massFlowTemplate", function(object) {
   object@filepath
   })
@@ -29,10 +34,9 @@ setMethod("filepath", signature = "massFlowTemplate", function(object) {
 #' 
 #' @rdname massFlowTemplate-class
 #'
-#' @param object \code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.
-#'
 #' @return Method returns filename to be processed next.
 #'
+#' 
 setMethod("checkNEXT",
           signature = "massFlowTemplate",
           function(object) {
@@ -72,12 +76,14 @@ setMethod("checkNEXT",
 #'
 #' Spectral similarity is measured by obtaining the cosine of the angle between two 2D vectors, representing each peak-group's \emph{m/z} and \emph{intensity} values.
 #'
-#' @param object \code{massFlowTemplate} class object, created by \emph{buildTMP} constructor function.
+#' @param object \code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.
 #'
 #' @return Method updates \code{\link{massFlowTemplate}} class object.
 #' Slot @@tmp is updated after each round of sample alignment.
 #' Slot @@data stores alignment results for each sample in the experiment.
 #' Method writes alignment results to a csv file for each sample in the experiment.
+#' 
+#' @seealso \code{\link{buildTMP}}, \code{\link{validPEAKS}}, \code{\link{massFlowTemplate-class}}
 #'
 #' @export
 #'
@@ -127,6 +133,8 @@ setMethod("alignPEAKS",
 #' @param out_dir \code{character} specifying desired directory for output.
 #'
 #' @return Method returns validated peak-groups.
+#' 
+#' @seealso \code{\link{buildTMP}}, \code{\link{alignPEAKS}}, \code{\link{massFlowTemplate-class}}
 #'
 #' @export
 #'

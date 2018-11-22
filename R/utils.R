@@ -69,7 +69,7 @@ scaleEDGES <- function(x, from = 0.01, to = 10) {
 #' @return Function returns a \code{data.frame} with unique peak-pairs.
 #'
 getCORmat <- function(ind) {
-  setNames(as.data.frame(t(combn(ind, 2, simplify = T))), nm = c("from", "to"))
+  setNames(as.data.frame(t(utils::combn(ind, 2, simplify = T))), nm = c("from", "to"))
 }
 
 

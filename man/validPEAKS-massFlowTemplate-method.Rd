@@ -21,3 +21,6 @@ Method returns validated peak-groups.
 \description{
 Validate aligned peaks and their corresponding peak-groups
 }
+\seealso{
+\code{\link{buildTMP}}, \code{\link{alignPEAKS}}, \code{\link{massFlowTemplate-class}}
+}

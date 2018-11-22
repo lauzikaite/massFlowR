@@ -5,11 +5,8 @@
 \alias{massFlowDB-class}
 \alias{massFlowDB}
 \alias{show,massFlowDB-method}
-\alias{show}
 \alias{filepath,massFlowDB-method}
-\alias{filepath}
 \alias{chemicals,massFlowDB-method}
-\alias{chemicals}
 \title{Chemical reference database template}
 \usage{
 \S4method{show}{massFlowDB}(object)
@@ -20,13 +17,14 @@
 }
 \arguments{
 \item{object}{\code{massFlowDB} class object}
-
-\item{object}{\code{massFlowDB} class object}
-
-\item{object}{\code{massFlowDB} class object}
 }
 \description{
 \code{massFlowDB} class encapsulates information provided in the chemical reference database.
+
+Function returns the absolute path to the \code{csv} file used when building the \code{massFlowDB} object.
+File contains chemical reference database.
+
+Function returns names of the chemicals in the database.
 }
 \details{
 Chemical reference database file lists peaks \code{centWave}-detected in the reference LC-MS datafiles.

@@ -1,3 +1,4 @@
+# massFlowDB ------------------------------------------------------------------------------------------------------
 #' @aliases massFlowDB
 #'
 #' @title Chemical reference database template
@@ -23,6 +24,7 @@ setClass("massFlowDB",
                    db = "data.frame"))
 
 
+# massFlowTemplate ------------------------------------------------------------------------------------------------
 #' @aliases massFlowTemplate
 #'
 #' @title massFlowTemplate, a class for sample alignment and annotation
@@ -48,7 +50,7 @@ setClass("massFlowDB",
 #' @slot data \code{list} containg annotated and aligned peak tables for the already processed samples.
 #' @slot params \code{list} containg alignment and annotation parameters.
 #'
-#' @seealso \code{\link{buildTMP}}, \code{\link{alignPEAKS}}
+#' @seealso \code{\link{buildTMP}}, \code{\link{alignPEAKS}}, \code{\link{validPEAKS}}
 #'
 #' @rdname massFlowTemplate-class
 #'

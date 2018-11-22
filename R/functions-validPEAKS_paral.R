@@ -11,7 +11,7 @@ validPEAKS_paral <-
     ## build correlation matrix between all peaks in the peak-group
     peaks_ids <- unique(pkg_ints$peakid)
     ## make peak-peak pairs
-    pkg_cor <- setNames(as.data.frame(t(combn(
+    pkg_cor <- setNames(as.data.frame(t(utils::combn(
       peaks_ids, 2, simplify = T
     ))),
     ## column names "from" and "to" will be needed in graph generation
@@ -36,14 +36,14 @@ validPEAKS_paral <-
         cor_thr = cor_thr,
         title = title,
         out_dir = out_dir
-        )
+      )
     
     # ## split peaks into new peak-groups according to communities
     # pkg_ints$new_peakgr <-
     #   sapply(pkg_ints$peakid, function(peakid) {
     #     pkg_coms[[match(peakid, names(pkg_coms))]]
     #   })
-    # 
+    #
     # ## plot intensities across all samples
     # colors <-
     #   setNames(viridis::magma(
@@ -54,7 +54,7 @@ validPEAKS_paral <-
     #     n = length(unique(pkg_ints$new_peakgr))
     #   ),
     #   nm = unique(pkg_ints$new_peakgr))
-    # 
+    #
     # ## linetype according to how many peaks in a group
     # peaks_per <- sapply(pkg_ints$new_peakgr, function(peakgr) {
     #   length(unique(pkg_ints[which(pkg_ints$new_peakgr == peakgr), "peakid"]))
@@ -81,7 +81,7 @@ validPEAKS_paral <-
     #   }
     # }))
     # pkg_ints$peaks_per <- names(linetype)
-    # 
+    #
     # gg <-  ggplot2::ggplot(data = pkg_ints) +
     #   ggplot2::geom_line(
     #     ggplot2::aes(
@@ -100,7 +100,7 @@ validPEAKS_paral <-
     #   ggplot2::xlab("Sample run order") +
     #   ggplot2::ggtitle(title) +
     #   ggplot2::theme_bw()
-    # 
+    #
     # grid::grid.newpage()
     # grDevices::pdf(
     #   width = 8,
@@ -151,24 +151,25 @@ extractINT <- function(pkg, object, samples) {
 ####---- extract peak-group intensities from every sample
 ## add NA for peaks that are missing in a sample
 extractINTv2 <- function(pkg, object) {
-  
   peakid <- object@tmp$peakid[which(object@tmp$peakgr == pkg)]
   snames <- names(object@data)
-
+  
   pkg_ints <- lapply(snames, function(s) {
     sample <- object@data[[s]]
     sample_order <- object@samples[which(snames == s), "run_order"]
-    sample_pkg <- sample[which(sample$tmp_peakgr == pkg),]
+    sample_pkg <- sample[which(sample$tmp_peakgr == pkg), ]
     sample_out <- data.frame(
       peakid = peakid,
       filepath = rep(s, length(peakid)),
       run_order = rep(sample_order, length(peakid)),
       into = NA,
-      stringsAsFactors = F)
+      stringsAsFactors = F
+    )
     
     ## add into values from sample
-    common_tmp <- match(sample_pkg$tmp_peakid, sample_out$peakid, nomatch = FALSE)
-    sample_out[common_tmp,"into"] <- sample_pkg$into
+    common_tmp <-
+      match(sample_pkg$tmp_peakid, sample_out$peakid, nomatch = FALSE)
+    sample_out[common_tmp, "into"] <- sample_pkg$into
     return(sample_out)
   })
   
@@ -187,9 +188,10 @@ corPEAKS <- function(pair, pkg_ints, min_samples_n) {
   x <- pair["from"]
   y <- pair["to"]
   
-  pkg_ints_x <- pkg_ints[which(pkg_ints$peakid == x), ]
-  pkg_ints_y <- pkg_ints[which(pkg_ints$peakid == y), ]
-  common_samples <- base::intersect(pkg_ints_x$filepath, pkg_ints_y$filepath)
+  pkg_ints_x <- pkg_ints[which(pkg_ints$peakid == x),]
+  pkg_ints_y <- pkg_ints[which(pkg_ints$peakid == y),]
+  common_samples <-
+    base::intersect(pkg_ints_x$filepath, pkg_ints_y$filepath)
   
   ## use min_samples parameter to omit peaks that are not present in enough samples
   if (length(common_samples) > min_samples_n) {

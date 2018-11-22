@@ -1,8 +1,7 @@
-#' @aliases show
-#'
-#' @rdname massFlowDB-class
+# show ------------------------------------------------------------------------------------------------------
+#' @include classes.R
 #' 
-#' @param object \code{massFlowDB} class object
+#' @rdname massFlowDB-class
 #' 
 #' @export
 #'
@@ -12,23 +11,28 @@ setMethod("show", signature = "massFlowDB", function(object) {
   cat("Contains:", length(unique(object@db$dbid)), "chemicals \n")
 })
 
-
-#' @aliases filepath
-#' @title Get the the absolute path to the chemical database file
-#'
+# filepath --------------------------------------------------------------------------------------------------------
+#' @include classes.R
+#' 
 #' @rdname massFlowDB-class
 #' 
-#' @param object \code{massFlowDB} class object
+#' @title Obtain absolute path to chemical reference database file.
 #' 
+#' @description Function returns the absolute path to the \code{csv} file used when building the \code{massFlowDB} object.
+#' File contains chemical reference database.
+#'  
 #' @export
 #'
 setMethod("filepath", signature = "massFlowDB", function(object) object@filepath)
 
-
-#' Get the list of chemicals in the database
-#' @aliases chemicals
-#'
+# chemicals -------------------------------------------------------------------------------------------------------
+#' @include classes.R
+#' 
 #' @rdname massFlowDB-class
+#' 
+#' @title Obtain names of the chemicals in the database.
+#' 
+#' @description Function returns names of the chemicals in the database.
 #' 
 #' @param object \code{massFlowDB} class object
 #' 
@@ -38,6 +42,3 @@ setMethod("chemicals", signature = "massFlowDB", function(object) {
   cat("Database contains:",  unique(object@db$dbname))
 })
   
-  
- 
-
