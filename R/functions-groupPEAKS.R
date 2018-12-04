@@ -56,7 +56,7 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
       ## get number of processes across which files will be divided
       nfiles <- length(files)
       nproc <- ceiling(nfiles/ncores)
-      # result <- vector('list', nfiles)
+
       ## create named vector
       result <- setNames(vector('list', nfiles), nm = files)
       
