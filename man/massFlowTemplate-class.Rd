@@ -35,7 +35,7 @@ File contains study sample names and their acquisition (run) order.
 
 \itemize{
 \item Slot @tmp is the template, listing information for every detected peak, such as the \emph{m/z}, \emph{rt}, \emph{into} values, the assigned peak-group, as well as chemical identifications (if any).
-\item Template is first built using the first datafile in the study, and, if available, the chemical reference database (\code{\link{massFlowDB}} object).
+\item Template is first built using the first datafile in the study.
 To initiate template built, constructor function \code{\link{buildTMP}} must be called, providing a "filepath" to the csv file with the details on the study samples.
 \item Template is updated with every round of sample alignment.
 Alignment results are stored in slot @data for each sample separately.

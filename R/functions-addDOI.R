@@ -10,6 +10,7 @@
 #' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.1).
+#' @param write_int \code{logical} whether resulting template should be written to a separate file. Default set to FALSE, so that template is over-write to the same filename.
 #'
 #' @seealso \code{\link{alignPEAKS}} method.
 #'
@@ -22,7 +23,8 @@ addDOI <-
            doi_fname,
            mz_err,
            rt_err,
-           bins) {
+           bins,
+           write_int) {
     ## (A) prepare tmp for grouping with the doi where doi peaks will be added to
     ## get peakgr clusters based on their retention time, order them by complexity
     tmp <- getCLUSTS(dt = tmp)
@@ -185,11 +187,20 @@ addDOI <-
     )
     tmp <- do.call("rbindCLEAN", tmp_clean)
     
-    ## quote = T to preserve complex DB entries with "-"
-    write.csv(tmp,
-              file = tmp_fname,
-              quote = T,
-              row.names = F)
-    
+    if (write_int == T) {
+      ## save updated template to a unique filename for this doi
+      write.csv(
+        tmp,
+        file = gsub(".csv", "_tmp.csv", doi_fname),
+        quote = T,
+        row.names = F
+      )
+    } else {
+      ## overwrite a single template file
+      write.csv(tmp,
+                file = tmp_fname,
+                quote = T,
+                row.names = F)
+    }
     return(list("tmp" = tmp, "doi" = doi_out))
   }

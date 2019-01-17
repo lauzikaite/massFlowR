@@ -6,7 +6,7 @@
 \alias{alignPEAKS}
 \title{Align peaks detected in LC-MS samples using spectral similarity comparison}
 \usage{
-\S4method{alignPEAKS}{massFlowTemplate}(object)
+\S4method{alignPEAKS}{massFlowTemplate}(object, write_int = FALSE)
 }
 \arguments{
 \item{object}{\code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.}

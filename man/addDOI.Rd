@@ -4,7 +4,7 @@
 \alias{addDOI}
 \title{Align and add peaks from a sample to the template}
 \usage{
-addDOI(tmp, tmp_fname, doi_fname, mz_err, rt_err, bins)
+addDOI(tmp, tmp_fname, doi_fname, mz_err, rt_err, bins, write_int)
 }
 \arguments{
 \item{tmp}{\code{data.frame} with latest template version.}
@@ -18,6 +18,8 @@ addDOI(tmp, tmp_fname, doi_fname, mz_err, rt_err, bins)
 \item{rt_err}{\code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).}
 
 \item{bins}{\code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.1).}
+
+\item{write_int}{\code{logical} whether resulting template should be written to a separate file. Default set to FALSE, so that template is over-write to the same filename.}
 }
 \value{
 Function returns updated TMP and DOI.

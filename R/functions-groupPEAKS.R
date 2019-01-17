@@ -32,6 +32,9 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
   if (missing(out_dir)) {
     stop("'out_dir' must be specified!")
   }
+  if (!dir.exists(out_dir)) {
+    stop("'out_dir' doesn't exist! \n", out_dir)
+  }
   if (missing(cwt)) {
     stop("'cwt' has to be specified!")
   } else {
@@ -50,16 +53,16 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
   }
   message("'ncores' set to ", ncores)
   
-  while (length(files) > 0) {
+  ## create named vector to store processing result for every file
+  nfiles <- length(files)
+  result <- setNames(vector('list', nfiles), nm = files)
   
+  while (length(files) > 0) {
+    
     if (ncores > 1) {
       ## get number of processes across which files will be divided
-      nfiles <- length(files)
       nproc <- ceiling(nfiles/ncores)
 
-      ## create named vector
-      result <- setNames(vector('list', nfiles), nm = files)
-      
       ## in each new process, start a new cluster with selected number of cores
       for (iproc in seq(0, (nproc -1), by = 1)) {
         
@@ -92,14 +95,23 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
       }
     } else {
       ## serial implementation
-      result <- lapply(
-        setNames(files, files),
-        FUN = groupPEAKS_paral,
-        out_dir = out_dir,
-        cwt = cwt,
-        thr = thr
-       
-      )
+      result <- lapply(setNames(files, files),
+                       function(f) {
+                         tryCatch({
+                           groupPEAKS_paral(
+                             f = f,
+                             out_dir = out_dir,
+                             cwt = cwt,
+                             thr = thr
+                             )
+                       },
+                       error = function(err) {
+                         return(list(
+                           fname = f,
+                           status = "FAILED",
+                           error = err$message
+                         ))
+                       })})
     }
   
   ## process results

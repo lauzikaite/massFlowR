@@ -89,7 +89,7 @@ setMethod("checkNEXT",
 #'
 setMethod("alignPEAKS",
           signature = "massFlowTemplate",
-          function(object) {
+          function(object, write_int = FALSE) {
             if (class(object) != "massFlowTemplate") {
               stop("object must be a 'massFlowTemplate' class object")
             }
@@ -112,7 +112,8 @@ setMethod("alignPEAKS",
                 doi_fname = doi_fname,
                 mz_err = params$mz_err,
                 rt_err = params$rt_err,
-                bins = params$bins
+                bins = params$bins,
+                write_int = write_int
               )
               object@tmp <- out$tmp
               object@samples[object@samples$filepaths == doi_fname, "aligned"] <-
