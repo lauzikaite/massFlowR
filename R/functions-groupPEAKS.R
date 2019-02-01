@@ -43,6 +43,12 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
     }
     ## verboseColumns must be TRUE to output column "scpos"
     cwt@verboseColumns <- TRUE
+    
+    ## mzdiff was >= 0 to avoid duplicate peaks in peak-groups
+    if (cwt@mzdiff < 0) {
+      message("mzdiff of ", cwt@mzdiff, " was selected. Switching mzdiff to 0 ..." )
+      cwt@mzdiff <- 0
+    }
   }
   if (!is.numeric(ncores)) {
     stop("'ncores' has to be numeric value!")
@@ -53,13 +59,14 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
   }
   message("'ncores' set to ", ncores)
   
-  ## create named vector to store processing result for every file
-  nfiles <- length(files)
-  result <- setNames(vector('list', nfiles), nm = files)
-  
   while (length(files) > 0) {
     
+    ## create named vector to store processing result for every file
+    nfiles <- length(files)
+    result <- setNames(vector('list', nfiles), nm = files)
+    
     if (ncores > 1) {
+      
       ## get number of processes across which files will be divided
       nproc <- ceiling(nfiles/ncores)
 
