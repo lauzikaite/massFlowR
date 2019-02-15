@@ -6,7 +6,8 @@
 \alias{validPEAKS}
 \title{Validate aligned peaks and their corresponding peak-groups}
 \usage{
-\S4method{validPEAKS}{massFlowTemplate}(object, ncores = 1, out_dir)
+\S4method{validPEAKS}{massFlowTemplate}(object, ncores = 1, out_dir,
+  min_samples = 10)
 }
 \arguments{
 \item{object}{\code{massFlowTemplate} class object.}
@@ -14,6 +15,8 @@
 \item{ncores}{\code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.}
 
 \item{out_dir}{\code{character} specifying desired directory for output.}
+
+\item{min_samples}{\code{numeric} specifying the minimum percentage of samples in which peak has to be detected in order to be considered (default set to 10 percent).}
 }
 \value{
 Method returns validated peak-groups.

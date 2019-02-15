@@ -187,20 +187,20 @@ addDOI <-
     )
     tmp <- do.call("rbindCLEAN", tmp_clean)
     
+    ## save updated template to a unique filename for this doi
     if (write_int == T) {
-      ## save updated template to a unique filename for this doi
       write.csv(
         tmp,
         file = gsub(".csv", "_tmp.csv", doi_fname),
         quote = T,
         row.names = F
       )
-    } else {
-      ## overwrite a single template file
-      write.csv(tmp,
-                file = tmp_fname,
-                quote = T,
-                row.names = F)
     }
+    ## overwrite a single template file
+    write.csv(tmp,
+              file = tmp_fname,
+              quote = T,
+              row.names = F)
+    
     return(list("tmp" = tmp, "doi" = doi_out))
   }

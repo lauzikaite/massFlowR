@@ -90,6 +90,7 @@ buildTMP <-
     object@filepath <- file
     object@samples <- samples
     object@samples[, "aligned"] <- FALSE
+    object@samples[, "aligned_filepaths"] <- NA
     object@params <-
       list(mz_err = mz_err,
            rt_err = rt_err,
@@ -127,6 +128,8 @@ buildTMP <-
     object@tmp <- tmp
     object@samples[object@samples$run_order == doi_first, "aligned"] <-
       TRUE
+    object@samples[object@samples$run_order == doi_first, "aligned_filepaths"] <-
+      gsub(".csv", "_aligned.csv", doi_fname)
     object@data[[doi_fname]] <- doi
     return(object)
   }
@@ -141,7 +144,6 @@ buildTMP <-
 #' @details Arguments are identical to the ones used by \code{\link{buildTMP}} constructor function.
 #'
 #' @param file A \code{character} with path to the csv file, specifying samples filenames and their acquisition order.
-#' @param db \code{NULL}, or a \code{massFlowDB} class object, built with \code{massFlowDB()} function.
 #' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).
@@ -154,7 +156,6 @@ buildTMP <-
 #'
 loadALIGNED <-
   function(file,
-           db = NULL,
            mz_err = 0.01,
            rt_err = 2,
            bins = 0.01) {
@@ -168,8 +169,9 @@ loadALIGNED <-
     if (any(!c("filepaths", "run_order") %in% names(samples))) {
       stop("files must contain columns 'filepaths' and 'run_order'")
     }
-    if (all(!file.exists(samples$filepaths))) {
-      stop("filepaths provided in the table 'file' are not correct")
+    if (any(!file.exists(samples$filepaths))) {
+      stop("filepaths provided in the table 'file' are not correct: ",
+           samples$filepaths[!file.exists(samples$filepaths)])
     }
     
     ## load the latest template file

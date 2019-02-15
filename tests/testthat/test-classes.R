@@ -30,5 +30,8 @@ test_that("initialise massFlowTemplate class object using default parameters", {
 
 })
 
-
+test_that("create massFlowTemplate class object and fill it with aligned samples", {
+  
+  
+}) 
 

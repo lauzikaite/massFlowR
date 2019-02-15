@@ -4,13 +4,10 @@
 \alias{loadALIGNED}
 \title{Build sample alignment and annotation template using already aligned samples}
 \usage{
-loadALIGNED(file, db = NULL, mz_err = 0.01, rt_err = 2,
-  bins = 0.01)
+loadALIGNED(file, mz_err = 0.01, rt_err = 2, bins = 0.01)
 }
 \arguments{
 \item{file}{A \code{character} with path to the csv file, specifying samples filenames and their acquisition order.}
-
-\item{db}{\code{NULL}, or a \code{massFlowDB} class object, built with \code{massFlowDB()} function.}
 
 \item{mz_err}{A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.}
 
