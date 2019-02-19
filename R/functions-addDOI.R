@@ -7,6 +7,7 @@
 #' @param tmp \code{data.frame} with latest template version.
 #' @param tmp_fname \code{character} specifying absolute path where updated template will be written to.
 #' @param doi_fname \code{character} specifying absolute path of the datafile-of-interest csv file.
+#' @param doi_fname_out \code{character} specifying absolute path of the datafile-of-interest output csv file.
 #' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.1).
@@ -21,6 +22,7 @@ addDOI <-
   function(tmp,
            tmp_fname,
            doi_fname,
+           doi_fname_out,
            mz_err,
            rt_err,
            bins,
@@ -163,7 +165,7 @@ addDOI <-
     doi_out <- dplyr::full_join(doi_full, doi_out, by = "peakid")
     write.csv(
       doi_out,
-      file = gsub(".csv", "_aligned.csv", doi_fname),
+      file = doi_fname_out,
       quote = T,
       row.names = F
     )
@@ -191,7 +193,7 @@ addDOI <-
     if (write_int == T) {
       write.csv(
         tmp,
-        file = gsub(".csv", "_tmp.csv", doi_fname),
+        file = gsub("aligned.csv", "tmp.csv",  doi_fname_out),
         quote = T,
         row.names = F
       )

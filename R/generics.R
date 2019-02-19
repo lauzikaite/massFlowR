@@ -1,5 +1,5 @@
 setGeneric("filepath", function(object) standardGeneric("filepath"))
 setGeneric("chemicals", function(object) standardGeneric("chemicals"))
-setGeneric("alignPEAKS", function(object, write_int = TRUE, ...) standardGeneric("alignPEAKS"))
+setGeneric("alignPEAKS", function(object, out_dir, write_int = TRUE, ...) standardGeneric("alignPEAKS"))
 setGeneric("checkNEXT", function(object) standardGeneric("checkNEXT"))
 setGeneric("validPEAKS", function(object, out_dir, ...) standardGeneric("validPEAKS"))

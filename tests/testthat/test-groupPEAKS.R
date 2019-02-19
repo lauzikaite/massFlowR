@@ -3,7 +3,7 @@ context("groupPEAKS")
 test_that("Functions used by groupPEAKS_paral() returs correct output", {
   ## (1) readDATA
   ## is raw data read correctly
-  readDATA_out <- readDATA(f = test_file)
+  readDATA_out <- readDATA(f = test_fname)
   expect_true(class(readDATA_out) == "OnDiskMSnExp")
   
   ## (2) pickPEAKS
@@ -26,7 +26,7 @@ test_that("Functions used by groupPEAKS_paral() returs correct output", {
       pks = test_pks_rd,
       eic = test_eic_rd,
       out_dir = data_dir,
-      fname = test_fname,
+      fname = test_basename,
       thr = 0.95,
       return = T
     )

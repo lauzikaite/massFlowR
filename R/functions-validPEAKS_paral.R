@@ -3,8 +3,8 @@ validPEAKS_paral <-
   function(pkg,
            peakgrs_ints,
            out_dir,
-           cor_thr = 0.75,
-           min_samples_n = 3,
+           cor_thr,
+           min_samples_n,
            save_plot = FALSE
            ) {
     ## extract intensities for the peak-group of interest
@@ -275,30 +275,96 @@ getINT <- function(s, peak) {
 # }
 
 
-extractPCS <- function(sname, object, final_tmp) {
+####---- fina data flow
+## extract communites/PCS with > 1 peaks and return corresponding peakids
+getCOMMUNITIES <- function(peakgrs_split) {
+  ## iterate over every peak-group
+  peakgrs_comms_peakids <- lapply(peakgrs_split, FUN = getPEAKIDS)
   
+  ## retain only communities with >1 peaks
+  comms <-
+    Filter(length, unlist(peakgrs_comms_peakids, recursive = F))
+  
+  ## convert list to table
+  comms_dt <- data.frame(peakid = unlist(comms),
+                         pcs = rep(1:length(comms), sapply(comms, length)))
+  return(comms_dt)
+}
+
+
+getPEAKIDS <- function(pkg) {
+  ## iterate over every community 
+  pkg_comms <- lapply(pkg, function(comm) {
+    peaks <- unique(comm$peakid)
+    if (length(peaks) > 1) {
+      return(peaks)
+    } else {
+      NULL
+    }
+  }
+  )
+  pkg_comms_sel <- pkg_comms[which(sapply(pkg_comms, length) > 0)]
+  return(pkg_comms_sel)
+}
+
+
+
+####----- get final dataset with intensity for every peak in every sample + centWave values
+# extractPCS <- function(sname, object, final_tmp) {
+#   
+#   ## take original peak picking data of the sample
+#   snames <- object@samples$filename
+#   sn <- which(snames == sname)
+#   sdata <- object@data[[sn]]
+# 
+#   ## get all of the peaks from the final list
+#   peaks <- match(final_tmp$peakid, sdata$tmp_peakid)
+#   sdata_out <- as.data.frame(sdata[peaks,"into"],
+#                              row.names = NULL)
+#   colnames(sdata_out) <- as.character(sname)
+#   return(sdata_out)
+# }
+
+# getFINAL <- function(peakid, object) {
+#   ## get mz, rt, mzmin, mzmax, rtmin, rtmax values from every sample
+#   peakid_samples <- data.frame()
+#   for (sn in 1:nrow(samples)) {
+#     sdata <- object@data[[sn]]
+#     peakid_sn <- sdata[match(peakid, sdata$tmp_peakid), c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax"  )]
+#     peakid_samples <- rbind(peakid_samples, peakid_sn, make.row.names = FALSE)
+#   }
+#   ## get medians across all samples
+#   medians <- apply(peakid_samples, 2, median, na.rm = TRUE)
+#   npeaks <- length(which(!is.na(peakid_samples$mz)))
+#   peakid_mat <- as.data.frame(cbind(peakid, t(medians), npeaks))
+#   return(peakid_mat)
+# }
+
+
+getFINALinto <- function(sname, snames, object, final_tmp) {
   ## take original peak picking data of the sample
-  snames <- object@samples$filename
   sn <- which(snames == sname)
   sdata <- object@data[[sn]]
-
+  
   ## get all of the peaks from the final list
   peaks <- match(final_tmp$peakid, sdata$tmp_peakid)
-  sdata_out <- as.data.frame(sdata[peaks,"into"],
-                             row.names = NULL)
-  colnames(sdata_out) <- as.character(sname)
+  sdata_out <- cbind(peakid = final_tmp$peakid, sdata[peaks,c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax", "into")])
+  names(sdata_out)[names(sdata_out) == "into"] <- sname
+  rownames(sdata_out) <- NULL
   return(sdata_out)
 }
 
-# extractPeaks <- function(peakid, object) {
-#   
-#   ## get mz, rt, mzmin, mzmax, rtmin, rtmax values from every sample
-#   for (sn in 1:nrow(samples)) {
-#     
-#     sdata <- object@data[[sn]]
-#     sdata[match(peakid, sdata$tmp_peakid), c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax"  )]
-#     
-#   }
-#   
-#   
-# }
+getFINALpeaks <- function(peakid, into_data) {
+  peak_samples <- data.frame()
+  for (sn in 1:length(into_data)) {
+        sdata <- into_data[[sn]]
+        peak <- sdata[match(peakid, sdata$peakid), c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax" )]
+        peak_samples <- rbind(peak_samples, peak, make.row.names = FALSE)
+      }
+  
+  ## get medians across all samples
+  medians <- apply(peak_samples, 2, median, na.rm = TRUE)
+  npeaks <- length(which(!is.na(peak_samples$mz)))
+  peak_mat <- as.data.frame(cbind(peakid, t(medians), npeaks))
+  return(peak_mat)
+}

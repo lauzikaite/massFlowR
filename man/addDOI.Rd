@@ -4,7 +4,8 @@
 \alias{addDOI}
 \title{Align and add peaks from a sample to the template}
 \usage{
-addDOI(tmp, tmp_fname, doi_fname, mz_err, rt_err, bins, write_int)
+addDOI(tmp, tmp_fname, doi_fname, doi_fname_out, mz_err, rt_err, bins,
+  write_int)
 }
 \arguments{
 \item{tmp}{\code{data.frame} with latest template version.}
@@ -12,6 +13,8 @@ addDOI(tmp, tmp_fname, doi_fname, mz_err, rt_err, bins, write_int)
 \item{tmp_fname}{\code{character} specifying absolute path where updated template will be written to.}
 
 \item{doi_fname}{\code{character} specifying absolute path of the datafile-of-interest csv file.}
+
+\item{doi_fname_out}{\code{character} specifying absolute path of the datafile-of-interest output csv file.}
 
 \item{mz_err}{\code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.}
 

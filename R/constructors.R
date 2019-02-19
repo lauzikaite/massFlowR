@@ -58,6 +58,7 @@ buildDB <- function(file = NULL) {
 #' Functions builds a \code{massFlowTemplate} class object, which stores study sample information.
 #'
 #' @param file \code{character} for absolute path to the csv file, specifying samples filenames and their acquisition order.
+#' @param out_dir \code{character} specifying desired directory for output.
 #' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).
@@ -67,6 +68,7 @@ buildDB <- function(file = NULL) {
 #' @export
 buildTMP <-
   function(file = NULL,
+           out_dir = NULL,
            mz_err = 0.01,
            rt_err = 2,
            bins = 0.01
@@ -77,9 +79,15 @@ buildTMP <-
     if (!file.exists(file)) {
       stop("incorrect filepath for 'file' provided")
     }
+    if (is.null(out_dir)) {
+      stop("'out_dir' is required")
+    }
+    if (!dir.exists(out_dir)) {
+      stop("incorrect filepath for 'out_dir' provided")
+    }
     samples <- read.csv(file, header = T, stringsAsFactors = F)
-    if (any(!c("filepaths", "run_order") %in% names(samples))) {
-      stop("files must contain columns 'filepaths' and 'run_order'")
+    if (any(!c("filename", "filepaths", "run_order") %in% names(samples))) {
+      stop("files must contain columns 'filename', 'filepaths' and 'run_order'")
     }
     ## stop only if none of the filepaths exist - some may still being processed on another machine
     if (all(!file.exists(samples$filepaths))) {
@@ -91,16 +99,16 @@ buildTMP <-
     object@samples <- samples
     object@samples[, "aligned"] <- FALSE
     object@samples[, "aligned_filepaths"] <- NA
-    object@params <-
-      list(mz_err = mz_err,
-           rt_err = rt_err,
-           bins = bins)
-    tmp_fname <-
-      gsub(".csv", "_template.csv", object@filepath)
+    object@params <- list(mz_err = mz_err,
+                          rt_err = rt_err,
+                          bins = bins)
     doi_first <- min(object@samples$run_order)
     doi_fname <-
       object@samples$filepaths[object@samples$run_order == doi_first]
-
+    ## get filename for the file to be written in the selected directory
+    doi_fname_out <- paste0(
+      file.path(out_dir, object@samples$filename[object@samples$run_order == doi_first]),
+      "_aligned.csv")
     message(paste("Building template using sample:",
                   basename(doi_fname),
                   "..."))
@@ -112,8 +120,7 @@ buildTMP <-
     doi[,c("cos")] <- NA
     write.csv(
       doi,
-      file = gsub(".csv", "_aligned.csv", doi_fname),
-      ## quote = T to preserve complex DB entries with "-"
+      file = doi_fname_out,
       quote = T,
       row.names = F
     ) 
@@ -128,9 +135,11 @@ buildTMP <-
     object@tmp <- tmp
     object@samples[object@samples$run_order == doi_first, "aligned"] <-
       TRUE
+    ## first aligned sample is written in the defined directory
     object@samples[object@samples$run_order == doi_first, "aligned_filepaths"] <-
-      gsub(".csv", "_aligned.csv", doi_fname)
-    object@data[[doi_fname]] <- doi
+      doi_fname_out
+    object@data[[doi_fname]] <-
+      doi
     return(object)
   }
 
@@ -144,6 +153,7 @@ buildTMP <-
 #' @details Arguments are identical to the ones used by \code{\link{buildTMP}} constructor function.
 #'
 #' @param file A \code{character} with path to the csv file, specifying samples filenames and their acquisition order.
+#' @param template A \code{character} with path to the csv file with the latest template obtained by \code{alignPEAKS} function.
 #' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).
@@ -156,33 +166,49 @@ buildTMP <-
 #'
 loadALIGNED <-
   function(file,
+           template,
            mz_err = 0.01,
            rt_err = 2,
            bins = 0.01) {
     if (is.null(file)) {
-      stop("'file' is required")
+      stop("Input 'file' is required")
     }
     if (!file.exists(file)) {
-      stop("incorrect filepath for 'file' provided")
+      stop("Incorrect filepath for 'file' provided")
     }
     samples <- read.csv(file, header = T, stringsAsFactors = F)
-    if (any(!c("filepaths", "run_order") %in% names(samples))) {
-      stop("files must contain columns 'filepaths' and 'run_order'")
+    if (any(!c("filename", "filepaths", "run_order", "aligned_filepaths") %in% names(samples))) {
+      stop("Input 'files' must contain columns 'filename', 'filepaths', 'run_order' and 'aligned_filepaths' ")
     }
     if (any(!file.exists(samples$filepaths))) {
-      stop("filepaths provided in the table 'file' are not correct: ",
+      stop("Column 'filepaths' contain incorrect file paths: ",
            samples$filepaths[!file.exists(samples$filepaths)])
     }
-    
-    ## load the latest template file
-    tmp_file <- gsub(".csv", "_template.csv", file)
-    if (!file.exists(tmp_file)) {
-      stop("template file is not available: ", tmp_file)
+    if (any(!file.exists(samples$aligned_filepaths))) {
+      warning(
+        "Column 'aligned_filepaths' contain incorrect file paths: ",
+        samples$aligned_filepaths[!file.exists(samples$aligned_filepaths)],
+        "\n ",
+        "Only correct 'aligned_filepaths' will be loaded."
+      )
+      ans <- 0
+      while (ans < 1) {
+        ans <- readline("Continue? Enter Y/N ")
+        ## catch if input is N/n
+        ans <- ifelse((grepl("N", ans) | grepl("n", ans)),
+                      2, 1)
+        if (ans == 2) {
+          stop("loading was stopped.")
+        }
+      }
     }
-    filepaths_aligned <-
-      gsub(".csv", "_aligned.csv", samples$filepaths)
-    samples_aligned <- which(file.exists(filepaths_aligned))
-    tmp <- read.csv(tmp_file, header = T, stringsAsFactors = F)
+    ## load provided template file
+    if (!file.exists(template)) {
+      stop("template file is not available: ", template)
+    }
+    ## extract only already aligned samples from the provided file list
+    samples_aligned <- which(file.exists(samples$aligned_filepaths))
+    tmp <- read.csv(template, header = T, stringsAsFactors = F)
     
     object <- new("massFlowTemplate")
     object@filepath <- file
@@ -199,7 +225,7 @@ loadALIGNED <-
     
     ## load aligned samples datasets
     data <-
-      lapply(filepaths_aligned[samples_aligned], function(doi_fname) {
+      lapply(samples$aligned_filepaths[samples_aligned], function(doi_fname) {
         doi <- read.csv(doi_fname,
                         header = T,
                         stringsAsFactors = F)

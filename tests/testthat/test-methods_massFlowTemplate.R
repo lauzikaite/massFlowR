@@ -3,8 +3,8 @@ context("methods for massFlowTemplate")
 # checkNEXT ---------------------------------------------------------------------------------------------------
 test_that("checkNEXT() returns the correct filename", {
   
-  tmp <- buildTMP(file = experiment_file)
-  expected_next <- grouped_files[2]
+  tmp <- buildTMP(file = meta_fname, out_dir = data_dir)
+  expected_next <- grouped_fnames[2]
   expect_equal(expected_next, checkNEXT(tmp))
   
 })
@@ -13,8 +13,8 @@ test_that("checkNEXT() returns the correct filename", {
 # align identical tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two identical samples via alignPEAKS() is correct", {
   
-  tmp <- buildTMP(file = experiment_dup_file, rt_err = rt_err)
-  tmp <- alignPEAKS(tmp)
+  tmp <- buildTMP(file = dup_meta_fname, out_dir = data_dir, rt_err = rt_err)
+  tmp <- alignPEAKS(tmp, out_dir = data_dir)
   tmp_data1 <- tmp@data[[1]]
   tmp_data2 <- tmp@data[[2]]
   
@@ -35,8 +35,8 @@ test_that("alignment of two identical samples via alignPEAKS() is correct", {
 
 test_that("alignment of two different samples via alignPEAKS() is correct", {
   
-  tmp <- buildTMP(file = experiment_file, rt_err = rt_err)
-  tmp <- alignPEAKS(tmp)
+  tmp <- buildTMP(file = meta_fname, out_dir = data_dir, rt_err = rt_err)
+  tmp <- alignPEAKS(tmp, out_dir = data_dir)
   tmp_tmp <- tmp@tmp
   tmp_data1 <- tmp@data[[1]]
   tmp_data2 <- tmp@data[[2]]
@@ -63,8 +63,8 @@ test_that("alignment of two different samples via alignPEAKS() is correct", {
   
   ####---- returned doi files are correct
   ## all peaks are returned
-  data1 <- read.csv(grouped_files[1], header = T, stringsAsFactors = F)
-  data2 <- read.csv(grouped_files[2], header = T, stringsAsFactors = F)
+  data1 <- read.csv(grouped_fnames[1], header = T, stringsAsFactors = F)
+  data2 <- read.csv(grouped_fnames[2], header = T, stringsAsFactors = F)
   
   expect_true(all(data1$peakid %in% tmp_data1$peakid))
   expect_equal(nrow(data1), nrow(tmp_data1))
@@ -91,8 +91,8 @@ test_that("alignment of two different samples via alignPEAKS() is correct", {
 # align almost identical tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two ALMOST identical samples via alignPEAKS() is correct", {
   
-  tmp <- buildTMP(file = experiment_noisy_file, rt_err = rt_err)
-  tmp <- alignPEAKS(tmp)
+  tmp <- buildTMP(file = noisy_meta_fname, out_dir = data_dir, rt_err = rt_err)
+  tmp <- alignPEAKS(tmp, out_dir = data_dir)
   
   tmp_tmp <- tmp@tmp
   tmp_data1 <- tmp@data[[1]]

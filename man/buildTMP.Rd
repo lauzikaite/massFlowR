@@ -4,10 +4,13 @@
 \alias{buildTMP}
 \title{Build a sample alignment and annotation template}
 \usage{
-buildTMP(file = NULL, mz_err = 0.01, rt_err = 2, bins = 0.01)
+buildTMP(file = NULL, out_dir = NULL, mz_err = 0.01, rt_err = 2,
+  bins = 0.01)
 }
 \arguments{
 \item{file}{\code{character} for absolute path to the csv file, specifying samples filenames and their acquisition order.}
+
+\item{out_dir}{\code{character} specifying desired directory for output.}
 
 \item{mz_err}{\code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.}
 

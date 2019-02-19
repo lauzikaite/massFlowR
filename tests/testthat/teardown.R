@@ -1,3 +1,7 @@
 ## delete directory with written output
-unlink(list.files(pattern = "peakgrs|_aligned|experiment.csv", data_dir, full.names = T), recursive=TRUE)
+unlink(setdiff(
+  list.files(data_dir, full.names = T),
+  list.files(data_dir, pattern = "DBtemplate.csv", full.names = T)
+),
+recursive = TRUE)
 message("Awesome")

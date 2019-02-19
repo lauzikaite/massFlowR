@@ -7,7 +7,7 @@
 \title{Validate aligned peaks and their corresponding peak-groups}
 \usage{
 \S4method{validPEAKS}{massFlowTemplate}(object, ncores = 1, out_dir,
-  min_samples = 10)
+  min_samples = 10, cor_thr = 0.75)
 }
 \arguments{
 \item{object}{\code{massFlowTemplate} class object.}
@@ -17,6 +17,8 @@
 \item{out_dir}{\code{character} specifying desired directory for output.}
 
 \item{min_samples}{\code{numeric} specifying the minimum percentage of samples in which peak has to be detected in order to be considered (default set to 10 percent).}
+
+\item{cor_thr}{\code{numeric} defining Pearson correlation coefficient threshold for inter-sample correlation between peaks (default set to 0.75).}
 }
 \value{
 Method returns validated peak-groups.

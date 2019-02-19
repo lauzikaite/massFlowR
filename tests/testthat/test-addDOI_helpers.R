@@ -3,13 +3,13 @@ context("addDOI_helpers")
 # checkFILE---------------------------------------------------------------------------------------------------
 test_that("Checking grouped peaks csv tables via checkFILE is correct", {
   ## correct file
-  checked_file <- massFlowR:::checkFILE(file = grouped_files[[1]])
+  checked_file <- massFlowR:::checkFILE(file = grouped_fnames[[1]])
   correct_file <-
-    read.csv(file = grouped_files[[1]], stringsAsFactors = F)
+    read.csv(file = grouped_fnames[[1]], stringsAsFactors = F)
   expect_equal(checked_file, correct_file)
   
   ## wrong filepath
-  wrong_filepath <- gsub(".csv", "", grouped_files[[1]])
+  wrong_filepath <- gsub(".csv", "", grouped_fnames[[1]])
   expect_error(
     massFlowR:::checkFILE(file = wrong_filepath),
     paste("incorrect filepath for:", wrong_filepath)
@@ -19,7 +19,7 @@ test_that("Checking grouped peaks csv tables via checkFILE is correct", {
   wrong_file <-
     setNames(correct_file, nm = c("peakID", "MZ", names(correct_file)[3:ncol(correct_file)]))
   wrong_file_filepath <-
-    gsub(".csv", "wrong.csv", grouped_files[[1]])
+    gsub(".csv", "wrong.csv", grouped_fnames[[1]])
   write.csv(wrong_file, file = wrong_file_filepath, row.names = F)
   expected_error <-
     paste("incorrect file:",
@@ -33,7 +33,7 @@ test_that("Checking grouped peaks csv tables via checkFILE is correct", {
 
 # getCLUSTS -------------------------------------------------------------------------------------------------------
 test_that("Clustering of peak-groups via getCLUSTS is correct", {
-  dt <- massFlowR:::checkFILE(file = grouped_files[[1]])
+  dt <- massFlowR:::checkFILE(file = grouped_fnames[[1]])
   clustered_dt <- massFlowR:::getCLUSTS(dt = dt)
   
   expect_equal(nrow(clustered_dt), nrow(dt))
@@ -80,10 +80,10 @@ test_that("addERR adds mz/rt windows correctly", {
   dt[, c("mz_l",
          "mz_h",
          "rt_l",
-         "rt_h")] <- c(dt$"mz"-mz_err,
-                       dt$"mz"+mz_err,
-                       dt$"rt"-rt_err,
-                       dt$"rt"+rt_err)
+         "rt_h")] <- c(dt$"mz" - mz_err,
+                       dt$"mz" + mz_err,
+                       dt$"rt" - rt_err,
+                       dt$"rt" + rt_err)
   addERRS_out <-
     addERRS(dt = test_pks_rd,
             mz_err = mz_err,
@@ -160,11 +160,11 @@ test_that("getCOS calculates cosines correctly", {
   
   ####---- compare the noisy peakgr and its original peakgr between two almost identical tables
   dt1 <-
-    read.csv(experiment_noisy_fnames[1],
+    read.csv(noisy_fnames[1],
              header = T,
              stringsAsFactors = F)
   dt2 <-
-    read.csv(experiment_noisy_fnames[2],
+    read.csv(noisy_fnames[2],
              header = T,
              stringsAsFactors = F)
   target <- dt2[dt2$peakgr == noisy_pkg,]
@@ -187,12 +187,12 @@ test_that("getCOS calculates cosines correctly", {
   ## this situation can happen if peakgrcls was selected with a peakgr that do not have exact matches to the target
   t_peakgr <- 1
   dt1 <-
-    read.csv(experiment_noisy_fnames[1],
+    read.csv(noisy_fnames[1],
              header = T,
              stringsAsFactors = F)
   dt1 <- dt1[dt1$peakgr != t_peakgr,]
   dt2 <-
-    read.csv(experiment_noisy_fnames[2],
+    read.csv(noisy_fnames[2],
              header = T,
              stringsAsFactors = F)
   target <- dt2[dt2$peakgr == t_peakgr,]
@@ -211,11 +211,11 @@ test_that("getCOS calculates cosines correctly", {
   
   ####---- two different tables
   dt1 <-
-    read.csv(grouped_files[1],
+    read.csv(grouped_fnames[1],
              header = T,
              stringsAsFactors = F)
   dt2 <-
-    read.csv(grouped_files[2],
+    read.csv(grouped_fnames[2],
              header = T,
              stringsAsFactors = F)
   dt1 <- addERRS(dt = dt1,

@@ -1,7 +1,9 @@
-test_files <- system.file(c('cdf/WT/wt15.CDF', 'cdf/WT/wt16.CDF'), package = "faahKO")
-test_file <- test_files[1]
-test_fname <- strsplit(basename(test_files), split = "[.]")[[1]][1]
-# data_dir <- system.file("testdata", package = "massFlowR")
+test_fnames <- system.file(c('cdf/WT/wt15.CDF', 'cdf/WT/wt16.CDF'), package = "faahKO")
+test_fname <- test_fnames[1]
+test_basenames <- sapply(test_fnames, function(fname) {
+  strsplit(basename(fname), split = "[.]")[[1]][1]
+}, USE.NAMES = F)
+test_basename <- test_basenames[1]
 data_dir <- "~/Documents/Projects/massFlowR/packageDEV/unittest/"
 
 ####---- single datafile preparation
@@ -11,7 +13,7 @@ cwt <- xcms::CentWaveParam(ppm = 25,
                            prefilter =  c(3, 100),
                            peakwidth = c(30, 80),
                            verboseColumns = TRUE)
-test_raw <-  MSnbase::readMSData(files = test_file, mode = "onDisk")
+test_raw <-  MSnbase::readMSData(files = test_fname, mode = "onDisk")
 test_res <- xcms::findChromPeaks(object = test_raw, param = cwt)
 test_pks <- data.frame(xcms::chromPeaks(test_res))
 test_pks_rd <- test_pks %>%
@@ -36,24 +38,24 @@ test_eic_rd <- lapply(1:nrow(test_eic_rd), function(ch) {
   MSnbase::clean(test_eic_rd[ch, ], na.rm = T)})
 
 ####---- multiple datafile prepation with the pipeline
-groupPEAKS(files = test_files, out_dir = data_dir, cwt = cwt)
+groupPEAKS(files = test_fnames, out_dir = data_dir, cwt = cwt)
 
 ## prepare csv for file input
-grouped_files <- list.files(pattern = "peakgrs.csv", path = data_dir, full.names = T)
-experiment <- data.frame(filepaths = grouped_files, run_order = 1:2, stringsAsFactors = F)
-write.csv(experiment, file.path(data_dir, "experiment.csv"), quote = F, row.names = FALSE)
-experiment_file <- file.path(data_dir, "experiment.csv")
+grouped_fnames <- list.files(pattern = "peakgrs.csv", path = data_dir, full.names = T)
+metadata <- data.frame(filename = test_basenames,filepaths = grouped_fnames, run_order = 1:2, stringsAsFactors = F)
+write.csv(metadata, file.path(data_dir, "metadata.csv"), quote = F, row.names = FALSE)
+meta_fname <- file.path(data_dir, "metadata.csv")
 
 
 # Duplicated tables -----------------------------------------------------------------------------------------------
 ## write two duplicated csv for sample wt15
-single_table <- read.csv(grouped_files[1], header = T, stringsAsFactors = F)
-experiment_dup_fnames <- c(file.path(data_dir, "test_file1.csv"), file.path(data_dir, "test_file2.csv"))
-write.csv(single_table, experiment_dup_fnames[1], quote = F, row.names = FALSE)
-write.csv(single_table, experiment_dup_fnames[2], quote = F, row.names = FALSE)
-experiment_dup <- data.frame(filepaths = experiment_dup_fnames, run_order = 1:2, stringsAsFactors = F)
-write.csv(experiment_dup, file.path(data_dir, "experiment_dup.csv"), quote = F, row.names = FALSE)
-experiment_dup_file <- file.path(data_dir, "experiment_dup.csv")
+single_table <- read.csv(grouped_fnames[1], header = T, stringsAsFactors = F)
+dup_fnames <- c(file.path(data_dir, "test_file1.csv"), file.path(data_dir, "test_file2.csv"))
+write.csv(single_table, dup_fnames[1], quote = F, row.names = FALSE)
+write.csv(single_table, dup_fnames[2], quote = F, row.names = FALSE)
+metadata_dup <- data.frame(filename = c("test_file1", "test_file2"), filepaths = dup_fnames, run_order = 1:2, stringsAsFactors = F)
+write.csv(metadata_dup, file.path(data_dir, "metadata_dup.csv"), quote = F, row.names = FALSE)
+dup_meta_fname <- file.path(data_dir, "metadata_dup.csv")
 
 
 # Noisy tables -----------------------------------------------------------------------------------------------------
@@ -88,15 +90,21 @@ noisy <- noisy %>%
   arrange(desc(into)) %>% 
   mutate(peakid = row_number())
 
-experiment_noisy_fnames <- c(file.path(data_dir, "test_file1.csv"), file.path(data_dir, "test_file3.csv"))
-write.csv(noisy, experiment_noisy_fnames[2], quote = F, row.names = FALSE)
-experiment_noisy <- data.frame(filepaths = experiment_noisy_fnames, run_order = 1:2, stringsAsFactors = F)
-write.csv(experiment_noisy, file.path(data_dir, "experiment_noisy.csv"), quote = F, row.names = FALSE)
-experiment_noisy_file <- file.path(data_dir, "experiment_noisy.csv")
+noisy_fnames <- c(file.path(data_dir, "test_file1.csv"), file.path(data_dir, "test_file3.csv"))
+write.csv(noisy, noisy_fnames[2], quote = F, row.names = FALSE)
+noisy_metadata <-
+  data.frame(
+    filename = c("test_file1", "test_file3"),
+    filepaths = noisy_fnames,
+    run_order = 1:2,
+    stringsAsFactors = F
+  )
+write.csv(noisy_metadata, file.path(data_dir, "metadata_noisy.csv"), quote = F, row.names = FALSE)
+noisy_meta_fname <- file.path(data_dir, "metadata_noisy.csv")
 
 ## list db template
 ## template includes three first peak-groups of sample wt15
-db_file <- file.path(data_dir, "DBtemplate.csv")
+db_fname <- file.path(data_dir, "DBtemplate.csv")
 
 ## alignPEAKS parameters
 rt_err <- 10

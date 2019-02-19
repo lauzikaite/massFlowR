@@ -77,6 +77,10 @@ setMethod("checkNEXT",
 #' Spectral similarity is measured by obtaining the cosine of the angle between two 2D vectors, representing each peak-group's \emph{m/z} and \emph{intensity} values.
 #'
 #' @param object \code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.
+#' @param out_dir \code{character} specifying desired directory for output.
+#' @param write_int \code{logical} specifying whether a peak table with alignment results should be saved for every sample.
+#' If TRUE, csv files will be written in the out_dir directory.
+#' Default set to TRUE.
 #'
 #' @return Method updates \code{\link{massFlowTemplate}} class object.
 #' Slot @@tmp is updated after each round of sample alignment.
@@ -89,13 +93,24 @@ setMethod("checkNEXT",
 #'
 setMethod("alignPEAKS",
           signature = "massFlowTemplate",
-          function(object, write_int = TRUE) {
+          function(object,
+                   out_dir = NULL,
+                   write_int = TRUE
+                   ) {
             if (class(object) != "massFlowTemplate") {
               stop("object must be a 'massFlowTemplate' class object")
             }
+            if (is.null(out_dir)) {
+              stop("'out_dir' is required")
+            }
+            if (!dir.exists(out_dir)) {
+              stop("incorrect filepath for 'out_dir' provided")
+            }
             params <- object@params
-            tmp_fname <-
-              gsub(".csv", "_template.csv", object@filepath)
+            
+            ## generated template and all intermediate alignment peak tables
+            tmp_fname <- file.path(out_dir, "template.csv")
+            aligned_fname <- file.path(out_dir, "aligned.csv")
             
             while (any(object@samples$aligned == FALSE)) {
               message(paste(
@@ -106,10 +121,14 @@ setMethod("alignPEAKS",
               ))
               doi_fname <- checkNEXT(object)
               message("Aligning to sample: ", basename(doi_fname),  "... ")
+              doi_fname_out <- paste0(
+                file.path(out_dir, object@samples$filename[object@samples$filepaths == doi_fname]),
+                "_aligned.csv")
               out <- addDOI(
                 tmp = object@tmp,
                 tmp_fname = tmp_fname,
                 doi_fname = doi_fname,
+                doi_fname_out = doi_fname_out,
                 mz_err = params$mz_err,
                 rt_err = params$rt_err,
                 bins = params$bins,
@@ -119,13 +138,17 @@ setMethod("alignPEAKS",
               object@samples[object@samples$filepaths == doi_fname, "aligned"] <-
                 TRUE
               object@samples[object@samples$filepaths == doi_fname, "aligned_filepaths"] <-
-                gsub(".csv", "_aligned.csv", doi_fname)
+                doi_fname_out
               object@data[[doi_fname]] <- out$doi
 
             }
             ## write updated meta file with filepaths to aligned samples
-            write.csv(object@samples, file = gsub(".csv", "_aligned.csv", object@filepath), row.names = F)
-            
+            write.csv(
+              object@samples,
+              aligned_fname,
+              quote = T,
+              row.names = F
+            )
             message("Peaks were aligned across all samples.")
             return(object)
           })
@@ -136,9 +159,10 @@ setMethod("alignPEAKS",
 #' @title Validate aligned peaks and their corresponding peak-groups
 #'
 #' @param object \code{massFlowTemplate} class object.
-#' @param ncores \code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.
 #' @param out_dir \code{character} specifying desired directory for output.
 #' @param min_samples \code{numeric} specifying the minimum percentage of samples in which peak has to be detected in order to be considered (default set to 10 percent). 
+#' @param cor_thr \code{numeric} defining Pearson correlation coefficient threshold for inter-sample correlation between peaks (default set to 0.75). 
+#' @param ncores \code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.
 #' 
 #' @return Method returns validated peak-groups.
 #' 
@@ -148,10 +172,17 @@ setMethod("alignPEAKS",
 #'
 setMethod("validPEAKS",
           signature = "massFlowTemplate",
-          function(object, ncores = 1, out_dir, min_samples = 10) {
-            
+          function(object,
+                   out_dir = NULL,
+                   min_samples = 10,
+                   cor_thr = 0.75,
+                   ncores = 1
+                   ) {
             if (class(object) != "massFlowTemplate") {
-              stop("object must be a 'massFlowTemplate' class object")
+              stop("Object must be a 'massFlowTemplate' class object")
+            }
+            if (is.null(out_dir)) {
+              stop("'out_dir' is required")
             }
             if (!is.numeric(ncores)) {
               stop("'ncores' has to be numeric value!")
@@ -172,84 +203,79 @@ setMethod("validPEAKS",
             ## extract intensities for every peak-group from every sample
             peakgrs <- unique(object@tmp$peakgr)
             peakgrs <- peakgrs[order(peakgrs)]
-            peakgrs_ints <- BiocParallel::bplapply(peakgrs,
-                                                   # FUN = extractINT,
-                                                   FUN = extractPEAKGR,
-                                                   object = object,
-                                                   BPPARAM = bpparam)
+            peakgrs_ints <- BiocParallel::bplapply(
+              peakgrs,
+              FUN = extractPEAKGR,
+              object = object,
+              BPPARAM = bpparam
+              )
             saveRDS(peakgrs_ints, file = paste0(out_dir, "/peakgrs_ints.RDS"))
             saveRDS(object, file = paste0(out_dir, "/object.RDS"))
             
             ## validate peak-groups by sample intensity correlation network 
-            ## in case validation is run before full alignment of the study, adjust max samples
+            ## in case validation is run before full alignment of the study, adjust sample n
             samples <- object@samples[which(object@samples$aligned == TRUE),]
             samples_n <- nrow(samples)
             min_samples_n <- ceiling((samples_n * min_samples) / 100)
+            if (min_samples_n < 3) {
+              min_samples_n <- 3
+            }
             peakgrs_split <- BiocParallel::bplapply(
               peakgrs,
               FUN = validPEAKS_paral,
               peakgrs_ints = peakgrs_ints,
               out_dir = out_dir,
               BPPARAM = bpparam,
-              min_samples_n = min_samples_n
-            )
+              min_samples_n = min_samples_n,
+              cor_thr = cor_thr
+              )
             saveRDS(peakgrs_split, file = paste0(out_dir, "/peakgrs_split.RDS"))
             
-            ## retain only peak-group splits with >=2 peaks
-            peakgrs_split_sel <- lapply(peakgrs_split, function(pkg) {
-              lapply(pkg, function(pkgs) {
-                pkgs_peaks <- length(unique(pkgs$peakid))
-                if (pkgs_peaks >= 2) {
-                  return(pkgs)
-                }
-              })
-            })
-            peakgrs_split_sel <- Filter(length, unlist(peakgrs_split_sel, recursive = F))
-            
-            ## obtain peakids from the splits
-            final_tmp <- lapply(1:length(peakgrs_split_sel), function(n) {
-              spkg <- peakgrs_split_sel[[n]]
-              data.frame(peakid = unique(spkg$peakid),
-                         pcs = n,
-                         stringsAsFactors = F)
-            })
-            final_tmp <- do.call("rbindCLEAN", final_tmp)
+            ## retain only communities with > 1 peak
+            final_tmp <- getCOMMUNITIES(peakgrs_split = peakgrs_split)
             
             ## export intensity measures for each peak and each sample
-            final_data <- BiocParallel::bplapply(samples$filename,
-                                                 FUN = extractPCS,
-                                                 object = object,
-                                                 final_tmp = final_tmp
-                                                 )
-            final_data <- cbind(final_tmp[,c("peakid", "pcs")], 
-                                do.call("cbind", final_data))
+            into_data <- BiocParallel::bplapply(
+              samples$filename,
+              FUN = getFINALinto,
+              snames = object@samples$filename,
+              object = object,
+              final_tmp = final_tmp
+              )
             
-            ## now add remaining centwave output info required for nPYc pipeline
-            # final_data <- BiocParallel::bplapply(final_tmp$peakid,
-            #                                      FUN = extractPeaks,
-            #                                      object = object)
+            peaks_data <- BiocParallel::bplapply(
+              final_tmp$peakid,
+              FUN = getFINALpeaks,
+              into_data = into_data
+              )
+            peaks_data <- do.call("rbindCLEAN", peaks_data)
+            peaks_data$pcs <- final_tmp$pcs[match(peaks_data$peakid, final_tmp$peakid)]
             
-            
-            
-            
-            
-            
-            
-            
+            ## merge intensity and centWave values into one dataframe
+            ## replace NA values with 0, extract for each sample
+            into_data_0 <- lapply(into_data, function(s) {
+              sname <- colnames(s)[(ncol(peaks_data) - 1)]
+              s_dt <- as.data.frame(sapply(s[,sname], function(x) {
+                ifelse(is.na(x), 0, x)
+                }))
+              colnames(s_dt) <- sname
+              return(s_dt)
+            })
+            into_data_dt <- do.call("cbind", into_data_0)
+            final_data <- cbind(peaks_data, into_data_dt)
+
             parallel::stopCluster(cl)
             
             write.csv(x = final_data,
-                      file = gsub(".csv", "_intensity_data.csv", object@filepath),
+                      file = file.path(out_dir, "intensity_data.csv"),
                       row.names = F)
             write.csv(x = samples,
-                      file = gsub(".csv", "_sample_data.csv", object@filepath),
+                      file = file.path(out_dir, "sample_data.csv"),
                       row.names = F)
             write.csv(x = final_tmp,
-                      file = gsub(".csv", "_peaks_data.csv", object@filepath),
+                      file = file.path(out_dir, "peaks_data.csv"),
                       row.names = F)
-            
-            
-                                
+               
             message("All peak-groups were succesfully validated.")
             return(object)
           })
