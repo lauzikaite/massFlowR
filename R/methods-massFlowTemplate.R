@@ -176,7 +176,7 @@ setMethod("validPEAKS",
                    out_dir = NULL,
                    min_samples = 10,
                    cor_thr = 0.75,
-                   ncores = 1
+                   ncores = 2
                    ) {
             if (class(object) != "massFlowTemplate") {
               stop("Object must be a 'massFlowTemplate' class object")
@@ -188,27 +188,47 @@ setMethod("validPEAKS",
               stop("'ncores' has to be numeric value!")
             }
             if (ncores < 1) {
-              stop("'ncores' must be set to 1 (serial performance), or higher!")
+              warning("'ncores' was set to ", ncores, ". Switching to ncores = 1 (serial performance)")
             }
-            
-            message("'ncores' set to ", ncores)
-            cl <- parallel::makeCluster(ncores)
-            doParallel::registerDoParallel(cl)
+
+            ## register backend
             if (ncores > 1) {
-              bpparam <- BiocParallel::DoparParam()
+              cl <- parallel::makeCluster(ncores)
+              doParallel::registerDoParallel(cl)
+              # bpparam <- BiocParallel::DoparParam()
             } else {
-              bpparam <- BiocParallel::SerialParam()
+              foreach::registerDoSEQ()
             }
-            
+              
             ## extract intensities for every peak-group from every sample
             peakgrs <- unique(object@tmp$peakgr)
             peakgrs <- peakgrs[order(peakgrs)]
-            peakgrs_ints <- BiocParallel::bplapply(
-              peakgrs,
-              FUN = extractPEAKGR,
-              object = object,
-              BPPARAM = bpparam
-              )
+            peaks_vals_peakids <- foreach::foreach(
+              pkg = peakgrs,
+              .inorder = TRUE
+            ) %dopar% (massFlowR:::extractPEAKGR(
+              pkg = pkg,
+              object = object
+            ))
+            
+            # ftime <- system.time({
+            #   peaks_vals_peakids <- foreach::foreach(
+            #     pkg = peakgrs,
+            #     .inorder = TRUE
+            #   ) %dopar% (massFlowR:::extractPEAKGR(
+            #     pkg = pkg,
+            #     object = object
+            #   ))
+            # })
+            # btime <- system.time({ 
+            #   peakgrs_ints <- BiocParallel::bplapply(
+            #     peakgrs,
+            #     FUN = extractPEAKGR,
+            #     object = object,
+            #     BPPARAM = bpparam
+            #     )
+            # })
+            
             saveRDS(peakgrs_ints, file = paste0(out_dir, "/peakgrs_ints.RDS"))
             saveRDS(object, file = paste0(out_dir, "/object.RDS"))
             
@@ -220,53 +240,96 @@ setMethod("validPEAKS",
             if (min_samples_n < 3) {
               min_samples_n <- 3
             }
-            peakgrs_split <- BiocParallel::bplapply(
-              peakgrs,
-              FUN = validPEAKS_paral,
+            peakgrs_split <- foreach::foreach(
+              pkg = peakgrs,
+              .inorder = TRUE
+            ) %dopar% (massFlowR:::validPEAKS_paral(
+              pkg = pkg,
               peakgrs_ints = peakgrs_ints,
               out_dir = out_dir,
-              BPPARAM = bpparam,
               min_samples_n = min_samples_n,
               cor_thr = cor_thr
-              )
+            ))
+            # peakgrs_split <- BiocParallel::bplapply(
+            #   peakgrs,
+            #   FUN = validPEAKS_paral,
+            #   peakgrs_ints = peakgrs_ints,
+            #   out_dir = out_dir,
+            #   BPPARAM = bpparam,
+            #   min_samples_n = min_samples_n,
+            #   cor_thr = cor_thr
+            #   )
             saveRDS(peakgrs_split, file = paste0(out_dir, "/peakgrs_split.RDS"))
             
             ## retain only communities with > 1 peak
             final_tmp <- getCOMMUNITIES(peakgrs_split = peakgrs_split)
             
-            ## export intensity measures for each peak and each sample
-            into_data <- BiocParallel::bplapply(
-              samples$filename,
-              FUN = getFINALinto,
+            ## export intensity and centWave measures for each peak and each sample, listed by sample
+            peaks_vals_samples <- foreach::foreach(
+              sname = samples$filename,
+              .inorder = TRUE
+            ) %dopar% (massFlowR:::getFINALinto(
+              sname = sname,
               snames = object@samples$filename,
               object = object,
               final_tmp = final_tmp
-              )
+            ))
+            # peaks_vals_samples <- BiocParallel::bplapply(
+            #   samples$filename,
+            #   FUN = getFINALinto,
+            #   snames = object@samples$filename,
+            #   object = object,
+            #   final_tmp = final_tmp
+            #   )
             
-            peaks_data <- BiocParallel::bplapply(
-              final_tmp$peakid,
-              FUN = getFINALpeaks,
-              into_data = into_data
-              )
-            peaks_data <- do.call("rbindCLEAN", peaks_data)
-            peaks_data$pcs <- final_tmp$pcs[match(peaks_data$peakid, final_tmp$peakid)]
+            ####---- prep for fillPEAKS ----
+            ## get centWave values for each peak and each sample, listed by peakid
+            peaks_vals_peakids <- foreach::foreach(
+              peakid = final_tmp$peakid,
+              .inorder = TRUE
+            ) %dopar% (massFlowR:::buildPEAKSlist(
+                peakid = peakid,
+                peaks_vals_samples = peaks_vals_samples
+              ))
+            # peaks_vals_peakids <- BiocParallel::bplapply(
+            #   final_tmp$peakid,
+            #   FUN = buildPEAKSlist,
+            #   peaks_vals_samples = peaks_vals_samples
+            # )
+            names(peaks_vals_peakids) <- final_tmp$peakid
+            object@peaks <- peaks_vals_peakids
+            object@valid <- final_tmp
+
+            ## get median centWave values for each peak and each sample, listed by peakid
+            peaks_medians_peakids <- foreach::foreach(
+              n = 1:length(peaks_vals_peakids),
+              .inorder = TRUE
+            ) %dopar% (massFlowR:::getPEAKSmedians(
+              n = n,
+              peaks_vals_peakids = peaks_vals_peakids
+            ))
+            peaks_medians_peakids <- do.call("rbindCLEAN", peaks_medians_peakids)
+            peaks_medians_peakids$peakid <- final_tmp$peakid
+            peaks_medians_peakids$pcs <-
+              final_tmp$pcs[match(peaks_medians_peakids$peakid, final_tmp$peakid)]
             
+
             ## merge intensity and centWave values into one dataframe
             ## replace NA values with 0, extract for each sample
-            into_data_0 <- lapply(into_data, function(s) {
-              sname <- colnames(s)[(ncol(peaks_data) - 1)]
+            peaks_vals <- lapply(peaks_vals_samples, function(s) {
+              sname <- colnames(s)[(ncol(peaks_medians_peakids) - 1)]
               s_dt <- as.data.frame(sapply(s[,sname], function(x) {
                 ifelse(is.na(x), 0, x)
                 }))
               colnames(s_dt) <- sname
               return(s_dt)
             })
-            into_data_dt <- do.call("cbind", into_data_0)
-            final_data <- cbind(peaks_data, into_data_dt)
+            peaks_vals <- do.call("cbind", peaks_vals)
+            peaks_vals <- cbind(peaks_medians_peakids, peaks_vals)
 
             parallel::stopCluster(cl)
             
-            write.csv(x = final_data,
+            write.csv(x = peaks_vals,
                       file = file.path(out_dir, "intensity_data.csv"),
                       row.names = F)
             write.csv(x = samples,

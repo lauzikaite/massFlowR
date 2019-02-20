@@ -368,3 +368,27 @@ getFINALpeaks <- function(peakid, into_data) {
   peak_mat <- as.data.frame(cbind(peakid, t(medians), npeaks))
   return(peak_mat)
 }
+
+####---- functions in prep for fillPEAKS ####----
+## build a list with mz & rt regions for every peak and every sample (listed by peaks)
+buildPEAKSlist <- function(peakid, peaks_vals_samples) {
+  vals <- c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax")
+  peak_all <- data.frame()
+  ## for every sample
+  for (n in 1:length(peaks_vals_samples)) {
+    sdata <- peaks_vals_samples[[n]]
+    # sname <- colnames(sdata)[!colnames(sdata) %in% vals]
+    peak_n <- sdata[match(peakid, sdata$peakid), vals]
+    peak_all <- rbind(peak_all, peak_n, make.row.names = FALSE)
+  }
+  return(peak_all)
+}  
+
+getPEAKSmedians <- function(n, peaks_vals_peakids) {
+  peak_n <- peaks_vals_peakids[[n]]
+  ## get medians across all samples
+  medians <- apply(peak_n, 2, median, na.rm = TRUE)
+  npeaks <- length(which(!is.na(peak_n$mz)))
+  peak_nmat <- as.data.frame(cbind(t(medians), npeaks))
+  return(peak_nmat)
+}         

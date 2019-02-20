@@ -53,6 +53,10 @@ Alignment results are stored in slot @data for each sample separately.
 \item{\code{data}}{\code{list} containg annotated and aligned peak tables for the already processed samples.}
 
 \item{\code{params}}{\code{list} containg alignment and annotation parameters.}
+
+\item{\code{valid}}{\code{data.frame} storing validated sample alignment template with peakids and corresponding Pseudo Chemical Spectra id.}
+
+\item{\code{peaks}}{\code{list} containing peak intergration values for every peak in every sample it was detected.}
 }}
 
 \seealso{
