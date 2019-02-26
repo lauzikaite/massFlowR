@@ -14,56 +14,71 @@
 #' }
 #' Co-eluting peaks within a network of high EIC correlation originate from the same chemical compound and therefore form a chemical spectrum.
 #'
-#' @param files \code{character} with paths to mzML file(s) to be processed.
+#' @param file \code{character} with path to metadata csv file, which must incluce columns 'filename', 'run_order' and 'raw_filepath'.
 #' @param out_dir \code{character} specifying desired directory for output.
 #' @param cwt \code{CentWaveParam} class object with parameters for centWave-based peak-picking.
 #' @param ncores \code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.
 #' @param thr \code{numeric} defining correlation coefficient threshold, above which peak pairs will be considered as correlated. Default set to 0.95.
 #'
 #' @return For each LC-MS file, function writes a table with picked-peaks and their peak-groups into separate files, in the defined \code{out_dir} directory.
+#' Inputed metadata file is updated to include a column 'proc_filepath', specifying full path to processed csv files peak-group tables.
 #' 
 #' @export
 #'
-groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
-
-  if (missing(files)) { 
-    stop("'files' must be specified!")
+groupPEAKS <- function(file = NULL,
+                       out_dir = NULL,
+                       cwt,
+                       ncores = 2,
+                       thr = 0.95) {
+  if (is.null(file)) {
+    stop("'file' is required")
   }
-  if (missing(out_dir)) {
-    stop("'out_dir' must be specified!")
+  if (!file.exists(file)) {
+    stop("incorrect filepath for 'file' provided")
+  }
+  if (is.null(out_dir)) {
+    stop("'out_dir' is required")
   }
   if (!dir.exists(out_dir)) {
-    stop("'out_dir' doesn't exist! \n", out_dir)
+    stop("incorrect filepath for 'out_dir' provided")
   }
-  if (missing(cwt)) {
-    stop("'cwt' has to be specified!")
+  if (missing(cwt) | class(cwt) != "CentWaveParam") {
+    stop("'cwt' has to be a 'CentWaveParam' object")
+  } 
+  if (ncores < 1 | !is.numeric(ncores)) {
+    warning("'ncores' was not correctly set. Switching to ncores = 1 (serial performance)")
+  }
+  ## register paral backend
+  if (ncores > 1) {
+    cl <- parallel::makeCluster(ncores)
+    doParallel::registerDoParallel(cl)
   } else {
-    if (class(cwt) != "CentWaveParam") { 
-      stop("'cwt' has to be 'CentWaveParam' object!") 
-    }
-    ## verboseColumns must be TRUE to output column "scpos"
-    cwt@verboseColumns <- TRUE
-    
-    ## mzdiff was >= 0 to avoid duplicate peaks in peak-groups
-    if (cwt@mzdiff < 0) {
-      message("mzdiff of ", cwt@mzdiff, " was selected. Switching mzdiff to 0 ..." )
-      cwt@mzdiff <- 0
-    }
+    foreach::registerDoSEQ()
   }
-  if (!is.numeric(ncores)) {
-    stop("'ncores' has to be numeric value!")
-  } else {
-    if (ncores < 1) {
-      stop("'ncores' must be set to 1 (serial performance), or higher!")
-    }
+  ## check provided metadata
+  samples <- read.csv(file, header = T, stringsAsFactors = F)
+  req_cnames <- c("filename",
+                  "run_order",
+                  "raw_filepath")
+  if (any(!req_cnames %in% names(samples))) {
+    stop("'files' table must contain columns: ", paste0(req_cnames, collapse = ", "))
   }
-  message("'ncores' set to ", ncores)
-  
-  while (length(files) > 0) {
+  ## verboseColumns must be TRUE to output column "scpos"
+  cwt@verboseColumns <- TRUE
+  ## mzdiff was >= 0 to avoid duplicate peaks in peak-groups
+  if (cwt@mzdiff < 0) {
+    message("mzdiff of ", cwt@mzdiff, " was selected. Switching mzdiff to 0 ..." )
+    cwt@mzdiff <- 0
+  }
+  ## list raw files to be processed (only list files that have not been peak-grouped in the out_dir yet)
+  samples$proc_filepath <- paste0(file.path(out_dir, samples$filename), "_peakgrs.csv")
+  rfiles <- samples$raw_filepath[which(!file.exists(samples$proc_filepath))]
+
+  while (length(rfiles) > 0) {
     
     ## create named vector to store processing result for every file
-    nfiles <- length(files)
-    result <- setNames(vector('list', nfiles), nm = files)
+    nfiles <- length(rfiles)
+    result <- setNames(vector('list', nfiles), nm = rfiles)
     
     if (ncores > 1) {
       
@@ -77,7 +92,7 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
         files_proc_first <- 1 + (iproc*ncores) 
         files_proc_last <- ncores + (iproc*ncores)
         files_proc_last <- ifelse(files_proc_last <= nfiles, files_proc_last, nfiles) 
-        files_proc <- files[files_proc_first:files_proc_last]
+        files_proc <- rfiles[files_proc_first:files_proc_last]
     
         ## run selected files across the cluster
         cl <- parallel::makeCluster(ncores)
@@ -102,7 +117,7 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
       }
     } else {
       ## serial implementation
-      result <- lapply(setNames(files, files),
+      result <- lapply(setNames(rfiles, rfiles),
                        function(f) {
                          tryCatch({
                            groupPEAKS_paral(
@@ -124,14 +139,15 @@ groupPEAKS <- function(files, out_dir, cwt, ncores = 1, thr = 0.95) {
   ## process results
   # identify files that failed and update list of files
   result_status <- sapply(result, "[[", "status")
-  files <- names(result[which(result_status == "FAILED")])
+  rfiles <- names(result[which(result_status == "FAILED")])
   
-  if (length(files) > 0) {
-    message(" \n", length(files), " files failed. Processing failed files ...")
+  if (length(rfiles) > 0) {
+    message(" \n", length(rfiles), " files failed. Processing failed files ...")
     message("Generated error messages for failed files:\n")
-    message(paste0(sapply(result[files], "[[", "error")))
+    message(paste0(sapply(result[rfiles], "[[", "error")))
   }
   }
+  write.csv(samples, file = file, row.names = FALSE)
   message("Peak-groups for all files were succesfully generated.")
 }
 
@@ -177,7 +193,7 @@ readDATA <- function(f) {
   raw <- NULL
   
   while (is.null(raw)) {
-    raw <- try(MSnbase::readMSData(f, mode = "onDisk"),
+    raw <- try(MSnbase::readMSData(f, mode = "onDisk", msLevel. = 1),
                silent = TRUE)
     if (class(raw) == "try-error") {
       message("reruning file ...")

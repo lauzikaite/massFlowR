@@ -2,7 +2,6 @@ context("methods for massFlowTemplate")
 
 # checkNEXT ---------------------------------------------------------------------------------------------------
 test_that("checkNEXT() returns the correct filename", {
-  
   tmp <- buildTMP(file = meta_fname, out_dir = data_dir)
   expected_next <- grouped_fnames[2]
   expect_equal(expected_next, checkNEXT(tmp))
@@ -12,7 +11,6 @@ test_that("checkNEXT() returns the correct filename", {
 
 # align identical tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two identical samples via alignPEAKS() is correct", {
-  
   tmp <- buildTMP(file = dup_meta_fname, out_dir = data_dir, rt_err = rt_err)
   tmp <- alignPEAKS(tmp, out_dir = data_dir)
   tmp_data1 <- tmp@data[[1]]

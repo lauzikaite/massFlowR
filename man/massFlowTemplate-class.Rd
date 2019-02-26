@@ -6,12 +6,15 @@
 \alias{massFlowTemplate}
 \alias{show,massFlowTemplate-method}
 \alias{filepath,massFlowTemplate-method}
+\alias{peaksVALIDATED,massFlowTemplate-method}
 \alias{checkNEXT,massFlowTemplate-method}
 \title{massFlowTemplate, a class for sample alignment and annotation}
 \usage{
 \S4method{show}{massFlowTemplate}(object)
 
 \S4method{filepath}{massFlowTemplate}(object)
+
+\S4method{peaksVALIDATED}{massFlowTemplate}(object)
 
 \S4method{checkNEXT}{massFlowTemplate}(object)
 }
@@ -56,7 +59,9 @@ Alignment results are stored in slot @data for each sample separately.
 
 \item{\code{valid}}{\code{data.frame} storing validated sample alignment template with peakids and corresponding Pseudo Chemical Spectra id.}
 
-\item{\code{peaks}}{\code{list} containing peak intergration values for every peak in every sample it was detected.}
+\item{\code{peaks}}{\code{list} containing peak intergration values for every peak (NA if peak was not detected), listead peak-wise.}
+
+\item{\code{values}}{\code{list} containing peak intergration values for every sample  (NA if peak was not detected), listed sample-wise.}
 }}
 
 \seealso{

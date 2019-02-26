@@ -4,10 +4,11 @@
 \alias{groupPEAKS}
 \title{Get peak-groups representing different chemical spectra in each LC-MS datafile}
 \usage{
-groupPEAKS(files, out_dir, cwt, ncores = 1, thr = 0.95)
+groupPEAKS(file = NULL, out_dir = NULL, cwt, ncores = 2,
+  thr = 0.95)
 }
 \arguments{
-\item{files}{\code{character} with paths to mzML file(s) to be processed.}
+\item{file}{\code{character} with path to metadata csv file, which must incluce columns 'filename', 'run_order' and 'raw_filepath'.}
 
 \item{out_dir}{\code{character} specifying desired directory for output.}
 
@@ -19,6 +20,7 @@ groupPEAKS(files, out_dir, cwt, ncores = 1, thr = 0.95)
 }
 \value{
 For each LC-MS file, function writes a table with picked-peaks and their peak-groups into separate files, in the defined \code{out_dir} directory.
+Inputed metadata file is updated to include a column 'proc_filepath', specifying full path to processed csv files peak-group tables.
 }
 \description{
 Function performs peak-picking and peak-grouping for each LC-MS datafile independently.

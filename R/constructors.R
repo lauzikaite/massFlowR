@@ -86,32 +86,28 @@ buildTMP <-
       stop("incorrect filepath for 'out_dir' provided")
     }
     samples <- read.csv(file, header = T, stringsAsFactors = F)
-    if (any(!c("filename", "filepaths", "run_order") %in% names(samples))) {
-      stop("files must contain columns 'filename', 'filepaths' and 'run_order'")
+    samples[, "aligned"] <- FALSE
+    samples[, "aligned_filepath"] <- NA
+    object <- new(
+      "massFlowTemplate",
+      filepath = file,
+      samples = samples,
+      params = list(
+        mz_err = mz_err,
+        rt_err = rt_err,
+        bins = bins
+      )
+    )
+    if (!validObject(object)) {
+      stop(validObject(object))
     }
-    ## stop only if none of the filepaths exist - some may still being processed on another machine
-    if (all(!file.exists(samples$filepaths))) {
-      stop("filepaths provided in the table 'file' are not correct")
-    }
-    
-    object <- new("massFlowTemplate")
-    object@filepath <- file
-    object@samples <- samples
-    object@samples[, "aligned"] <- FALSE
-    object@samples[, "aligned_filepaths"] <- NA
-    object@params <- list(mz_err = mz_err,
-                          rt_err = rt_err,
-                          bins = bins)
     doi_first <- min(object@samples$run_order)
     doi_fname <-
-      object@samples$filepaths[object@samples$run_order == doi_first]
+      object@samples$proc_filepath[object@samples$run_order == doi_first]
+    doi_name <- object@samples$filename[object@samples$run_order == doi_first]
     ## get filename for the file to be written in the selected directory
-    doi_fname_out <- paste0(
-      file.path(out_dir, object@samples$filename[object@samples$run_order == doi_first]),
-      "_aligned.csv")
-    message(paste("Building template using sample:",
-                  basename(doi_fname),
-                  "..."))
+    doi_fname_out <- paste0(file.path(out_dir, doi_name), "_aligned.csv")
+    message(paste("Building template using sample:", doi_name, " ..."))
     ## write 1st sample in the standard output format
     doi <- checkFILE(file = doi_fname)
     doi <- getCLUSTS(dt = doi)
@@ -136,9 +132,9 @@ buildTMP <-
     object@samples[object@samples$run_order == doi_first, "aligned"] <-
       TRUE
     ## first aligned sample is written in the defined directory
-    object@samples[object@samples$run_order == doi_first, "aligned_filepaths"] <-
+    object@samples[object@samples$run_order == doi_first, "aligned_filepath"] <-
       doi_fname_out
-    object@data[[doi_fname]] <-
+    object@data[[doi_name]] <-
       doi
     return(object)
   }
@@ -165,31 +161,37 @@ buildTMP <-
 #' @export
 #'
 loadALIGNED <-
-  function(file,
-           template,
+  function(file = NULL,
+           template = NULL,
            mz_err = 0.01,
            rt_err = 2,
            bins = 0.01) {
+  
     if (is.null(file)) {
       stop("Input 'file' is required")
     }
     if (!file.exists(file)) {
       stop("Incorrect filepath for 'file' provided")
     }
+    req_cnames <- c("filename",
+                    "run_order",
+                    "raw_filepath",
+                    "proc_filepath",
+                    "aligned_filepath")
     samples <- read.csv(file, header = T, stringsAsFactors = F)
-    if (any(!c("filename", "filepaths", "run_order", "aligned_filepaths") %in% names(samples))) {
-      stop("Input 'files' must contain columns 'filename', 'filepaths', 'run_order' and 'aligned_filepaths' ")
+    if (any(!req_cnames %in% names(samples))) {
+      stop("'files' table must contain columns: ", paste0(req_cnames, collapse = ", "))
     }
-    if (any(!file.exists(samples$filepaths))) {
-      stop("Column 'filepaths' contain incorrect file paths: ",
-           samples$filepaths[!file.exists(samples$filepaths)])
+    if (any(!file.exists(samples$proc_filepath))) {
+      stop("Column 'proc_filepath' contain incorrect file paths: ",
+           samples$proc_filepath[!file.exists(samples$proc_filepath)])
     }
-    if (any(!file.exists(samples$aligned_filepaths))) {
+    if (any(!file.exists(samples$aligned_filepath))) {
       warning(
-        "Column 'aligned_filepaths' contain incorrect file paths: ",
-        samples$aligned_filepaths[!file.exists(samples$aligned_filepaths)],
+        "Column 'aligned_filepath' contain incorrect file paths: ",
+        samples$aligned_filepath[!file.exists(samples$aligned_filepath)],
         "\n ",
-        "Only correct 'aligned_filepaths' will be loaded."
+        "Only correct 'aligned_filepath' will be loaded."
       )
       ans <- 0
       while (ans < 1) {
@@ -207,7 +209,7 @@ loadALIGNED <-
       stop("template file is not available: ", template)
     }
     ## extract only already aligned samples from the provided file list
-    samples_aligned <- which(file.exists(samples$aligned_filepaths))
+    samples_aligned <- which(file.exists(samples$aligned_filepath))
     tmp <- read.csv(template, header = T, stringsAsFactors = F)
     
     object <- new("massFlowTemplate")
@@ -225,12 +227,12 @@ loadALIGNED <-
     
     ## load aligned samples datasets
     data <-
-      lapply(samples$aligned_filepaths[samples_aligned], function(doi_fname) {
+      lapply(samples$aligned_filepath[samples_aligned], function(doi_fname) {
         doi <- read.csv(doi_fname,
                         header = T,
                         stringsAsFactors = F)
       })
-    names(data) <- object@samples[samples_aligned, "filepaths"]
+    names(data) <- object@samples[samples_aligned, "proc_filepath"]
     object@data <- data
     message("A 'massFlowTemplate' object was succesfully built with aligned samples.")
     return(object)

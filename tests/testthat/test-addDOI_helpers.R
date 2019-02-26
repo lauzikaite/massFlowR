@@ -237,7 +237,7 @@ test_that("getCOS calculates cosines correctly", {
       bins = bins
     )
   expect_true(class(getCOS_out) == "data.frame")
-  expect_true(round(getCOS_out$cos, digits = 8) == 0.00612543)
+  expect_true(round(getCOS_out$cos, digits = 6) == 0.999552)
   
 })
 

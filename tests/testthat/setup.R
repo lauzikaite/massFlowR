@@ -4,7 +4,8 @@ test_basenames <- sapply(test_fnames, function(fname) {
   strsplit(basename(fname), split = "[.]")[[1]][1]
 }, USE.NAMES = F)
 test_basename <- test_basenames[1]
-data_dir <- "~/Documents/Projects/massFlowR/packageDEV/unittest/"
+data_dir <- "/Users/el1514/Documents/Projects/massFlowR/packageDEV/unittest"
+# data_dir <- file.path(system.file(package = "massFlowR"), "testdata/")
 
 ####---- single datafile preparation
 cwt <- xcms::CentWaveParam(ppm = 25,
@@ -37,25 +38,34 @@ test_eic_rd <- xcms::chromatogram(test_raw,
 test_eic_rd <- lapply(1:nrow(test_eic_rd), function(ch) {
   MSnbase::clean(test_eic_rd[ch, ], na.rm = T)})
 
-####---- multiple datafile prepation with the pipeline
-groupPEAKS(files = test_fnames, out_dir = data_dir, cwt = cwt)
-
-## prepare csv for file input
-grouped_fnames <- list.files(pattern = "peakgrs.csv", path = data_dir, full.names = T)
-metadata <- data.frame(filename = test_basenames,filepaths = grouped_fnames, run_order = 1:2, stringsAsFactors = F)
+## prepare metadata
+metadata <- data.frame(filename = test_basenames,
+                       run_order = 1:2,
+                       raw_filepath = test_fnames,
+                       proc_filepath = paste0(file.path(data_dir, test_basenames), "_peakgrs.csv")
+                       )
 write.csv(metadata, file.path(data_dir, "metadata.csv"), quote = F, row.names = FALSE)
 meta_fname <- file.path(data_dir, "metadata.csv")
 
+####---- multiple datafile prepation with the pipeline
+groupPEAKS(file = meta_fname, out_dir = data_dir, cwt = cwt)
+grouped_fnames <- paste0(file.path(data_dir, test_basenames), "_peakgrs.csv")
 
 # Duplicated tables -----------------------------------------------------------------------------------------------
 ## write two duplicated csv for sample wt15
 single_table <- read.csv(grouped_fnames[1], header = T, stringsAsFactors = F)
-dup_fnames <- c(file.path(data_dir, "test_file1.csv"), file.path(data_dir, "test_file2.csv"))
+dup_basenames <- c("test_file1", "test_file2")
+dup_fnames <- paste0(file.path(data_dir, dup_basenames), "_peakgrs.csv")
 write.csv(single_table, dup_fnames[1], quote = F, row.names = FALSE)
 write.csv(single_table, dup_fnames[2], quote = F, row.names = FALSE)
-metadata_dup <- data.frame(filename = c("test_file1", "test_file2"), filepaths = dup_fnames, run_order = 1:2, stringsAsFactors = F)
+metadata_dup <- data.frame(filename = dup_basenames,
+                           run_order = 1:2, 
+                           raw_filepath = rep(test_fnames[1], 2),
+                           proc_filepath = dup_fnames
+                           )
 write.csv(metadata_dup, file.path(data_dir, "metadata_dup.csv"), quote = F, row.names = FALSE)
 dup_meta_fname <- file.path(data_dir, "metadata_dup.csv")
+
 
 
 # Noisy tables -----------------------------------------------------------------------------------------------------
@@ -90,17 +100,20 @@ noisy <- noisy %>%
   arrange(desc(into)) %>% 
   mutate(peakid = row_number())
 
-noisy_fnames <- c(file.path(data_dir, "test_file1.csv"), file.path(data_dir, "test_file3.csv"))
+noisy_basenames <- c("test_file1", "test_file3")
+noisy_fnames <- paste0(file.path(data_dir, noisy_basenames), "_peakgrs.csv")
 write.csv(noisy, noisy_fnames[2], quote = F, row.names = FALSE)
 noisy_metadata <-
   data.frame(
-    filename = c("test_file1", "test_file3"),
-    filepaths = noisy_fnames,
+    filename = noisy_basenames,
     run_order = 1:2,
-    stringsAsFactors = F
+    raw_filepath = rep(test_fnames[1], 2),
+    proc_filepath = noisy_fnames
   )
 write.csv(noisy_metadata, file.path(data_dir, "metadata_noisy.csv"), quote = F, row.names = FALSE)
 noisy_meta_fname <- file.path(data_dir, "metadata_noisy.csv")
+
+
 
 ## list db template
 ## template includes three first peak-groups of sample wt15

@@ -71,7 +71,8 @@ test_that("rbindCLEAN", {
 # getCORmat -------------------------------------------------------------------------------------------------------
 test_that("getCORmat", {
   ## use indeces of co-eluting peaks for a random peak
-  random_peak <- sample(test_pks_rd$peakid, size = 1)
+  # random_peak <- sample(test_pks_rd$peakid, size = 1)
+  random_peak <- 71
   random_peak_scpos <-
     c(test_pks_rd[random_peak, "scpos"] - 1, test_pks_rd[random_peak, "scpos"] + 1)
   random_peak_co <- test_pks_rd[

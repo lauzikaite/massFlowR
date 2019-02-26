@@ -4,7 +4,8 @@
 \alias{loadALIGNED}
 \title{Build sample alignment and annotation template using already aligned samples}
 \usage{
-loadALIGNED(file, template, mz_err = 0.01, rt_err = 2, bins = 0.01)
+loadALIGNED(file = NULL, template = NULL, mz_err = 0.01,
+  rt_err = 2, bins = 0.01)
 }
 \arguments{
 \item{file}{A \code{character} with path to the csv file, specifying samples filenames and their acquisition order.}

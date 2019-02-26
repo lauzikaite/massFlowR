@@ -13,6 +13,11 @@ setMethod("show", signature = "massFlowTemplate", function(object) {
       " samples")
   })
 
+
+# setValidity -----------------------------------------------------------------------------------------------------
+setValidity("massFlowTemplate", function(object) validmassFlowTemplate(object))
+
+
 # filepath ------------------------------------------------------------------------------------------------------
 #' @include classes.R
 #' 
@@ -29,6 +34,32 @@ setMethod("filepath", signature = "massFlowTemplate", function(object) {
   object@filepath
   })
 
+
+# peaksVALIDATED ------------------------------------------------------------------------------------------------------
+#' @include classes.R
+#' 
+#' @rdname massFlowTemplate-class
+#'
+#' @title Check if massFlowTemplate object was validated using validPEAKS.
+#'
+#' @export
+#'
+setMethod("peaksVALIDATED", signature = "massFlowTemplate", function(object) {
+  if (nrow(object@valid) > 0) {
+    peaks_validated <- TRUE
+    if (length(object@peaks) != nrow(object@valid)) {
+      msg <- c(msg, paste0("Slot 'peaks' doesn't contain a list for every validated peak"))
+    }
+    if (length(object@values) != length(which(object@samples$aligned))) {
+      msg <- c(msg, paste0("Slot 'values' doesn't contain a list of peak values for every sample"))
+    }
+  } else {
+    peaks_validated <- FALSE
+  }
+  return(peaks_validated)
+})
+
+
 # checkNEXT ------------------------------------------------------------------------------------------------------
 #' @title Extract and check the filename of the sample to be processed next
 #' 
@@ -42,7 +73,7 @@ setMethod("checkNEXT",
           function(object) {
             ## extract next-in-line sample and check if it is present (i.e. has been written already)
             doi_fname <-
-              object@samples$filepaths[which(object@samples$aligned == FALSE)[1]]
+              object@samples$proc_filepath[which(object@samples$aligned == FALSE)[1]]
             doi_present <-
               file.exists(doi_fname) # if FALSE, then loop until TRUE
             
@@ -97,15 +128,16 @@ setMethod("alignPEAKS",
                    out_dir = NULL,
                    write_int = TRUE
                    ) {
-            if (class(object) != "massFlowTemplate") {
-              stop("object must be a 'massFlowTemplate' class object")
+            if (!validObject(object)) {
+              stop(validObject(object))
             }
             if (is.null(out_dir)) {
-              stop("'out_dir' is required")
+              stop("'out_dir' is required!")
             }
             if (!dir.exists(out_dir)) {
               stop("incorrect filepath for 'out_dir' provided")
             }
+           
             params <- object@params
             
             ## generated template and all intermediate alignment peak tables
@@ -120,10 +152,9 @@ setMethod("alignPEAKS",
                 "samples left to align."
               ))
               doi_fname <- checkNEXT(object)
-              message("Aligning to sample: ", basename(doi_fname),  "... ")
-              doi_fname_out <- paste0(
-                file.path(out_dir, object@samples$filename[object@samples$filepaths == doi_fname]),
-                "_aligned.csv")
+              doi_name <- object@samples$filename[object@samples$proc_filepath == doi_fname]
+              doi_fname_out <- paste0(file.path(out_dir, doi_name), "_aligned.csv")
+              message("Aligning to sample: ", doi_name,  " ... ")
               out <- addDOI(
                 tmp = object@tmp,
                 tmp_fname = tmp_fname,
@@ -135,11 +166,11 @@ setMethod("alignPEAKS",
                 write_int = write_int
               )
               object@tmp <- out$tmp
-              object@samples[object@samples$filepaths == doi_fname, "aligned"] <-
+              object@samples[object@samples$proc_filepath == doi_fname, "aligned"] <-
                 TRUE
-              object@samples[object@samples$filepaths == doi_fname, "aligned_filepaths"] <-
+              object@samples[object@samples$proc_filepath == doi_fname, "aligned_filepath"] <-
                 doi_fname_out
-              object@data[[doi_fname]] <- out$doi
+              object@data[[doi_name]] <- out$doi
 
             }
             ## write updated meta file with filepaths to aligned samples
@@ -178,24 +209,22 @@ setMethod("validPEAKS",
                    cor_thr = 0.75,
                    ncores = 2
                    ) {
-            if (class(object) != "massFlowTemplate") {
-              stop("Object must be a 'massFlowTemplate' class object")
+            if (!validObject(object)) {
+              stop(validObject(object))
             }
             if (is.null(out_dir)) {
-              stop("'out_dir' is required")
+              stop("'out_dir' is required!")
             }
-            if (!is.numeric(ncores)) {
-              stop("'ncores' has to be numeric value!")
+            if (!dir.exists(out_dir)) {
+              stop("incorrect filepath for 'out_dir' provided")
             }
-            if (ncores < 1) {
-              warning("'ncores' was set to ", ncores, ". Switching to ncores = 1 (serial performance)")
+            if (ncores < 1 | !is.numeric(ncores)) {
+              warning("'ncores' was not correctly set. Switching to ncores = 1 (serial performance)")
             }
-
-            ## register backend
+            ## register paral backend
             if (ncores > 1) {
               cl <- parallel::makeCluster(ncores)
               doParallel::registerDoParallel(cl)
-              # bpparam <- BiocParallel::DoparParam()
             } else {
               foreach::registerDoSEQ()
             }
@@ -203,32 +232,13 @@ setMethod("validPEAKS",
             ## extract intensities for every peak-group from every sample
             peakgrs <- unique(object@tmp$peakgr)
             peakgrs <- peakgrs[order(peakgrs)]
-            peaks_vals_peakids <- foreach::foreach(
+            peakgrs_ints <- foreach::foreach(
               pkg = peakgrs,
               .inorder = TRUE
             ) %dopar% (massFlowR:::extractPEAKGR(
               pkg = pkg,
               object = object
             ))
-            
-            # ftime <- system.time({
-            #   peaks_vals_peakids <- foreach::foreach(
-            #     pkg = peakgrs,
-            #     .inorder = TRUE
-            #   ) %dopar% (massFlowR:::extractPEAKGR(
-            #     pkg = pkg,
-            #     object = object
-            #   ))
-            # })
-            # btime <- system.time({ 
-            #   peakgrs_ints <- BiocParallel::bplapply(
-            #     peakgrs,
-            #     FUN = extractPEAKGR,
-            #     object = object,
-            #     BPPARAM = bpparam
-            #     )
-            # })
-            
             saveRDS(peakgrs_ints, file = paste0(out_dir, "/peakgrs_ints.RDS"))
             saveRDS(object, file = paste0(out_dir, "/object.RDS"))
             
@@ -243,92 +253,70 @@ setMethod("validPEAKS",
             peakgrs_split <- foreach::foreach(
               pkg = peakgrs,
               .inorder = TRUE
-            ) %dopar% (massFlowR:::validPEAKS_paral(
+            ) %dopar% (massFlowR:::validPEAKGR(
               pkg = pkg,
               peakgrs_ints = peakgrs_ints,
               out_dir = out_dir,
               min_samples_n = min_samples_n,
               cor_thr = cor_thr
             ))
-            # peakgrs_split <- BiocParallel::bplapply(
-            #   peakgrs,
-            #   FUN = validPEAKS_paral,
-            #   peakgrs_ints = peakgrs_ints,
-            #   out_dir = out_dir,
-            #   BPPARAM = bpparam,
-            #   min_samples_n = min_samples_n,
-            #   cor_thr = cor_thr
-            #   )
             saveRDS(peakgrs_split, file = paste0(out_dir, "/peakgrs_split.RDS"))
             
             ## retain only communities with > 1 peak
-            final_tmp <- getCOMMUNITIES(peakgrs_split = peakgrs_split)
+            final_tmp <- extractCOMMUNITIES(peakgrs_split = peakgrs_split)
             
-            ## export intensity and centWave measures for each peak and each sample, listed by sample
+            ## export centWave measures for final template's peaks in each sample, listed by sample
             peaks_vals_samples <- foreach::foreach(
-              sname = samples$filename,
+              sn = 1:nrow(samples),
               .inorder = TRUE
-            ) %dopar% (massFlowR:::getFINALinto(
-              sname = sname,
-              snames = object@samples$filename,
-              object = object,
+            ) %dopar% (massFlowR:::exportSAMPLE(
+              sdata = object@data[[sn]],
               final_tmp = final_tmp
             ))
-            # peaks_vals_samples <- BiocParallel::bplapply(
-            #   samples$filename,
-            #   FUN = getFINALinto,
-            #   snames = object@samples$filename,
-            #   object = object,
-            #   final_tmp = final_tmp
-            #   )
-            
-            ####---- prep for fillPEAKS ----
-            ## get centWave values for each peak and each sample, listed by peakid
+  
+            ## get centWave measures for each peak and each sample, listed by peakid
             peaks_vals_peakids <- foreach::foreach(
               peakid = final_tmp$peakid,
               .inorder = TRUE
-            ) %dopar% (massFlowR:::buildPEAKSlist(
+            ) %dopar% (massFlowR:::exportPEAK(
                 peakid = peakid,
                 peaks_vals_samples = peaks_vals_samples
               ))
-            # peaks_vals_peakids <- BiocParallel::bplapply(
-            #   final_tmp$peakid,
-            #   FUN = buildPEAKSlist,
-            #   peaks_vals_samples = peaks_vals_samples
-            # )
             names(peaks_vals_peakids) <- final_tmp$peakid
-            object@peaks <- peaks_vals_peakids
-            object@valid <- final_tmp
 
-            ## get median centWave values for each peak and each sample, listed by peakid
+            ## get median centWave measures for each peak and each sample, listed by peakid
             peaks_medians_peakids <- foreach::foreach(
               n = 1:length(peaks_vals_peakids),
               .inorder = TRUE
-            ) %dopar% (massFlowR:::getPEAKSmedians(
-              n = n,
-              peaks_vals_peakids = peaks_vals_peakids
-            ))
+            ) %dopar% (massFlowR:::getPEAKmedians(
+              peak_n = peaks_vals_peakids[[n]]
+              ))
             peaks_medians_peakids <- do.call("rbindCLEAN", peaks_medians_peakids)
             peaks_medians_peakids$peakid <- final_tmp$peakid
             peaks_medians_peakids$pcs <-
               final_tmp$pcs[match(peaks_medians_peakids$peakid, final_tmp$peakid)]
-            
-
+          
             ## merge intensity and centWave values into one dataframe
             ## replace NA values with 0, extract for each sample
-            peaks_vals <- lapply(peaks_vals_samples, function(s) {
-              sname <- colnames(s)[(ncol(peaks_medians_peakids) - 1)]
-              s_dt <- as.data.frame(sapply(s[,sname], function(x) {
-                ifelse(is.na(x), 0, x)
-                }))
-              colnames(s_dt) <- sname
-              return(s_dt)
+            peaks_vals <- lapply(1:length(peaks_vals_samples), function(sn) {
+              sname <- samples$filename[sn]
+              sdata <- peaks_vals_samples[[sn]]
+              sdata_out <-
+                as.data.frame(ifelse(is.na(sdata$into), 0, sdata$into),
+                              row.names = NULL)
+              sdata_out <- setNames(sdata_out, sname)
+              return(sdata_out)
             })
             peaks_vals <- do.call("cbind", peaks_vals)
             peaks_vals <- cbind(peaks_medians_peakids, peaks_vals)
 
             parallel::stopCluster(cl)
             
+            object@values <- peaks_vals_samples
+            object@peaks <- peaks_vals_peakids
+            object@valid <- final_tmp
+            
+            ####---- data output
             write.csv(x = peaks_vals,
                       file = file.path(out_dir, "intensity_data.csv"),
                       row.names = F)
@@ -341,4 +329,95 @@ setMethod("validPEAKS",
                
             message("All peak-groups were succesfully validated.")
             return(object)
+          })
+
+
+# fillPEAKS ------------------------------------------------------------------------------------------------------
+#' @aliases fillPEAKS
+#'
+#' @title Fill peaks 
+#'
+#' @param object \code{massFlowTemplate} class object.
+#' @param out_dir \code{character} specifying desired directory for output.
+#' @param min_samples \code{numeric} specifying the minimum percentage of samples in which peak has to be detected in order to be considered (default set to 10 percent). 
+#' @param cor_thr \code{numeric} defining Pearson correlation coefficient threshold for inter-sample correlation between peaks (default set to 0.75). 
+#' @param ncores \code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.
+#' 
+#' @return Method returns peak table with filled intensities for missed peaks.
+#' 
+#' @seealso \code{\link{loadALIGNED}}, \code{\link{alignPEAKS}}, \code{\link{validPEAKS}}, \code{\link{massFlowTemplate-class}}
+#'
+#' @export
+#'
+setMethod("fillPEAKS",
+          signature = "massFlowTemplate",
+          function(object,
+                   out_dir = NULL,
+                   ncores = 1
+          ) {
+            if (!validObject(object)) {
+              stop(validObject(object))
+            }
+            if (!peaksVALIDATED(object)) {
+              stop("'Object' must be a validated 'massFlowTemplate' class object. \n Run validPEAKS() first.")
+            }
+            if (is.null(out_dir)) {
+              stop("'out_dir' is required!")
+            }
+            if (!dir.exists(out_dir)) {
+              stop("incorrect filepath for 'out_dir' provided")
+            }
+            if (ncores < 1 | !is.numeric(ncores)) {
+              warning("'ncores' was not correctly set. Switching to ncores = 1 (serial performance)")
+            }
+            ## register paralel backend
+            if (ncores > 1) {
+              cl <- parallel::makeCluster(ncores)
+              doParallel::registerDoParallel(cl)
+            } else {
+              foreach::registerDoSEQ()
+            }
+          
+          
+            ####---- model mz/rt windows for missing peaks
+            ## assuming that every peak will have at least one sample to fill,
+            ## iterate over every peakid in the validated peak-table
+            peakids <- object@valid$peakid
+            peaks_mod <- foreach::foreach(
+              p = peakids,
+              .inorder = TRUE
+            ) %dopar% modelPEAKS(
+              p = p,
+              vars = c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax"),
+              object = object
+            )
+            
+            ####---- fill missing peaks
+            ## build list of mz/rt regions to fill, sample-wise
+            ## extract only the peaks that have to be filled
+            peaks_miss <- foreach::foreach(
+              s = 1:length(object@values),
+              .inorder = TRUE
+            ) %dopar% extractMISS(
+              s = s,
+              values = object@values,
+              peaks_mod = peaks_mod,
+              valid = object@valid
+            )
+            
+            peaks_fill <- foreach::foreach(
+              s = 1:length(object@values),
+              .inorder = TRUE
+            ) %dopar% fillPEAKS_sample(
+              s = s,
+              values = peaks_miss
+            )
+            
+            
+            
+            
+            
+            if (validObject(object)) {
+              return(object)
+            }
           })
