@@ -335,6 +335,7 @@ setMethod("validPEAKS",
 #' @title Fill peaks
 #'
 #' @param object \code{massFlowTemplate} class object.
+#' @param fill_value \code{character} specifying which intensity value should be filled and returned, default set to 'into'.
 #' @param out_dir \code{character} specifying desired directory for output.
 #' @param min_samples \code{numeric} specifying the minimum percentage of samples in which peak has to be detected in order to be considered (default set to 10 percent).
 #' @param cor_thr \code{numeric} defining Pearson correlation coefficient threshold for inter-sample correlation between peaks (default set to 0.75).
@@ -349,6 +350,7 @@ setMethod("validPEAKS",
 setMethod("fillPEAKS",
           signature = "massFlowTemplate",
           function(object,
+                   fill_value = "into",
                    out_dir = NULL,
                    ncores = 2) {
             if (!validObject(object)) {
@@ -459,25 +461,28 @@ setMethod("fillPEAKS",
                 message(paste0(sapply(result[samples_to_fill], "[[", "error")))
               }
             }
-                
+
+            ## update peak medians with median into/maxo values after filling
             peaks_vals <-
               lapply(1:length(object@values), function(sn) {
                 sname <- object@samples$filename[sn]
                 sdata <- result[[sn]]
                 sdata_out <-
-                  as.data.frame(sdata$into,
+                  as.data.frame(sdata[, match(fill_value, colnames(sdata))],
                                 row.names = NULL)
                 sdata_out <- setNames(sdata_out, sname)
                 return(sdata_out)
               })
             peaks_vals <- do.call("cbind", peaks_vals)
-            peaks_vals <- cbind(peaks_medians_peakids, peaks_vals)
-                
-    
+            peaks_median_vals <- apply(peaks_vals, 1, median)
+            peaks_median_vals <- cbind(object@valid, fillval = peaks_median_vals)
+            colnames(peaks_median_vals)[match("fillval", colnames(peaks_median_vals))] <- fill_value
+            peaks_vals <- cbind(peaks_median_vals, peaks_vals)
+
             ## replace object's values
             object@values <- result
+            object@valid <- peaks_median_vals
   
-            
             ####---- data output
             write.csv(
               x = peaks_vals,
@@ -511,11 +516,11 @@ setMethod("fillPEAKS",
 #             if (!dir.exists(out_dir)) {
 #               stop("incorrect filepath for 'out_dir' provided")
 #             }
-#             
-#             
-#             
-#             
-#             
-#             
+# 
+# 
+# 
+# 
+# 
+# 
 # 
 # })
