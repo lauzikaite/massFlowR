@@ -49,18 +49,10 @@ setMethod("peaksVALIDATED", signature = "massFlowTemplate", function(object) {
   if (nrow(object@valid) > 0) {
     peaks_validated <- TRUE
     if (length(object@peaks) != nrow(object@valid)) {
-      msg <-
-        c(msg,
-          paste0(
-            "Slot 'peaks' doesn't contain a list for every validated peak"
-          ))
+      peaks_validated <- "Slot 'peaks' doesn't contain a list for every validated peak"
     }
     if (length(object@values) != length(which(object@samples$aligned))) {
-      msg <-
-        c(msg,
-          paste0(
-            "Slot 'values' doesn't contain a list of peak values for every sample"
-          ))
+      peaks_validated <- "Slot 'values' doesn't contain a list of peak values for every sample"
     }
   } else {
     peaks_validated <- FALSE
@@ -313,7 +305,7 @@ setMethod("validPEAKS",
             
             object@values <- peaks_vals_samples
             object@peaks <- peaks_vals_peakids
-            object@valid <- final_tmp
+            object@valid <- peaks_medians_peakids
             
             ####---- data output
             write.csv(
@@ -492,12 +484,38 @@ setMethod("fillPEAKS",
               file = file.path(out_dir, "filled_intensity_data.csv"),
               row.names = F
             )
-
-            
-            
             
             if (validObject(object)) {
               message("All peak-groups were succesfully filled")
               return(object)
             }
           })
+
+
+
+# setMethod("annotatePEAKS",
+#           signature = "massFlowTemplate",
+#           function(object,
+#                    out_dir = NULL) {
+#             if (!validObject(object)) {
+#               stop(validObject(object))
+#             }
+#             if (!peaksVALIDATED(object)) {
+#               stop(
+#                 "'Object' must be a validated 'massFlowTemplate' class object. \n Run validPEAKS() first."
+#               )
+#             }
+#             if (is.null(out_dir)) {
+#               stop("'out_dir' is required!")
+#             }
+#             if (!dir.exists(out_dir)) {
+#               stop("incorrect filepath for 'out_dir' provided")
+#             }
+#             
+#             
+#             
+#             
+#             
+#             
+# 
+# })
