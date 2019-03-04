@@ -168,39 +168,18 @@ groupPEAKS <- function(file = NULL,
 #' 
 groupPEAKS_paral <- function(f, out_dir, cwt, thr) {
   fname <- strsplit(basename(f), split = "[.]")[[1]][1]
-  raw <- readDATA(f = f)
-  pks <- pickPEAKS(raw = raw, cwt = cwt, fname = fname)
-  eic <- extractEIC(raw = raw, pks = pks)
-  groupPEAKSspec(pks = pks, eic = eic, out_dir = out_dir, fname = fname, thr = thr)
-  result <- list(fname = fname, status = "DONE", error = NULL)
+  
+  if (validFILE(f) == TRUE) {
+    raw <- readDATA(f = f)
+    pks <- pickPEAKS(raw = raw, cwt = cwt, fname = fname)
+    eic <- extractEIC(raw = raw, pks = pks)
+    groupPEAKSspec(pks = pks, eic = eic, out_dir = out_dir, fname = fname, thr = thr)
+    result <- list(fname = fname, status = "DONE", error = NULL)
+    } else {
+      result <- list(fname = fname, status = "FAILED", error = validFILE(f))
+    }
   gc(verbose = FALSE)
   return(result)
-}
-
-
-# readDATA --------------------------------------------------------------------------------------------------------
-#' @title Read raw LC-MS data into memory
-#' 
-#' @description Function reads raw LC-MS datafile into memory using \code{MSnbase} functionality.
-#'
-#' @param f \code{character} specifying absolute path to a single mzML/CDF file.
-#'
-#' @return Function returns \code{OnDiskMSnExp} class object.
-#'
-readDATA <- function(f) {
-  
-  ## use try to catch mzML reading error that occurs only on macOS
-  raw <- NULL
-  
-  while (is.null(raw)) {
-    raw <- try(MSnbase::readMSData(f, mode = "onDisk", msLevel. = 1),
-               silent = TRUE)
-    if (class(raw) == "try-error") {
-      message("reruning file ...")
-      raw <- NULL
-    }
-  }
-  return(raw)
 }
 
 

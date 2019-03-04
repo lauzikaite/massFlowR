@@ -1,5 +1,63 @@
 ## Unsorted utility functions
 
+
+# validFILE --------------------------------------------------------------------------------------------------------
+#' @title Check the validity of a raw LC-MS file.
+#' 
+#' @description Function checks the validity of a raw LC-MS file before trying to load it to memory.
+#' This prevents infinite loops caused by \code{\link{readDATA}} function trying to read raw file until is it loaded.
+#'
+#' @param f \code{character} specifying absolute path to a single raw LC-MS file.
+#'
+#' @return Functions checks the validity of a raw LC-MS file and returns TRUE if file is valid, or error message if not.
+#' 
+validFILE <- function(f) {
+  if (file.exists(f)) {
+    if (grepl("\\.mzml($|\\.)|\\.mzxml($|\\.)", f, ignore.case = TRUE)) {
+      return(TRUE)
+      } else {
+        if (grepl("\\.mzdata($|\\.)", f, ignore.case = TRUE)) {
+          return(TRUE)
+          } else {
+            if (grepl("\\.cdf($|\\.)|\\.nc($|\\.)", f, ignore.case = TRUE)) {
+              return(TRUE)
+              } else {
+                return(paste0("File format is unsupported: ", f, collapse = " \n"))
+              }
+          }
+      }
+    } else {
+      return(paste0("File doesn't exist: ", f, collapse = " \n"))
+    }
+}
+
+
+
+# readDATA --------------------------------------------------------------------------------------------------------
+#' @title Read raw LC-MS data into memory
+#' 
+#' @description Function reads raw LC-MS datafile into memory using \code{MSnbase} functionality.
+#'
+#' @param f \code{character} specifying absolute path to a single raw LC-MS file.
+#'
+#' @return Function returns \code{OnDiskMSnExp} class object.
+#'
+readDATA <- function(f) {
+  
+  ## use try to catch mzML reading error that occurs only on macOS
+  raw <- NULL
+  
+  while (is.null(raw)) {
+    raw <- try(MSnbase::readMSData(f, mode = "onDisk", msLevel. = 1),
+               silent = TRUE)
+    if (class(raw) == "try-error") {
+      message("reruning file ...")
+      raw <- NULL
+    }
+  }
+  return(raw)
+}
+
 # cleanPEAKS ------------------------------------------------------------------------------------------------------
 #' @title Clean peak table from duplicating peaks
 #'
