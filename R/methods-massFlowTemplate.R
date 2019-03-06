@@ -605,10 +605,19 @@ setMethod("annotatePEAKS",
               
             }
             
-            ####---- assign ds to db using cosines
+            ####---- assign ds peakgroups to db peakgroups using cosines
             cos_assigned <- assignCOS(cos = cos_mat)
-            cos_true <- which(cos_assigned == TRUE)
-            cos_mat[cos_true]
+            # cos_true <- which(cos_assigned == TRUE)
+            # cos_mat[cos_true]
+            
+            
+            ####---- export annotation table
+            ds_true <- apply(cos_assigned, 2, function(x) which(x))
+            ds_assigned <- which(sapply(ds_true, length) > 0)
+            ds_assigned_pcs <- unique(ds$pcs)[ds_assigned]
+            
+            db_assigned <- unlist(ds_true[ds_assigned])
+            db_assigned_chemid <- unique(db$chemid)[db_assigned]
             
             
             
