@@ -175,6 +175,8 @@ setMethod("alignPEAKS",
               object@data[[doi_name]] <- out$doi
               
             }
+            object@history[length(object@history) + 1] <- "alignPEAKS"
+            
             ## write updated meta file with filepaths to aligned samples
             write.csv(object@samples,
                       aligned_fname,
@@ -306,6 +308,7 @@ setMethod("validPEAKS",
             object@values <- peaks_vals_samples
             object@peaks <- peaks_vals_peakids
             object@valid <- peaks_medians_peakids
+            object@history[length(object@history) + 1] <- "validPEAKS"
             
             ####---- data output
             write.csv(
@@ -356,7 +359,7 @@ setMethod("fillPEAKS",
             if (!validObject(object)) {
               stop(validObject(object))
             }
-            if (!peaksVALIDATED(object)) {
+            if (!peaksVALIDATED(object) | object@history != "validPEAKS") {
               stop(
                 "'Object' must be a validated 'massFlowTemplate' class object. \n Run validPEAKS() first."
               )
@@ -465,23 +468,27 @@ setMethod("fillPEAKS",
             ## update peak medians with median into/maxo values after filling
             peaks_vals <-
               lapply(1:length(object@values), function(sn) {
-                sname <- object@samples$filename[sn]
-                sdata <- result[[sn]]
+                sname = object@samples$filename[sn]
+                sdata = result[[sn]]
                 sdata_out <-
                   as.data.frame(sdata[, match(fill_value, colnames(sdata))],
                                 row.names = NULL)
                 sdata_out <- setNames(sdata_out, sname)
                 return(sdata_out)
-              })
+                })
+            
             peaks_vals <- do.call("cbind", peaks_vals)
-            peaks_median_vals <- apply(peaks_vals, 1, median)
-            peaks_median_vals <- cbind(object@valid, fillval = peaks_median_vals)
-            colnames(peaks_median_vals)[match("fillval", colnames(peaks_median_vals))] <- fill_value
-            peaks_vals <- cbind(peaks_median_vals, peaks_vals)
+            peaks_median_vals <- apply(peaks_vals, 1, function(x) {
+              median(x[which(x > 0)])
+            })
+            tmp <- object@valid
+            tmp[, c(match(fill_value, colnames(tmp)))] <- peaks_median_vals
+            peaks_vals <- cbind(tmp, peaks_vals)
 
             ## replace object's values
             object@values <- result
-            object@valid <- peaks_median_vals
+            object@valid <- tmp
+            object@history[length(object@history) + 1] <- "fillPEAKS"
   
             ####---- data output
             write.csv(
@@ -497,30 +504,113 @@ setMethod("fillPEAKS",
           })
 
 
-
-# setMethod("annotatePEAKS",
-#           signature = "massFlowTemplate",
-#           function(object,
-#                    out_dir = NULL) {
-#             if (!validObject(object)) {
-#               stop(validObject(object))
-#             }
-#             if (!peaksVALIDATED(object)) {
-#               stop(
-#                 "'Object' must be a validated 'massFlowTemplate' class object. \n Run validPEAKS() first."
-#               )
-#             }
-#             if (is.null(out_dir)) {
-#               stop("'out_dir' is required!")
-#             }
-#             if (!dir.exists(out_dir)) {
-#               stop("incorrect filepath for 'out_dir' provided")
-#             }
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# })
+# annotatePEAKS ------------------------------------------------------------------------------------------------------
+setMethod("annotatePEAKS",
+          signature = "massFlowTemplate",
+          function(object,
+                   database = NULL,
+                   out_dir = NULL,
+                   ncores = 2,
+                   rt_err = 2,
+                   mz_err = 0.1
+                   ) {
+            if (!validObject(object)) {
+              stop(validObject(object))
+            }
+            if (object@history[length(object@history)] != "fillPEAKS") {
+              stop(
+                "'Object' must be a validated and filled 'massFlowTemplate' class object. \n Run fillPEAKS() first."
+              )
+            }
+            if (is.null(out_dir)) {
+              stop("'out_dir' is required!")
+            }
+            if (!dir.exists(out_dir)) {
+              stop("incorrect filepath for 'out_dir' provided")
+            }
+            ## register paral backend
+            if (ncores > 1) {
+              cl <- parallel::makeCluster(ncores)
+              doParallel::registerDoParallel(cl)
+            } else {
+              foreach::registerDoSEQ()
+            }
+            
+            ####---- split dataset and database frame into rt regions for parallelisation
+            ## order both peak tables by median rt of the peak-groups
+            ds <- object@valid
+            db <- read.csv(database, header = T, stringsAsFactors = F)
+            
+            ## temp fix for float precision
+            ds[, c("mz", "rt", "into")] <- t(apply(ds[, c("mz", "rt", "into")], 1, round, digits = 8))
+            db[, c("mz", "rt", "into")] <- t(apply(db[, c("mz", "rt", "into")], 1, round, digits = 8))
+            
+            ds <- orderBYrt(dt = ds, var_name = "pcs")
+            db <- orderBYrt(dt = db, var_name = "chemid")
+            
+            ## get rt/mz error windows
+            ds <- addERRS(dt = ds, mz_err = mz_err, rt_err = rt_err)
+            db <- addERRS(dt = db, mz_err = mz_err, rt_err = rt_err)
+            
+            ## get rt region values using ds peak-groups
+            ## assign DS peak-groups to bins
+            rt_bins <- as.numeric(cut(1:length(unique(ds$pcs)), breaks = ncores))
+            for (pcs in unique(ds$pcs)) {
+              ds[which(ds$pcs == pcs), "rt_bin"] <- rt_bins[which(unique(ds$pcs) == pcs)]
+            }
+            ds_bins <- list()
+            for (bin in 1:ncores) {
+              ds_bins[[bin]] <- ds[which(ds$rt_bin == bin), ]
+            }
+            
+            ## assign DB compounds to bins using DS rt regions
+            db_bins <- list()
+            for (bin in 1:ncores) {
+              rt_val_bin <- min(ds_bins[[bin]]$rt) - rt_err
+              rt_val_next <- ifelse(bin < ncores,
+                                    min(ds_bins[[(bin + 1)]]$rt) - rt_err,
+                                    Inf)
+              db_by_rt <- db[which(db$rt >= rt_val_bin & db$rt < rt_val_next),]
+              ## also add peaks that belong to the same chemid
+              db_by_cid <- db[which(db$chemid %in% db_by_rt$chemid),]
+              db_bins[[bin]] <- db_by_cid
+                
+            }
+          
+            ####---- estimate cosines for matching peak-groups between DS and DB
+            cos_matches <-
+              foreach::foreach(bin = 1:ncores,
+                               .inorder = TRUE) %dopar% (
+                                 massFlowR:::getCOSmat(
+                                   bin = bin,
+                                   ds_bin = ds_bins[[bin]],
+                                   ds_var = "pcs",
+                                   tmp_bin = db_bins[[bin]],
+                                   tmp_var = "chemid",
+                                   mz_err = mz_err,
+                                   rt_err = rt_err,
+                                   bins = 0.01
+                                 )
+                               )
+            cos_mat <- matrix(0, nrow = length(unique(db$chemid)), ncol = length(unique(ds$pcs)))
+            rownames(cos_mat) <- unique(db$chemid)
+            colnames(cos_mat) <- unique(ds$pcs)
+            
+            for(bin in 1:ncores) {
+              cos_mat_bin <- cos_matches[[bin]][[1]]
+              cos_mat[match(rownames(cos_mat_bin), rownames(cos_mat), nomatch = 0),
+                      match(colnames(cos_mat_bin), colnames(cos_mat), nomatch = 0)] <-
+                cos_mat_bin[match(rownames(cos_mat), rownames(cos_mat_bin), nomatch = 0),
+                            match(colnames(cos_mat), colnames(cos_mat_bin), nomatch = 0)]
+              
+            }
+            
+            ####---- assign ds to db using cosines
+            cos_assigned <- assignCOS(cos = cos_mat)
+            cos_true <- which(cos_assigned == TRUE)
+            cos_mat[cos_true]
+            
+            
+            
+}
+)

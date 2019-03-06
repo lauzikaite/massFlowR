@@ -40,6 +40,7 @@ Collate:
     'constructors.R'
     'functions-addDOI.R'
     'functions-addDOI_helpers.R'
+    'functions-annotatePEAKS_helpers.R'
     'functions-fillPEAKS_helpers.R'
     'functions-getDB.R'
     'functions-groupPEAKS.R'

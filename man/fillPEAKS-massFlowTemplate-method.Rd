@@ -6,11 +6,13 @@
 \alias{fillPEAKS}
 \title{Fill peaks}
 \usage{
-\S4method{fillPEAKS}{massFlowTemplate}(object, out_dir = NULL,
-  ncores = 1)
+\S4method{fillPEAKS}{massFlowTemplate}(object, fill_value = "into",
+  out_dir = NULL, ncores = 2)
 }
 \arguments{
 \item{object}{\code{massFlowTemplate} class object.}
+
+\item{fill_value}{\code{character} specifying which intensity value should be filled and returned, default set to 'into'.}
 
 \item{out_dir}{\code{character} specifying desired directory for output.}
 

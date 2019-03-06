@@ -52,7 +52,8 @@ setClass("massFlowDB",
 #' @slot valid \code{data.frame} storing validated sample alignment template with peakids and corresponding Pseudo Chemical Spectra id.
 #' @slot peaks \code{list} containing peak intergration values for every peak (NA if peak was not detected), listead peak-wise.
 #' @slot values \code{list} containing peak intergration values for every sample  (NA if peak was not detected), listed sample-wise.
-#'
+#' @slot history \code{list} containg names of methods that have already been applied to the object.
+#' 
 #' @seealso \code{\link{buildTMP}}, \code{\link{alignPEAKS}}, \code{\link{validPEAKS}}
 #'
 #' @rdname massFlowTemplate-class
@@ -69,6 +70,7 @@ setClass(
     params = "list",
     valid = "data.frame",
     peaks = "list",
-    values = "list"
+    values = "list",
+    history = "list"
   )
 )

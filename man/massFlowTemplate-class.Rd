@@ -62,6 +62,8 @@ Alignment results are stored in slot @data for each sample separately.
 \item{\code{peaks}}{\code{list} containing peak intergration values for every peak (NA if peak was not detected), listead peak-wise.}
 
 \item{\code{values}}{\code{list} containing peak intergration values for every sample  (NA if peak was not detected), listed sample-wise.}
+
+\item{\code{history}}{\code{list} containg names of methods that have already been applied to the object.}
 }}
 
 \seealso{
