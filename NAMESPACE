@@ -2,13 +2,10 @@
 
 export(buildDB)
 export(buildTMP)
-export(getDB)
 export(groupPEAKS)
 export(loadALIGNED)
-exportClasses(massFlowDB)
 exportClasses(massFlowTemplate)
 exportMethods(alignPEAKS)
-exportMethods(chemicals)
 exportMethods(filepath)
 exportMethods(fillPEAKS)
 exportMethods(peaksVALIDATED)
