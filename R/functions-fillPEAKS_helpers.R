@@ -12,12 +12,12 @@ modelPEAKS <- function(p, vars, object) {
 }
 
 # smoothVALUE -------------------------------------------------------------------------------------------------------
-smoothVALUE <- function(var, x, peak) {
+smoothVALUE <- function(var, x, peak, lambda = 10) {
   y <- peak[,match(var, names(peak))]
   present <- which(!is.na(y))
   mod <- smooth.spline(x = x[present],
                        y = y[present],
-                       lambda = 10,
+                       lambda = lambda,
                        cv = TRUE)
   predicted <- predict(mod, x = x[-present])$y
   y[is.na(y)] <- predicted

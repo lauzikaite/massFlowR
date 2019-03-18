@@ -16,11 +16,7 @@
 
 \item{out_dir}{\code{character} specifying desired directory for output.}
 
-\item{ncores}{\code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.}
-
-\item{min_samples}{\code{numeric} specifying the minimum percentage of samples in which peak has to be detected in order to be considered (default set to 10 percent).}
-
-\item{cor_thr}{\code{numeric} defining Pearson correlation coefficient threshold for inter-sample correlation between peaks (default set to 0.75).}
+\item{ncores}{\code{numeric} defining number of cores to use for parallelisation. Default set to 2 for parallel implementation.}
 }
 \value{
 Method returns peak table with filled intensities for missed peaks.

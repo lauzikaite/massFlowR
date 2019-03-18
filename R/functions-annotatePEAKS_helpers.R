@@ -166,7 +166,52 @@ annotatePEAKS <- function(dataset = NULL,
 }
 
 
-
+getRTbins <- function(ds, tmp, ds_var_name, tmp_var_name, mz_err, rt_err, ncores) {
+  ####---- split dataset-of-interest and template into rt regions (bins) for parallelisation
+  ## order both peak tables by median rt of the peak-groups
+  ds <- orderBYrt(dt = ds, var_name = ds_var_name)
+  tmp <- orderBYrt(dt = tmp, var_name = tmp_var_name)
+  
+  ## get rt/mz error windows
+  ds <- addERRS(dt = ds, mz_err = mz_err, rt_err = rt_err)
+  tmp <- addERRS(dt = tmp, mz_err = mz_err, rt_err = rt_err)
+  
+  ## get rt region values using ds peak-groups
+  ## assign DS peak-groups to bins
+  ds_var_ind <- match(ds_var_name, colnames(ds))
+  tmp_var_ind <- match(tmp_var_name, colnames(tmp))
+  
+  ## assign bin values to ds peak-groups so that each bin has more or less equal number of peak-groups
+  ds_vars <- unique(ds[ , ds_var_ind])
+  if (ncores > 1) {
+    rt_bins <- as.numeric(cut(1:length(ds_vars), breaks = ncores))
+  } else {
+    rt_bins <- rep(1, length(ds_vars))
+  }
+  for (var in ds_vars) {
+    ds[which(ds[, ds_var_ind] == var), "rt_bin"] <- rt_bins[which(ds_vars == var)]
+  }
+  ## split ds frame into corresponding bins and save sub-frames to a list
+  ds_bins <- list()
+  for (bin in 1:ncores) {
+    ds_bins[[bin]] <- ds[which(ds$rt_bin == bin), ]
+  }
+  
+  ## split template frame to bins using ds bins rt values
+  tmp_bins <- list()
+  for (bin in 1:ncores) {
+    ## get all peaks that are below current bin max rt value,
+    ## and have not been included in the previous bin
+    rt_val_max <- max(ds_bins[[bin]]$rt_h)
+    peakids_previous <- ifelse(bin == 1, 0, ds_bins[[bin - 1]]$peakid)
+    tmp_by_rt <- tmp[which(tmp$rt_h <= rt_val_max &
+                             !tmp$peakgr %in% peakids_previous), ]
+    ## also add peaks that belong to the same peak-group as any of the peaks matched by rt
+    tmp_by_group <- tmp[which(tmp[ , tmp_var_ind] %in% tmp_by_rt[ , tmp_var_ind]), ]
+    tmp_bins[[bin]] <- tmp_by_group
+  }
+  return(list(ds = ds_bins, tmp = tmp_bins))
+}      
 
 
 
@@ -177,10 +222,9 @@ orderBYrt <- function(dt, var_name) {
   rt_med <- sapply(vars, function(var) {
     median(dt[which(dt[,var_ind] == var), "rt"])
   })
-  var_order <- order(rt_med)
-  var_levels <- factor(dt[, var_ind], levels = var_order)
-  dt <- dt[order(var_levels),]
-  return(dt)
+  var_levels <- factor(dt[, var_ind], levels = vars[order(rt_med)])
+  dt_ordered <- dt[order(var_levels),]
+  return(dt_ordered)
 }
 
 
@@ -214,16 +258,16 @@ getCOSmat <- function(bin, ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bin
     ## build mz spectra using all target peaks and all matched peaks
     matches_all <- tmp_bin[which(tmp_bin[, tmp_var_ind] %in% matches$tmp_var), ]
     all_peaks <- c(target$mz, matches_all$mz)
-    mz_spec <-
-      data.frame(mz = seq(
+    spec <- data.frame(
+      mz = seq(
         from = min(all_peaks),
         to = max(all_peaks),
         by = bins
       ))
-    mz_spec$bin <- 1:nrow(mz_spec)
+    spec$bin <- 1:nrow(spec)
     
     ## convert target's and tmp peak-groups to vectors
-    target_vec <- buildVECTOR(mz_spec = mz_spec, peaks = target)
+    target_vec <- buildVECTOR(spec = spec, peaks = target)
     
     ## calculate cosines between target peak-group and all matched peak-groups
     ## cos length will be equal to l
@@ -233,7 +277,7 @@ getCOSmat <- function(bin, ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bin
                                c("mz", "into")]
       
       ## build vector from matched peaks
-      matched_vec <- buildVECTOR(mz_spec = mz_spec, peaks = matched_peaks)
+      matched_vec <- buildVECTOR(spec = spec, peaks = matched_peaks)
 
       ## find the cosine of the angle between peakgrs
       cos_angle <-
@@ -242,7 +286,7 @@ getCOSmat <- function(bin, ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bin
         )))  * (sqrt(sum(
           matched_vec * matched_vec
         ))))
-      return(cos_angle)
+      return(round(cos_angle, 4))
     })
     
     ## update cosine matrix with cosines
@@ -282,15 +326,30 @@ getMATCHES <- function(target_peak, tmp, tmp_var, target_var) {
   }
 }
 
-buildVECTOR <- function(mz_spec, peaks) {
-  peaks$bin <- findInterval(x = peaks$mz, mz_spec$mz)
+buildVECTOR <- function(spec, peaks) {
+  peaks$bin <- findInterval(x = peaks$mz, spec$mz)
   ## remove duplicating duplicating bins and any bins that are not representing a peak
   peaks <- peaks[which(!duplicated(peaks$bin)), c("bin", "into")]
-  mz_spec$into <- 0
-  mz_spec[which(mz_spec$bin %in% peaks$bin), "into"] <- peaks$into
-  vec <- scaleVEC(mz_spec$into)
-  return(vec)
+  spec$into <- 0
+  spec[match(peaks$bin, spec$bin), "into"] <- peaks$into
+  vector <- scaleSPEC(spec = spec)
+  return(vector)
 }
+
+## scale spectrum vector 
+scaleSPEC <- function(spec, m = 0.6, n = 3) {
+  ## Version A
+  spec$into / (sqrt(sum(spec$into * spec$into)))
+
+  ## Version B - according to Stein & Scott, 1994
+  ## scale the intensity of every mz ion separately
+  ## use m and n weighting factors taken from Stein & Scott, 1994
+  # apply(spec, 1, function(x) {
+  #   x[["into"]] ^ m * x[["mz"]] ^ n
+  # })
+}
+
+
 
 assignCOS <- function(cos) {
   
@@ -392,9 +451,8 @@ rankCOS <- function(x) {
   return(cos_ranks)
 }
 
-                   
-                    
-                    
+
+             
   
   
 

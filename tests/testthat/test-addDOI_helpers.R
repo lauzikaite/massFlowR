@@ -139,6 +139,7 @@ test_that("matchPEAK", {
 
 # getCOS ----------------------------------------------------------------------------------------------------------
 test_that("getCOS calculates cosines correctly", {
+
   ####---- identical peakgrs
   dt1 <- single_table
   dt2 <- single_table
