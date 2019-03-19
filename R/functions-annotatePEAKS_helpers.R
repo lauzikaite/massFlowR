@@ -203,9 +203,13 @@ getRTbins <- function(ds, tmp, ds_var_name, tmp_var_name, mz_err, rt_err, ncores
     ## get all peaks that are below current bin max rt value,
     ## and have not been included in the previous bin
     rt_val_max <- max(ds_bins[[bin]]$rt_h)
-    peakids_previous <- ifelse(bin == 1, 0, ds_bins[[bin - 1]]$peakid)
+    peakgrs_previous <- if (bin == 1) {
+      0
+    } else {
+      tmp_bins[[bin - 1]]$peakgr
+    }
     tmp_by_rt <- tmp[which(tmp$rt_h <= rt_val_max &
-                             !tmp$peakgr %in% peakids_previous), ]
+                             !tmp$peakgr %in% peakgrs_previous), ]
     ## also add peaks that belong to the same peak-group as any of the peaks matched by rt
     tmp_by_group <- tmp[which(tmp[ , tmp_var_ind] %in% tmp_by_rt[ , tmp_var_ind]), ]
     tmp_bins[[bin]] <- tmp_by_group

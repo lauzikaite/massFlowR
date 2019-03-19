@@ -209,6 +209,8 @@ setMethod("alignPEAKS",
                   bins = 0.01)
               }
               doi_vars_by_bins <- lapply(doi_bins, function(x) unique(x$peakgr))
+              # tmp_vars_by_bins <- lapply(tmp_bins, function(x) unique(x$peakgr))
+              
               tmp_vars <-  unique(unlist(lapply(tmp_bins, "[[", "peakgr")))
               doi_vars <-  unique(unlist(doi_vars_by_bins))
               
@@ -258,7 +260,7 @@ setMethod("alignPEAKS",
                   bin <- which(sapply(doi_vars_by_bins, function(x) doi_var %in% x))
                   mat <- cos_matches[[bin]][[2]][[which(doi_vars_by_bins[[bin]] == doi_var)]]
                  
-                   ## retain only assigned tmp peakgr peaks
+                  ## retain only assigned tmp peakgr peaks
                   mat <- mat[which(mat$tmp_var == tmp_var), ]
                   
                   tmp_peakids <- unique(mat$peakid)
