@@ -1,38 +1,8 @@
 context("addDOI_helpers")
 
-# checkFILE---------------------------------------------------------------------------------------------------
-test_that("Checking grouped peaks csv tables via checkFILE is correct", {
-  ## correct file
-  checked_file <- massFlowR:::checkFILE(file = grouped_fnames[[1]])
-  correct_file <-
-    read.csv(file = grouped_fnames[[1]], stringsAsFactors = F)
-  expect_equal(checked_file, correct_file)
-  
-  ## wrong filepath
-  wrong_filepath <- gsub(".csv", "", grouped_fnames[[1]])
-  expect_error(
-    massFlowR:::checkFILE(file = wrong_filepath),
-    paste("incorrect filepath for:", wrong_filepath)
-  )
-  
-  ## wrong column names
-  wrong_file <-
-    setNames(correct_file, nm = c("peakID", "MZ", names(correct_file)[3:ncol(correct_file)]))
-  wrong_file_filepath <-
-    gsub(".csv", "wrong.csv", grouped_fnames[[1]])
-  write.csv(wrong_file, file = wrong_file_filepath, row.names = F)
-  expected_error <-
-    paste("incorrect file:",
-          wrong_file_filepath,
-          "\n",
-          "missing columns: peakid, mz")
-  expect_error(massFlowR:::checkFILE(file = wrong_file_filepath),
-               expected_error)
-  unlink(x = wrong_file_filepath)
-})
-
 # getCLUSTS -------------------------------------------------------------------------------------------------------
 test_that("Clustering of peak-groups via getCLUSTS is correct", {
+  skip("getCLUSTS will be Deprecated")
   dt <- massFlowR:::checkFILE(file = grouped_fnames[[1]])
   clustered_dt <- massFlowR:::getCLUSTS(dt = dt)
   
@@ -47,53 +17,39 @@ test_that("Clustering of peak-groups via getCLUSTS is correct", {
 })
 
 # orderPEAKS ------------------------------------------------------------------------------------------------------
-test_that("Peak-group ordering by complexity and intensity via orderPEAKS is correct",
-          {
-            ## according to how many peaks per peak-group
-            ordered <-
-              order(table(single_table$peakgr), decreasing = T)
-            ordered <- factor(single_table$peakgr, levels = ordered)
-            table_ordered <- single_table[order(ordered), ]
-            
-            ## according to peak intensity (aka peakid)
-            peaks_ordered <-
-              sapply(unique(table_ordered$peakgr), function(pkg) {
-                ord <-
-                  order(table_ordered[which(table_ordered$peakgr == pkg), "peakid"])
-                if (all(ord == 1:length(ord))) {
-                  TRUE
-                } else {
-                  FALSE
-                }
-              })
-            expect_true(all(unlist(peaks_ordered)))
-            
-            ## compare peakid order in orderPEAKS output
-            orderPEAKS_out <- orderPEAKS(dt = single_table)
-            expect_true(all(orderPEAKS_out$peakid == table_ordered$peakid))
-            
-          })
-
-# addERRS ---------------------------------------------------------------------------------------------------------
-test_that("addERR adds mz/rt windows correctly", {
-  dt <- test_pks_rd
-  dt[, c("mz_l",
-         "mz_h",
-         "rt_l",
-         "rt_h")] <- c(dt$"mz" - mz_err,
-                       dt$"mz" + mz_err,
-                       dt$"rt" - rt_err,
-                       dt$"rt" + rt_err)
-  addERRS_out <-
-    addERRS(dt = test_pks_rd,
-            mz_err = mz_err,
-            rt_err = rt_err)
-  expect_identical(dt, addERRS_out)
-  expect_true(addERRS_out[1, "mz_l"] == (test_pks_rd[1, "mz"] - mz_err))
-})
+test_that("Peak-group ordering by complexity and intensity via orderPEAKS is correct", {
+  
+  skip("will be Deprecated")
+  
+  ## according to how many peaks per peak-group
+  ordered <-
+    order(table(single_table$peakgr), decreasing = T)
+  ordered <- factor(single_table$peakgr, levels = ordered)
+  table_ordered <- single_table[order(ordered), ]
+  
+  ## according to peak intensity (aka peakid)
+  peaks_ordered <-
+    sapply(unique(table_ordered$peakgr), function(pkg) {
+      ord <-
+        order(table_ordered[which(table_ordered$peakgr == pkg), "peakid"])
+      if (all(ord == 1:length(ord))) {
+        TRUE
+      } else {
+        FALSE
+      }
+    })
+  expect_true(all(unlist(peaks_ordered)))
+  
+  ## compare peakid order in orderPEAKS output
+  orderPEAKS_out <- orderPEAKS(dt = single_table)
+  expect_true(all(orderPEAKS_out$peakid == table_ordered$peakid))
+  }
+  )
 
 # matchPEAK -------------------------------------------------------------------------------------------------------
 test_that("matchPEAK", {
+  skip("will be Deprecated")
+  
   ####---- match a table againts itself
   dt <- addERRS(dt = single_table,
                 mz_err = mz_err,
@@ -139,7 +95,9 @@ test_that("matchPEAK", {
 
 # getCOS ----------------------------------------------------------------------------------------------------------
 test_that("getCOS calculates cosines correctly", {
-
+  
+  skip("will be Deprecated")
+  
   ####---- identical peakgrs
   dt1 <- single_table
   dt2 <- single_table
@@ -244,6 +202,9 @@ test_that("getCOS calculates cosines correctly", {
 
 # compareCOS -------------------------------------------------------------------------------------------------
 test_that("Selection of top matches via compareCOS is correct", {
+  
+  skip("will be Deprecated")
+  
   ## sample table consists of 3 target peakgrs, each matched by the same 3 template peakgrs
   cos_list <- c(seq(
     from = 0.1,

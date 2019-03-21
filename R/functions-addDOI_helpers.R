@@ -1,45 +1,3 @@
-# checkFILE -------------------------------------------------------------------------------------------------------
-## Check and load file for alignment
-checkFILE <- function(file = NULL) {
-  if (!file.exists(file)) {
-    stop("incorrect filepath for: ", file)
-  }
-  dt <- read.csv(file, stringsAsFactors = F)
-  required_colnames <-
-    c("peakid",
-      "mz",
-      "mzmin",
-      "mzmax",
-      "rt",
-      "rtmin",
-      "rtmax",
-      "into",
-      "peakgr")
-  if (any(!required_colnames %in% colnames(dt))) {
-    stop(
-      "incorrect file: ",
-      file,
-      " \n ",
-      "missing columns: ",
-      paste0(required_colnames[which(!required_colnames %in% colnames(dt))], collapse = ", ")
-    )
-  }
-  return(dt)
-}
-
-# addERRS ---------------------------------------------------------------------------------------------------------
-## add error windows using user-defined mz/rt values
-addERRS <- function(dt, mz_err, rt_err) {
-  dt[, c("mz_l",
-         "mz_h",
-         "rt_l",
-         "rt_h")] <- c(dt$"mz"-mz_err,
-                       dt$"mz"+mz_err,
-                       dt$"rt"-rt_err,
-                       dt$"rt"+rt_err)
-  return(dt)
-}
-
 # getCLUSTS -------------------------------------------------------------------------------------------------------
 ## get peakgroup clusters based on rt values
 ## requires columns 'peakgr','peakid','rt'
@@ -84,7 +42,6 @@ getCLUSTS <- function(dt) {
   return(dt)
 }
 
-
 # orderPEAKS ------------------------------------------------------------------------------------------------------
 ## order peak-groups by their complexity (number of peaks), but preserve increasing peak-group numbering
 orderPEAKS <- function(dt) {
@@ -93,7 +50,6 @@ orderPEAKS <- function(dt) {
   dt <- dt[order(pkg_levels),]
   return(dt)
 }
-
 
 # matchPEAK -------------------------------------------------------------------------------------------------------
 matchPEAK <- function(peak, tmp) {
@@ -113,7 +69,6 @@ matchPEAK <- function(peak, tmp) {
     return(mat)
   }
 }
-
 
 # getTOPmatches ---------------------------------------------------------------------------------------------------
 ## compare all matched template's peaks and find the top matches for every target peakgroup
@@ -156,7 +111,6 @@ getTOPmatches <- function(mat, target, tmp, bins) {
   }
   return(costop)
 }
-
 
 # getCOS ----------------------------------------------------------------------------------------------------------
 getCOS <- function(t_peakgr, target, mat, tmp, bins) {
@@ -421,7 +375,6 @@ addPEAKS <- function(mattop, mat, target, tmp, itmp, doi) {
   return(list("doi" = doi, "itmp" = itmp))
 }
 
-
 # addGROUPED ------------------------------------------------------------------------------------------------------
 ## add doi peaks to tmp: peaks were grouped with an existing tmp peak-group
 addGROUPED <-
@@ -535,7 +488,6 @@ addGROUPED <-
     
     return(list("doi" = doi, "utmp" = utmp))
   }
-
 
 # addUNGROUPED ----------------------------------------------------------------------------------------------------
 ## if component was not assigned/grouped with any template's CID, add its peaks to template as new

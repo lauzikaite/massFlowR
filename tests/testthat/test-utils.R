@@ -1,5 +1,17 @@
 context("utils functions")
 
+# validFILE --------------------------------------------------------------------------------------------------------
+test_that("validFILE", {
+  
+  
+})
+
+# readDATA --------------------------------------------------------------------------------------------------------
+test_that("readDATA", {
+  
+  
+})
+
 # cleanPEAKS ------------------------------------------------------------------------------------------------------
 test_that("cleanPEAKS removes duplicated peaks correctly", {
   ## removes duplicates in mz/rt (as in pickPEAKS)

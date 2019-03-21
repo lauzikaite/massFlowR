@@ -1,4 +1,69 @@
-context("annotatePEAKS_helpers")
+context("alignPEAKS_helpers")
+
+# checkFILE---------------------------------------------------------------------------------------------------
+test_that("Checking grouped peaks csv tables via checkFILE is correct", {
+  ## correct file
+  checked_file <- massFlowR:::checkFILE(file = grouped_fnames[[1]])
+  correct_file <-
+    read.csv(file = grouped_fnames[[1]], stringsAsFactors = F)
+  expect_equal(checked_file, correct_file)
+  
+  ## wrong filepath
+  wrong_filepath <- gsub(".csv", "", grouped_fnames[[1]])
+  expect_error(
+    massFlowR:::checkFILE(file = wrong_filepath),
+    paste("incorrect filepath for:", wrong_filepath)
+  )
+  
+  ## wrong column names
+  wrong_file <-
+    setNames(correct_file, nm = c("peakID", "MZ", names(correct_file)[3:ncol(correct_file)]))
+  wrong_file_filepath <-
+    gsub(".csv", "wrong.csv", grouped_fnames[[1]])
+  write.csv(wrong_file, file = wrong_file_filepath, row.names = F)
+  expected_error <-
+    paste("incorrect file:",
+          wrong_file_filepath,
+          "\n",
+          "missing columns: peakid, mz")
+  expect_error(massFlowR:::checkFILE(file = wrong_file_filepath),
+               expected_error)
+  unlink(x = wrong_file_filepath)
+})
+
+# getRTbins ---------------------------------------------------------------------------------------------------------
+test_that("getRTbins() correctly splits two dataframes to rt bins", {
+  
+  ## use the same table as both ds and tmp
+  ds_ordered <- orderBYrt(dt = single_table, var_name = "peakgr")
+  out <- getRTbins(ds = single_table, tmp = single_table, ds_var_name = "peakgr", tmp_var_name = "peakgr", mz_err = mz_err, rt_err = rt_err, ncores = 2)
+  
+  ## number of created rt bins equals ncores
+  expect_true(all(length(out$ds) == 2, length(out$tmp) == 2))
+  
+  ## all peakids are exported
+  expect_true(all(single_table$peakid %in% union(out$tmp[[1]]$peakid, out$tmp[[2]]$peakid)))
+  expect_true(all(single_table$peakid %in% c(out$ds[[1]]$peakid, out$ds[[2]]$peakid)))
+  
+  ## all peaks in the ds bin must also be present in the corresponding tmp bin
+  expect_true(all(
+    out$ds[[1]]$peakid %in% out$tmp[[1]]$peakid,
+    out$ds[[2]]$peakid %in% out$tmp[[2]]$peakid
+  ))
+  
+  ## obtained tmp bins must overlap for common rt values
+  rt_bin_1 <- c(min(out$ds[[1]]$rt - rt_err),
+                max(out$ds[[1]]$rt + rt_err))
+  rt_bin_2 <- c(min(out$ds[[2]]$rt - rt_err),
+                max(out$ds[[2]]$rt + rt_err))
+  peakgrs_in_common <-
+    ds_ordered$peakgr[which((ds_ordered$rt - rt_err) >= rt_bin_2[1] &
+                              (ds_ordered$rt + rt_err) <= rt_bin_1[2])]
+  peaks_in_common <- ds_ordered$peakid[which(ds_ordered$peakgr %in% peakgrs_in_common)]
+  expect_identical(peaks_in_common,
+                   intersect(out$tmp[[1]]$peakid,
+                             out$tmp[[2]]$peakid))
+})
 
 # orderBYrt ---------------------------------------------------------------------------------------------------------
 test_that("orderBYrt() correctly orders dataset using rt", {
@@ -37,38 +102,22 @@ test_that("orderBYrt() correctly orders dataset using rt", {
   })))
   })
 
-# getRTbins ---------------------------------------------------------------------------------------------------------
-test_that("getRTbins() correctly splits two dataframes to rt bins", {
-  
-  ## use the same table as both ds and tmp
-  ds_ordered <- orderBYrt(dt = single_table, var_name = "peakgr")
-  out <- getRTbins(ds = single_table, tmp = single_table, ds_var_name = "peakgr", tmp_var_name = "peakgr", mz_err = mz_err, rt_err = rt_err, ncores = 2)
-
-  ## number of created rt bins equals ncores
-  expect_true(all(length(out$ds) == 2, length(out$tmp) == 2))
-  
-  ## all peakids are exported
-  expect_true(all(single_table$peakid %in% union(out$tmp[[1]]$peakid, out$tmp[[2]]$peakid)))
-  expect_true(all(single_table$peakid %in% c(out$ds[[1]]$peakid, out$ds[[2]]$peakid)))
-  
-  ## all peaks in the ds bin must also be present in the corresponding tmp bin
-  expect_true(all(
-    out$ds[[1]]$peakid %in% out$tmp[[1]]$peakid,
-    out$ds[[2]]$peakid %in% out$tmp[[2]]$peakid
-  ))
-  
-  ## obtained tmp bins must overlap for common rt values
-  rt_bin_1 <- c(min(out$ds[[1]]$rt - rt_err),
-                  max(out$ds[[1]]$rt + rt_err))
-  rt_bin_2 <- c(min(out$ds[[2]]$rt - rt_err),
-                max(out$ds[[2]]$rt + rt_err))
-  peakgrs_in_common <-
-    ds_ordered$peakgr[which((ds_ordered$rt - rt_err) >= rt_bin_2[1] &
-                              (ds_ordered$rt + rt_err) <= rt_bin_1[2])]
-  peaks_in_common <- ds_ordered$peakid[which(ds_ordered$peakgr %in% peakgrs_in_common)]
-  expect_identical(peaks_in_common,
-                   intersect(out$tmp[[1]]$peakid,
-                             out$tmp[[2]]$peakid))
+# addERRS ---------------------------------------------------------------------------------------------------------
+test_that("addERR adds mz/rt windows correctly", {
+  dt <- test_pks_rd
+  dt[, c("mz_l",
+         "mz_h",
+         "rt_l",
+         "rt_h")] <- c(dt$"mz" - mz_err,
+                       dt$"mz" + mz_err,
+                       dt$"rt" - rt_err,
+                       dt$"rt" + rt_err)
+  addERRS_out <-
+    addERRS(dt = test_pks_rd,
+            mz_err = mz_err,
+            rt_err = rt_err)
+  expect_identical(dt, addERRS_out)
+  expect_true(addERRS_out[1, "mz_l"] == (test_pks_rd[1, "mz"] - mz_err))
 })
 
 # getCOSmat ---------------------------------------------------------------------------------------------------------
@@ -198,6 +247,11 @@ test_that("getCOSmat() returns correct cosine matrix", {
   
 })
 
+# getMATCHES ---------------------------------------------------------------------------------------------------------
+test_that("getMATCHES() ", {
+  
+})
+
 # buildVECTOR ---------------------------------------------------------------------------------------------------------
 test_that("buildVECTOR()", {
   
@@ -222,40 +276,10 @@ test_that("buildVECTOR()", {
 
 })
 
-
-# rankCOS ---------------------------------------------------------------------------------------------------------
-test_that("rankCOS() correctly ranks cosines, giving 1 to the highest cosine", {
-  cos_list <- c(0, 0, 0.9, 0,
-                0.6, 0.9, 0.7, 0,
-                0.7, 0, 0.8 , 0.6, 
-                0.8, 0.85, 0, 0)
-  cos <- matrix(cos_list, nrow = 4, ncol = 4)
-  ## rank for columns
-  cos_ranked <- apply(cos, 2, FUN = massFlowR:::rankCOS)
-  expected <- matrix(c(0, 0, 1, 0,
-                       3, 1, 2, 0,
-                       2, 0, 1, 3,
-                       2, 1, 0, 0),
-                     nrow = 4, ncol = 4)
-  expect_equal(cos_ranked, expected)
-  
-  ## rank for rows
-  cos_ranked <- apply(cos, 1, FUN = massFlowR:::rankCOS)
-  expected <- matrix(c(0, 3, 2, 1,
-                       0, 1, 0, 2,
-                       1, 3, 2, 0,
-                       0, 0, 1, 0),
-                     nrow = 4, ncol = 4)
-  expect_equal(cos_ranked, expected)
+# scaleSPEC ---------------------------------------------------------------------------------------------------------
+test_that("scaleSPEC() ", {
   
 })
-  
-
-
-
-
-
-
 
 # assignCOS -------------------------------------------------------------------------------------------------
 test_that("assignCOS() correctly assigns pairs to maximise top-top matching", {
@@ -328,4 +352,31 @@ test_that("assignCOS() correctly assigns pairs to maximise top-top matching", {
                      nrow = 4, ncol = 4)
   expect_equal(cos_assigned, expected)
 
+})
+
+# rankCOS ---------------------------------------------------------------------------------------------------------
+test_that("rankCOS() correctly ranks cosines, giving 1 to the highest cosine", {
+  cos_list <- c(0, 0, 0.9, 0,
+                0.6, 0.9, 0.7, 0,
+                0.7, 0, 0.8 , 0.6, 
+                0.8, 0.85, 0, 0)
+  cos <- matrix(cos_list, nrow = 4, ncol = 4)
+  ## rank for columns
+  cos_ranked <- apply(cos, 2, FUN = massFlowR:::rankCOS)
+  expected <- matrix(c(0, 0, 1, 0,
+                       3, 1, 2, 0,
+                       2, 0, 1, 3,
+                       2, 1, 0, 0),
+                     nrow = 4, ncol = 4)
+  expect_equal(cos_ranked, expected)
+  
+  ## rank for rows
+  cos_ranked <- apply(cos, 1, FUN = massFlowR:::rankCOS)
+  expected <- matrix(c(0, 3, 2, 1,
+                       0, 1, 0, 2,
+                       1, 3, 2, 0,
+                       0, 0, 1, 0),
+                     nrow = 4, ncol = 4)
+  expect_equal(cos_ranked, expected)
+  
 })

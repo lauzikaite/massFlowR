@@ -148,128 +148,65 @@ setMethod("alignPEAKS",
             }
             params <- object@params
             
-            ## generated template and all intermediate alignment peak tables
+            ## filenames for template and final metadata tables
             tmp_fname <- file.path(out_dir, "template.csv")
             aligned_fname <- file.path(out_dir, "aligned.csv")
             
             while (any(object@samples$aligned == FALSE)) {
+              ## check if next peak-group table has been written already
+              doi_fname <- checkNEXT(object)
+              ## output filenames
+              doi_name <- object@samples$filename[object@samples$proc_filepath == doi_fname]
+              doi_fname_out <- paste0(file.path(out_dir, doi_name), "_aligned.csv")
+              ## check if next peak-group table contains correct columns, if so, read csv
+              doi <- checkFILE(file = doi_fname)
+              ## status messages
               message(paste(
                 length(which(object@samples$aligned == F)),
                 "out of" ,
                 nrow(object@samples),
                 "samples left to align."
               ))
-              ## check and read next sample
-              doi_fname <- checkNEXT(object)
-              doi <- checkFILE(file = doi_fname)
-              doi_name <- object@samples$filename[object@samples$proc_filepath == doi_fname]
-              doi_fname_out <- paste0(file.path(out_dir, doi_name), "_aligned.csv")
               message("Aligning to sample: ", doi_name,  " ... ")
-
+              ## get most up-to-date template
               tmp <- object@tmp
-              ####---- split doi and template frame into rt regions for parallelisation
-              rt_bins <- getRTbins(ds = doi,
-                                   tmp = tmp,
-                                   ds_var_name = "peakgr",
-                                   tmp_var_name = "peakgr",
-                                   mz_err = params$mz_err,
-                                   rt_err = params$rt_err,
-                                   ncores = ncores)
-              
-              ####---- estimate cosines for matching peak-groups between doi and template
-              doi_bins <- rt_bins$ds
-              tmp_bins <- rt_bins$tmp
-              
-              if (ncores > 1) {
-                cos_matches <-
-                  foreach::foreach(bin = 1:ncores,
-                                   .inorder = TRUE) %dopar% (
-                                     massFlowR:::getCOSmat(
-                                       bin = bin,
-                                       ds_bin = doi_bins[[bin]],
-                                       ds_var = "peakgr",
-                                       tmp_bin = tmp_bins[[bin]],
-                                       tmp_var = "peakgr",
-                                       mz_err = params$mz_err,
-                                       rt_err = params$rt_err,
-                                       bins = 0.01
-                                     )
-                                   )
-              } else {
-                ## run with lapply to have the same, 2-list-within-a-bin-list, structure as with foreach
-                cos_matches <- lapply(
-                  X = 1,
-                  FUN = massFlowR:::getCOSmat,
-                  ds_bin = doi_bins[[1]],
-                  ds_var = "peakgr",
-                  tmp_bin = tmp_bins[[1]],
-                  tmp_var = "peakgr",
-                  mz_err = params$mz_err,
-                  rt_err = params$rt_err,
-                  bins = 0.01)
-              }
-              doi_vars_by_bins <- lapply(doi_bins, function(x) unique(x$peakgr))
-              # tmp_vars_by_bins <- lapply(tmp_bins, function(x) unique(x$peakgr))
-              
-              tmp_vars <-  unique(unlist(lapply(tmp_bins, "[[", "peakgr")))
-              doi_vars <-  unique(unlist(doi_vars_by_bins))
-              
-              cos_mat <- matrix(0, nrow = length(tmp_vars), ncol = length(doi_vars))
-              rownames(cos_mat) <- tmp_vars
-              colnames(cos_mat) <- doi_vars
-              
-              for (bin in 1:ncores) {
-                cos_mat_bin <- cos_matches[[bin]][[1]]
-                cos_mat[match(rownames(cos_mat_bin), rownames(cos_mat), nomatch = 0),
-                        match(colnames(cos_mat_bin), colnames(cos_mat), nomatch = 0)] <-
-                  cos_mat_bin[match(rownames(cos_mat), rownames(cos_mat_bin), nomatch = 0),
-                              match(colnames(cos_mat), colnames(cos_mat_bin), nomatch = 0)]
-              }
             
-  
-              ####---- assign ds peakgroups to tmp peak-groups using cosines
-              cos_assigned <- assignCOS(cos = cos_mat)
+              doi_to_tmp <- do_alignPEAKS(ds = doi,
+                                          tmp = tmp,
+                                          ds_var_name = "peakgr",
+                                          tmp_var_name = "peakgr",
+                                          mz_err = params$mz_err,
+                                          rt_err = params$rt_err,
+                                          bins = params$bins,
+                                          ncores = ncores)
               
-              doi_true <- apply(cos_assigned, 2, function(x) which(x))
-              doi_assigned <- which(sapply(doi_true, length) > 0)
-              doi_vars_assigned <- doi_vars[doi_assigned]
-              
-              tmp_assigned <- unlist(doi_true[doi_assigned])
-              tmp_vars_assigned <- tmp_vars[tmp_assigned]
-              
+              ####---- update template with aligned doi peak-groups
               ## list to store tmp peakids for every peak in doi
-              doi_to_tmp <- rep(list(NA), nrow(doi))
+              doi_to_tmp_peakids <- rep(list(NA), nrow(doi))
               doi_to_tmp_peakgr <- rep(list(NA), nrow(doi))
               doi_to_tmp_cos <- rep(list(NA), nrow(doi))
-              
-              ####---- for EVERY peak-group in doi
-              for (var in 1:length(doi_vars)) {
-                
-                ## doi peak-group
-                doi_var <- doi_vars[var]
+            
+              ## for EVERY peak-group in doi
+              for (var in 1:length(doi_to_tmp)) {
+                doi_var <- doi_to_tmp[[var]]$ds
                 doi_var_peaks <- doi[doi$peakgr == doi_var, ]
+                tmp_var <-  doi_to_tmp[[var]]$tmp
                 
-                if (doi_var %in% doi_vars_assigned) {
-                  ## get corresponding tmp peak-groups
-                  tmp_var <- tmp_vars_assigned[which(doi_vars_assigned == doi_var)]
-                  
-                  ## get cosine value between these peak-groups
-                  cos <- cos_mat[match(tmp_var, rownames(cos_mat)), match(doi_var, colnames(cos_mat))]
-                 
-                  ## get all matching peaks for this doi peakgr 
-                  bin <- which(sapply(doi_vars_by_bins, function(x) doi_var %in% x))
-                  mat <- cos_matches[[bin]][[2]][[which(doi_vars_by_bins[[bin]] == doi_var)]]
-                 
-                  ## retain only assigned tmp peakgr peaks
-                  mat <- mat[which(mat$tmp_var == tmp_var), ]
-                  
-                  tmp_peakids <- unique(mat$peakid)
-                  ## there could be multiple doi peaks matching to each tmp peak
-                  doi_peakids <- lapply(tmp_peakids, function(p) {
-                    mat$target_peakid[match(p, mat$peakid)]
-                  })
-                  
-                  ####---- update tmp
+                if (is.null(tmp_var)) {
+                  ## use all peaks in the peak-group
+                  doi_peakids <- doi_var_peaks$peakid
+                  ## update tmp: add new peaks under new peakgr, set cos to NA
+                  tmp_peakids <- (max(tmp$peakid) + 1):(max(tmp$peakid) + nrow(doi_var_peaks))
+                  tmp_var <- max(tmp$peakgr) + 1
+                  cos <- NA
+                  utmp <- doi_var_peaks[, c("mz", "rt", "into")]
+                  utmp$peakid <- tmp_peakids
+                  utmp$peakgr <- tmp_var
+                  tmp <- rbind(tmp, utmp)
+                } else {
+                  doi_peakids <- doi_to_tmp[[var]]$mat$target_peakid
+                  tmp_peakids <- doi_to_tmp[[var]]$mat$peakid
+                  cos <- doi_to_tmp[[var]]$cos
                   ## get mean mz/rt across doi & tmp. Get into values from doi
                   new_values <- lapply(1:length(tmp_peakids), function(x) {
                     tmp_p <- tmp_peakids[x]
@@ -282,8 +219,8 @@ setMethod("alignPEAKS",
                     data.frame(mz_m, rt_m, into)
                   })
                   tmp[match(tmp_peakids, tmp$peakid), c("mz", "rt", "into")] <- do.call("rbind", new_values)
-                  
-                  ####---- if any unmatched peaks are left, add them as new
+                  ## if any unmatched peaks are left, add them as new
+                  doi_var_peaks <- doi[which(doi$peakgr == doi_var), ]
                   doi_var_peaks_un <- doi_var_peaks[!doi_var_peaks$peakid %in% doi_peakids, ]
                   if (nrow(doi_var_peaks_un) > 0) {
                     tmp_peakids_new <- (max(tmp$peakid) + 1):(max(tmp$peakid) + nrow(doi_var_peaks_un))
@@ -294,27 +231,13 @@ setMethod("alignPEAKS",
                     tmp_peakids <- c(tmp_peakids, tmp_peakids_new)
                     doi_peakids <- c(doi_peakids, doi_var_peaks_un$peakid)
                   }
-
-                } else {
-                  ## use all peaks in the peak-group
-                  doi_peakids <- doi_var_peaks$peakid
-
-                  ## update tmp: add new peaks under new peakgr, set cos to NA
-                  tmp_peakids <- (max(tmp$peakid) + 1):(max(tmp$peakid) + nrow(doi_var_peaks))
-                  tmp_var <- max(tmp$peakgr) + 1
-                  cos <- NA
-                  utmp <- doi_var_peaks[, c("mz", "rt", "into")]
-                  utmp$peakid <- tmp_peakids
-                  utmp$peakgr <- tmp_var
-                  tmp <- rbind(tmp, utmp)
                 }
                 ## update doi-to-tmp matching info
-                doi_to_tmp[unlist(doi_peakids)] <- tmp_peakids
+                doi_to_tmp_peakids[unlist(doi_peakids)] <- tmp_peakids
                 doi_to_tmp_peakgr[unlist(doi_peakids)] <- tmp_var
                 doi_to_tmp_cos[unlist(doi_peakids)] <- cos
               }
-              
-              doi$tmp_peakid <- unlist(doi_to_tmp)
+              doi$tmp_peakid <- unlist(doi_to_tmp_peakids)
               doi$tmp_peakgr <- unlist(doi_to_tmp_peakgr)
               doi$cos <- unlist(doi_to_tmp_cos)
             
@@ -346,16 +269,17 @@ setMethod("alignPEAKS",
                         file = tmp_fname,
                         quote = T,
                         row.names = F)
-              
             }
-            
             object@history[length(object@history) + 1] <- "alignPEAKS"
-            
             ## write updated meta file with filepaths to aligned samples
             write.csv(object@samples,
                       aligned_fname,
                       quote = T,
                       row.names = F)
+            
+            if (ncores > 1) {
+              parallel::stopCluster(cl)
+            }
             message("Peaks were aligned across all samples.")
             return(object)
           })

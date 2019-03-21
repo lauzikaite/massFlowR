@@ -1,171 +1,131 @@
-annotatePEAKS <- function(dataset = NULL,
-                          database = NULL,
-                          out_dir = NULL,
-                          ncores = 2,
-                          rt_err = 2,
-                          mz_err = 0.1,
-                          n_fts = 10
-                          ) {
-  if (is.null(dataset)) {
-    stop("'dataset' filepath is required")
+# checkFILE -------------------------------------------------------------------------------------------------------
+## Check and load file for alignment
+checkFILE <- function(file = NULL) {
+  if (!file.exists(file)) {
+    stop("incorrect filepath for: ", file)
   }
-  if (is.null(database)) {
-    stop("'database' filepath is required")
+  dt <- read.csv(file, stringsAsFactors = F)
+  required_colnames <-
+    c("peakid",
+      "mz",
+      "mzmin",
+      "mzmax",
+      "rt",
+      "rtmin",
+      "rtmax",
+      "into",
+      "peakgr")
+  if (any(!required_colnames %in% colnames(dt))) {
+    stop(
+      "incorrect file: ",
+      file,
+      " \n ",
+      "missing columns: ",
+      paste0(required_colnames[which(!required_colnames %in% colnames(dt))], collapse = ", ")
+    )
   }
-  if (is.null(out_dir)) {
-    stop("'out_dir' is required")
-  }
-  if (!dir.exists(out_dir)) {
-    stop("incorrect filepath for 'out_dir' provided")
-  }
-  ## register paral backend
+  return(dt)
+}
+
+# do_alignPEAKS -------------------------------------------------------------------------------------------------------
+do_alignPEAKS <- function(ds,
+                          tmp,
+                          ds_var_name,
+                          tmp_var_name,
+                          mz_err,
+                          rt_err,
+                          bins,
+                          ncores) {
+  
+  ####---- split dataset and template into rt regions for parallelisation
+  rt_bins <- getRTbins(ds = ds,
+                       tmp = tmp,
+                       ds_var_name = ds_var_name,
+                       tmp_var_name = tmp_var_name,
+                       mz_err = mz_err,
+                       rt_err = rt_err,
+                       ncores = ncores)
+  ds_bins <- rt_bins$ds
+  tmp_bins <- rt_bins$tmp
+  
+  ds_vars_by_bins <- lapply(ds_bins, function(x) unique(x$peakgr))
+  ds_vars <-  unique(unlist(lapply(ds_bins, "[[", "peakgr")))
+  tmp_vars <-  unique(unlist(lapply(tmp_bins, "[[", "peakgr")))
+  
+  ####---- estimate cosines for matching peak-groups between dataset and template
   if (ncores > 1) {
-    cl <- parallel::makeCluster(ncores)
-    doParallel::registerDoParallel(cl)
-  } else {
-    foreach::registerDoSEQ()
-  }
-  
-  ####---- split dataset and database frame into rt regions for parallelisation
-  ## order both peak tables by median rt of the peak-groups
-  ds_original <- read.csv(dataset, header = T, stringsAsFactors = F)
-  db_original <- read.csv(database, header = T, stringsAsFactors = F)
-  
-  ds_cnames <- c("peakid", "pcs", "mz", "rt", "into")
-  ds <- ds_original[, c(match(ds_cnames, colnames(ds_original)))]
-  db <- db_original
-  
-  ## temp fix for float precision
-  ds[, c("mz", "rt", "into")] <- t(apply(ds[, c("mz", "rt", "into")], 1, round, digits = 8))
-  db[, c("mz", "rt", "into")] <- t(apply(db[, c("mz", "rt", "into")], 1, round, digits = 8))
-  
-  ds <- orderBYrt(dt = ds, var_name = "pcs")
-  db <- orderBYrt(dt = db, var_name = "chemid")
-  
-  ## get rt/mz error windows
-  ds <- addERRS(dt = ds, mz_err = mz_err, rt_err = rt_err)
-  db <- addERRS(dt = db, mz_err = mz_err, rt_err = rt_err)
-  
-  ## get rt region values using ds peak-groups
-  ## assign DS peak-groups to bins
-  rt_bins <- as.numeric(cut(1:length(unique(ds$pcs)), breaks = ncores))
-  for (pcs in unique(ds$pcs)) {
-    ds[which(ds$pcs == pcs), "rt_bin"] <- rt_bins[which(unique(ds$pcs) == pcs)]
-  }
-  ds_bins <- list()
-  for (bin in 1:ncores) {
-    ds_bins[[bin]] <- ds[which(ds$rt_bin == bin), ]
-  }
-  
-  ## assign DB compounds to bins using DS rt regions
-  db_bins <- list()
-  for (bin in 1:ncores) {
-    rt_val_bin <- min(ds_bins[[bin]]$rt) - rt_err
-    rt_val_next <- ifelse(bin < ncores,
-                          min(ds_bins[[(bin + 1)]]$rt) - rt_err,
-                          Inf)
-    db_by_rt <- db[which(db$rt >= rt_val_bin & db$rt < rt_val_next),]
-    ## also add peaks that belong to the same chemid
-    db_by_cid <- db[which(db$chemid %in% db_by_rt$chemid),]
-    db_bins[[bin]] <- db_by_cid
-    
-  }
-  
-  ####---- estimate cosines for matching peak-groups between DS and DB
-  cos_matches <-
-    foreach::foreach(bin = 1:ncores,
-                     .inorder = TRUE) %dopar% (
-                       massFlowR:::getCOSmat(
-                         bin = bin,
-                         ds_bin = ds_bins[[bin]],
-                         ds_var = "pcs",
-                         tmp_bin = db_bins[[bin]],
-                         tmp_var = "chemid",
-                         mz_err = mz_err,
-                         rt_err = rt_err,
-                         bins = 0.01
+    cos_matches <-
+      foreach::foreach(bin = 1:ncores,
+                       .inorder = TRUE) %dopar% (
+                         massFlowR:::getCOSmat(
+                           bin = bin,
+                           ds_bin = ds_bins[[bin]],
+                           ds_var = "peakgr",
+                           tmp_bin = tmp_bins[[bin]],
+                           tmp_var = "peakgr",
+                           mz_err = params$mz_err,
+                           rt_err = params$rt_err,
+                           bins = 0.01
+                         )
                        )
-                     )
-  cos_mat <- matrix(0, nrow = length(unique(db$chemid)), ncol = length(unique(ds$pcs)))
-  rownames(cos_mat) <- unique(db$chemid)
-  colnames(cos_mat) <- unique(ds$pcs)
+  } else {
+    ## run with lapply to have the same, 2-list-within-a-bin-list, structure as with foreach
+    cos_matches <- lapply(
+      X = 1,
+      FUN = massFlowR:::getCOSmat,
+      ds_bin = ds_bins[[1]],
+      ds_var = "peakgr",
+      tmp_bin = tmp_bins[[1]],
+      tmp_var = "peakgr",
+      mz_err = params$mz_err,
+      rt_err = params$rt_err,
+      bins = 0.01)
+  }
+  cos_mat <- matrix(0, nrow = length(tmp_vars), ncol = length(ds_vars))
+  rownames(cos_mat) <- tmp_vars
+  colnames(cos_mat) <- ds_vars
   
-  for(bin in 1:ncores) {
+  for (bin in 1:ncores) {
     cos_mat_bin <- cos_matches[[bin]][[1]]
     cos_mat[match(rownames(cos_mat_bin), rownames(cos_mat), nomatch = 0),
             match(colnames(cos_mat_bin), colnames(cos_mat), nomatch = 0)] <-
       cos_mat_bin[match(rownames(cos_mat), rownames(cos_mat_bin), nomatch = 0),
                   match(colnames(cos_mat), colnames(cos_mat_bin), nomatch = 0)]
-    
   }
   
-  ####---- assign ds peakgroups to db peakgroups using cosines
+  ####---- assign ds peakgroups to tmp according to cosines
   cos_assigned <- assignCOS(cos = cos_mat)
-  
-  ####---- export annotation table
   ds_true <- apply(cos_assigned, 2, function(x) which(x))
   ds_assigned <- which(sapply(ds_true, length) > 0)
-  ds_assigned_pcs <- unique(ds$pcs)[ds_assigned]
+  ds_vars_assigned <- ds_vars[ds_assigned]
+  tmp_assigned <- unlist(ds_true[ds_assigned])
+  tmp_vars_assigned <- tmp_vars[tmp_assigned]
+  
+  ####---- extract matches for assigned peakgroups only
+  ds_to_tmp <- rep(list(NA), length(ds_vars))
 
-  db_assigned <- unlist(ds_true[ds_assigned])
-  db_assigned_chemid <- unique(db$chemid)[db_assigned]
- 
-  
-  for (x in 1:length(ds_assigned_pcs)) {
-    pcs <- ds_assigned_pcs[x]
-    chemid <- db_assigned_chemid[x]
-    cos <-
-      cos_mat[match(chemid, rownames(cos_mat)), match(pcs, colnames(cos_mat))]
-    db_chemid <- db[db$chemid == chemid,]
-    ds_original[which(ds_original$pcs == pcs), c("chemid",
-                                                 "dbid",
-                                                 "dbname",
-                                                 "cos")] <-
-      c(unique(db_chemid[, c("chemid", 
-                             "dbid",
-                             "dbname"
-                             )]),
-        cos)
+  for (var in 1:length(ds_vars)) {
+    ds_var <- ds_vars[var]
+    if (ds_var %in% ds_vars_assigned) {
+      ## get the corresponding assigned tmp peagroup
+      tmp_var <- tmp_vars_assigned[which(ds_vars_assigned == ds_var)]
+      ## extract mathes between the assigned peakgroups
+      bin <- which(sapply(ds_vars_by_bins, function(x) ds_var %in% x))
+      mat <- cos_matches[[bin]][[2]][[which(ds_vars_by_bins[[bin]] == ds_var)]]
+      mat <- mat[which(mat$tmp_var == tmp_var), ]
+      ## extract cosine between the assigned peakgroups
+      cos <- cos_mat[match(tmp_var, rownames(cos_mat)), match(ds_var, colnames(cos_mat))]
+    } else {
+      tmp_var <- NULL
+      mat <- NULL
+      cos <- NULL
+    }
+    ds_to_tmp[[var]] <- list("ds" = ds_var, "tmp" = tmp_var, "mat" = mat, "cos" = cos)
   }
-  ## if using full intensity table (temporal fix until decided)
-  # ds_cnames <- c(colnames(ds_original)[1:n_fts], c("chemid", "dbid", "dbname", "cos"))
-  # ds_cnames_2 <- colnames(ds_original)[!(colnames(ds_original) %in% ds_cnames)]
-  # ds_out <- ds_original[ , c(ds_cnames, ds_cnames_2)]
-  
-  ## if using peak table
-  ds_out <- ds_original
-  
-  write.csv(x = ds_out,
-            quote = TRUE,
-            # fileEncoding = "utf-8",
-            file = file.path(out_dir, "annotated_data.csv"),
-            row.names = FALSE)
-  
-  ## sanity check: do assigned peakgroups pairs have reasonable mz/rt differences
-  # for (x in 1:length(ds_assigned_pcs)) {
-  # 
-  #   pcs <- ds_assigned_pcs[x]
-  #   chemid <- db_assigned_chemid[x]
-  #   ds_pcs <- ds[ds$pcs == pcs, ]
-  #   db_chemid <- db[db$chemid == chemid, ]
-  #   if (any(!(min(ds_pcs$mz_l) <= max(db_chemid$mz_h)) |
-  #            !(max(ds_pcs$mz_h) >= min(db_chemid$mz_l)))) {
-  #     print(x)
-  #     break
-  #   }
-  #   
-  #   if (any(!(min(ds_pcs$rt_l) <= max(db_chemid$rt_h)) |
-  #           !(max(ds_pcs$rt_h) >= min(db_chemid$rt_l)))) {
-  #     print(x)
-  #     break
-  #   }
-  #  # print(cos_mat[match(chemid, rownames(cos_mat)), match(pcs, colnames(cos_mat))])
-  # }
-  
- 
+  return(ds_to_tmp)
 }
 
-
+# getRTbins -------------------------------------------------------------------------------------------------------
 getRTbins <- function(ds, tmp, ds_var_name, tmp_var_name, mz_err, rt_err, ncores) {
   ####---- split dataset-of-interest and template into rt regions (bins) for parallelisation
   ## order both peak tables by median rt of the peak-groups
@@ -217,8 +177,7 @@ getRTbins <- function(ds, tmp, ds_var_name, tmp_var_name, mz_err, rt_err, ncores
   return(list(ds = ds_bins, tmp = tmp_bins))
 }      
 
-
-
+# orderBYrt -------------------------------------------------------------------------------------------------------
 orderBYrt <- function(dt, var_name) {
   ## extract unique peak-groups or PCS or chemids
   var_ind <- match(var_name, colnames(dt))
@@ -231,7 +190,20 @@ orderBYrt <- function(dt, var_name) {
   return(dt_ordered)
 }
 
+# addERRS ---------------------------------------------------------------------------------------------------------
+## add error windows using user-defined mz/rt values
+addERRS <- function(dt, mz_err, rt_err) {
+  dt[, c("mz_l",
+         "mz_h",
+         "rt_l",
+         "rt_h")] <- c(dt$"mz"-mz_err,
+                       dt$"mz"+mz_err,
+                       dt$"rt"-rt_err,
+                       dt$"rt"+rt_err)
+  return(dt)
+}
 
+# getCOSmat ---------------------------------------------------------------------------------------------------------
 getCOSmat <- function(bin, ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins = 0.01) {
   
   ds_var_ind <- match(ds_var, colnames(ds_bin))
@@ -248,10 +220,10 @@ getCOSmat <- function(bin, ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bin
   
   ## variable is a single DS peak-groups/PCS
   for(var in ds_vars) {
-   
+    
     ## get peaks that belong to this variable
     target <- ds_bin[which(ds_bin[, ds_var_ind] == var), ]
-
+    
     ## match template peaks by mz/rt window
     matches <- apply(target, 1, FUN = getMATCHES, tmp = tmp_bin, tmp_var = tmp_var, target_var = ds_var)
     if (is.null(matches)) {
@@ -278,11 +250,11 @@ getCOSmat <- function(bin, ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bin
     cos <- lapply(unique(matches$tmp_var), function(m) {
       ## extract peaks for the single peak-group
       matched_peaks <- matches_all[which(matches_all[, tmp_var_ind] == m),
-                               c("mz", "into")]
+                                   c("mz", "into")]
       
       ## build vector from matched peaks
       matched_vec <- buildVECTOR(spec = spec, peaks = matched_peaks)
-
+      
       ## find the cosine of the angle between peakgrs
       cos_angle <-
         (sum(target_vec * matched_vec))  / ((sqrt(sum(
@@ -297,18 +269,18 @@ getCOSmat <- function(bin, ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bin
     ## rows are tmp variables
     ## columns are ds variables
     cos_mat[match(unique(matches$tmp_var), tmp_vars), which(ds_vars == var)] <- unlist(cos)
-
+    
     ## update matches list with tmp peaks with which cosine > 0 was obtained
     tmp_vars_pos <- unique(matches$tmp_var)[which(cos > 0)]
     mat_list[[which(ds_vars == var)]] <- matches[which(matches$tmp_var %in% tmp_vars_pos),]
- 
+    
   }
   rownames(cos_mat) <- tmp_vars
   colnames(cos_mat) <- ds_vars
   return(list("cos_mat" = cos_mat, "mat_list" = mat_list))
 }
 
-
+# getMATCHES ---------------------------------------------------------------------------------------------------------
 getMATCHES <- function(target_peak, tmp, tmp_var, target_var) {
   ## find matching template target_peaks using mz/rt windows of both target_peaks
   mat <- tmp[which((tmp$mz_l >= target_peak["mz_l"] &
@@ -330,6 +302,7 @@ getMATCHES <- function(target_peak, tmp, tmp_var, target_var) {
   }
 }
 
+# buildVECTOR ---------------------------------------------------------------------------------------------------------
 buildVECTOR <- function(spec, peaks) {
   peaks$bin <- findInterval(x = peaks$mz, spec$mz)
   ## remove duplicating duplicating bins and any bins that are not representing a peak
@@ -340,11 +313,11 @@ buildVECTOR <- function(spec, peaks) {
   return(vector)
 }
 
-## scale spectrum vector 
+# scaleSPEC ---------------------------------------------------------------------------------------------------------
 scaleSPEC <- function(spec, m = 0.6, n = 3) {
-  ## Version A
+  ## Version A - scale to unit length
   spec$into / (sqrt(sum(spec$into * spec$into)))
-
+  
   ## Version B - according to Stein & Scott, 1994
   ## scale the intensity of every mz ion separately
   ## use m and n weighting factors taken from Stein & Scott, 1994
@@ -353,10 +326,8 @@ scaleSPEC <- function(spec, m = 0.6, n = 3) {
   # })
 }
 
-
-
+# assignCOS ---------------------------------------------------------------------------------------------------------
 assignCOS <- function(cos) {
-  
   ## rank by row, i.e. the template vars
   tmp_rank <- t(apply(cos, 1, FUN = rankCOS))
   ## rank by column, i.e. the ds vars
@@ -438,8 +409,8 @@ assignCOS <- function(cos) {
   }
   return(assigned)
 }
-  
 
+# rankCOS ---------------------------------------------------------------------------------------------------------
 rankCOS <- function(x) {
   cos_0 <- length(which(x == 0))
   cos_pos <- length(x) - cos_0
@@ -454,10 +425,3 @@ rankCOS <- function(x) {
   }
   return(cos_ranks)
 }
-
-
-             
-  
-  
-
-

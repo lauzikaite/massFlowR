@@ -4,7 +4,7 @@ test_basenames <- sapply(test_fnames, function(fname) {
   strsplit(basename(fname), split = "[.]")[[1]][1]
 }, USE.NAMES = F)
 test_basename <- test_basenames[1]
-data_dir <- "/Users/el1514/Documents/Projects/massFlowR/packageDEV/unittest"
+data_dir <- "~/Documents/Projects/massFlowR/packageDEV/unittest"
 # data_dir <- file.path(system.file(package = "massFlowR"), "testdata/")
 
 ####---- single datafile preparation
