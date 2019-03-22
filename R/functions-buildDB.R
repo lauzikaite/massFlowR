@@ -22,6 +22,8 @@
 #' @return Function returns generated database table and writes it to a csv file in the selected directory (out_dir).
 #' 
 #' @export
+#' 
+#' @seealso \code{\link{annotatePEAKS}}
 #'
 buildDB <- function(
   rda_dir = NULL,

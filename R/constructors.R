@@ -56,9 +56,7 @@ buildTMP <-
     message(paste("Building template using sample:", doi_name, " ..."))
     ## write 1st sample in the standard output format
     doi <- checkFILE(file = doi_fname)
-    doi <- getCLUSTS(dt = doi)
-    doi[, c("tmp_peakid", "tmp_peakgr", "new_mz", "new_rt")] <-
-      doi[, c("peakid", "peakgr", "mz", "rt")]
+    doi[, c("tmp_peakid", "tmp_peakgr")] <- doi[, c("peakid", "peakgr")]
     doi[,c("cos")] <- NA
     write.csv(
       doi,

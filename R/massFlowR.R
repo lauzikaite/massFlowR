@@ -9,7 +9,6 @@
 #' \item Alignment validation and peak filling
 #' }
 #'
-#' @import dplyr
 #' @import foreach
 #' @importFrom grDevices dev.off pdf
 #' @importFrom methods new

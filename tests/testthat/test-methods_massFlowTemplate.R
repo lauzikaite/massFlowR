@@ -5,16 +5,10 @@ test_that("checkNEXT() returns the correct filename", {
   tmp <- buildTMP(file = meta_fname, out_dir = data_dir)
   expected_next <- grouped_fnames[2]
   expect_equal(expected_next, checkNEXT(tmp))
-  
 })
-
 
 # align identical tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two identical samples via alignPEAKS() is correct", {
-  
-  skip("Temporal skip until alignPEAKS is re-factored")
-  
-  
   tmp <- buildTMP(file = dup_meta_fname, out_dir = data_dir, rt_err = rt_err)
   tmp <- alignPEAKS(tmp, out_dir = data_dir)
   tmp_data1 <- tmp@data[[1]]
@@ -32,13 +26,10 @@ test_that("alignment of two identical samples via alignPEAKS() is correct", {
   expect_equal(nrow(tmp@tmp), nrow(single_table))
   expect_true(all_equal(tmp@tmp[which(tmp@tmp$peakid %in% single_table$peakid),c("peakid", "mz", "rt", "into", "peakgr")],
                         single_table[,c("peakid", "mz", "rt", "into", "peakgr")]))
-
 })
 
+# align different tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two different samples via alignPEAKS() is correct", {
-  
-  skip("Temporal skip until alignPEAKS is re-factored")
-  
   tmp <- buildTMP(file = meta_fname, out_dir = data_dir, rt_err = rt_err)
   tmp <- alignPEAKS(tmp, out_dir = data_dir)
   tmp_tmp <- tmp@tmp
@@ -74,29 +65,10 @@ test_that("alignment of two different samples via alignPEAKS() is correct", {
   expect_equal(nrow(data1), nrow(tmp_data1))
   expect_true(all(data2$peakid %in% tmp_data2$peakid))
   expect_equal(nrow(data2), nrow(tmp_data2))
-  
-  ## outpout must have slightly different rt values
-  ## is the new_rt the average between tmp and data2?
-  for (p in tmp_data2$tmp_peakid) {
-    if (p %in% tmp_data1$tmp_peakid) {
-      rt_1 <- tmp_data1[which(tmp_data1$tmp_peakid == p),"rt"]
-      rt_1_new <- tmp_data1[which(tmp_data1$tmp_peakid == p),"new_rt"]
-      expect_equal(rt_1, rt_1_new)
-      rt_2 <- tmp_data2[which(tmp_data2$tmp_peakid == p),"rt"]
-      rt_2_new <- tmp_data2[which(tmp_data2$tmp_peakid == p),"new_rt"]
-      rt_tmp <- tmp_tmp[which(tmp_tmp$peakid == p),"rt"]
-      expect_equal(rt_2_new, rt_tmp)
-      expect_equal(rt_2_new, median(rt_1, rt_2))
-    }
-  }
-  
 })
   
 # align almost identical tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two ALMOST identical samples via alignPEAKS() is correct", {
-  
-  skip("Temporal skip until alignPEAKS is re-factored")
-  
   tmp <- buildTMP(file = noisy_meta_fname, out_dir = data_dir, rt_err = rt_err)
   tmp <- alignPEAKS(tmp, out_dir = data_dir)
   

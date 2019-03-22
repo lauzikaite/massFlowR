@@ -33,3 +33,6 @@ Each rda file must be written for each chemical compond separately and contain a
 
 The database table contains columns: "peakid", "mz", "rt", "into", "chemid", "dbid", "dbname".
 }
+\seealso{
+\code{\link{annotatePEAKS}}
+}

@@ -94,7 +94,7 @@ setMethod("checkNEXT",
 #' @title Align peaks detected in LC-MS samples using spectral similarity comparison
 #'
 #' @description Method aligns peaks across samples in LC-MS experiment using spectral similarity comparison.
-#' To enable alignment, peaks originating from the same chemical compound were grouped into pseudo chemical spectra (PCS), via function \code{\link{groupPEAKS}}.
+#' To enable alignment, peaks originating from the same chemical compound were grouped into peak-groups, via function \code{\link{groupPEAKS}}.
 #'
 #' @details Peaks are aligned across samples in their original acquisition order.
 #' Template is list of all previously detected and aligned peaks.
@@ -110,6 +110,7 @@ setMethod("checkNEXT",
 #'
 #' @param object \code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.
 #' @param out_dir \code{character} specifying desired directory for output.
+#' @param ncores \code{numeric} for number of parallel workers to be used. Set 1 for serial implementation. Default set to 2.
 #' @param write_int \code{logical} specifying whether a peak table with alignment results should be saved for every sample.
 #' If TRUE, csv files will be written in the out_dir directory.
 #' Default set to TRUE.
@@ -127,8 +128,9 @@ setMethod("alignPEAKS",
           signature = "massFlowTemplate",
           function(object,
                    out_dir = NULL,
-                   write_int = TRUE, 
-                   ncores = 2) {
+                   ncores = 2,
+                   write_int = TRUE
+                   ) {
             if (!validObject(object)) {
               stop(validObject(object))
             }
@@ -603,124 +605,3 @@ setMethod("fillPEAKS",
               return(object)
             }
           })
-
-
-# annotatePEAKS ------------------------------------------------------------------------------------------------------
-# setMethod("annotatePEAKS",
-#           signature = "massFlowTemplate",
-#           function(object,
-#                    database = NULL,
-#                    out_dir = NULL,
-#                    ncores = 2,
-#                    rt_err = 2,
-#                    mz_err = 0.1
-#                    ) {
-#             if (!validObject(object)) {
-#               stop(validObject(object))
-#             }
-#             if (object@history[length(object@history)] != "fillPEAKS") {
-#               stop(
-#                 "'Object' must be a validated and filled 'massFlowTemplate' class object. \n Run fillPEAKS() first."
-#               )
-#             }
-#             if (is.null(out_dir)) {
-#               stop("'out_dir' is required!")
-#             }
-#             if (!dir.exists(out_dir)) {
-#               stop("incorrect filepath for 'out_dir' provided")
-#             }
-#             ## register paral backend
-#             if (ncores > 1) {
-#               cl <- parallel::makeCluster(ncores)
-#               doParallel::registerDoParallel(cl)
-#             } else {
-#               foreach::registerDoSEQ()
-#             }
-#             
-#             ####---- split dataset and database frame into rt regions for parallelisation
-#             ## order both peak tables by median rt of the peak-groups
-#             ds <- object@valid
-#             db <- read.csv(database, header = T, stringsAsFactors = F)
-#             
-#             ## temp fix for float precision
-#             ds[, c("mz", "rt", "into")] <- t(apply(ds[, c("mz", "rt", "into")], 1, round, digits = 8))
-#             db[, c("mz", "rt", "into")] <- t(apply(db[, c("mz", "rt", "into")], 1, round, digits = 8))
-#             
-#             ds <- orderBYrt(dt = ds, var_name = "pcs")
-#             db <- orderBYrt(dt = db, var_name = "chemid")
-#             
-#             ## get rt/mz error windows
-#             ds <- addERRS(dt = ds, mz_err = mz_err, rt_err = rt_err)
-#             db <- addERRS(dt = db, mz_err = mz_err, rt_err = rt_err)
-#             
-#             ## get rt region values using ds peak-groups
-#             ## assign DS peak-groups to bins
-#             rt_bins <- as.numeric(cut(1:length(unique(ds$pcs)), breaks = ncores))
-#             for (pcs in unique(ds$pcs)) {
-#               ds[which(ds$pcs == pcs), "rt_bin"] <- rt_bins[which(unique(ds$pcs) == pcs)]
-#             }
-#             ds_bins <- list()
-#             for (bin in 1:ncores) {
-#               ds_bins[[bin]] <- ds[which(ds$rt_bin == bin), ]
-#             }
-#             
-#             ## assign DB compounds to bins using DS rt regions
-#             db_bins <- list()
-#             for (bin in 1:ncores) {
-#               rt_val_bin <- min(ds_bins[[bin]]$rt) - rt_err
-#               rt_val_next <- ifelse(bin < ncores,
-#                                     min(ds_bins[[(bin + 1)]]$rt) - rt_err,
-#                                     Inf)
-#               db_by_rt <- db[which(db$rt >= rt_val_bin & db$rt < rt_val_next),]
-#               ## also add peaks that belong to the same chemid
-#               db_by_cid <- db[which(db$chemid %in% db_by_rt$chemid),]
-#               db_bins[[bin]] <- db_by_cid
-#                 
-#             }
-#           
-#             ####---- estimate cosines for matching peak-groups between DS and DB
-#             cos_matches <-
-#               foreach::foreach(bin = 1:ncores,
-#                                .inorder = TRUE) %dopar% (
-#                                  massFlowR:::getCOSmat(
-#                                    bin = bin,
-#                                    ds_bin = ds_bins[[bin]],
-#                                    ds_var = "pcs",
-#                                    tmp_bin = db_bins[[bin]],
-#                                    tmp_var = "chemid",
-#                                    mz_err = mz_err,
-#                                    rt_err = rt_err,
-#                                    bins = 0.01
-#                                  )
-#                                )
-#             cos_mat <- matrix(0, nrow = length(unique(db$chemid)), ncol = length(unique(ds$pcs)))
-#             rownames(cos_mat) <- unique(db$chemid)
-#             colnames(cos_mat) <- unique(ds$pcs)
-#             
-#             for(bin in 1:ncores) {
-#               cos_mat_bin <- cos_matches[[bin]][[1]]
-#               cos_mat[match(rownames(cos_mat_bin), rownames(cos_mat), nomatch = 0),
-#                       match(colnames(cos_mat_bin), colnames(cos_mat), nomatch = 0)] <-
-#                 cos_mat_bin[match(rownames(cos_mat), rownames(cos_mat_bin), nomatch = 0),
-#                             match(colnames(cos_mat), colnames(cos_mat_bin), nomatch = 0)]
-#               
-#             }
-#             
-#             ####---- assign ds peakgroups to db peakgroups using cosines
-#             cos_assigned <- assignCOS(cos = cos_mat)
-#             # cos_true <- which(cos_assigned == TRUE)
-#             # cos_mat[cos_true]
-#             
-#             
-#             ####---- export annotation table
-#             ds_true <- apply(cos_assigned, 2, function(x) which(x))
-#             ds_assigned <- which(sapply(ds_true, length) > 0)
-#             ds_assigned_pcs <- unique(ds$pcs)[ds_assigned]
-#             
-#             db_assigned <- unlist(ds_true[ds_assigned])
-#             db_assigned_chemid <- unique(db$chemid)[db_assigned]
-#             
-#             
-#             
-# }
-# )

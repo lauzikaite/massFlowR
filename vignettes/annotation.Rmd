@@ -5,10 +5,12 @@ output:
     toc_float: true
 vignette: >
   %\VignetteIndexEntry{Annotation using chemical reference database}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
   %\VignettePackage{massFlowR}
   %\VignetteKeywords{mass spectrometry, metabolomics}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
 ---
 
 **Package**: [massFlowR](https://github.com/lauzikaite/massFlowR)<br />
@@ -34,7 +36,9 @@ suppressWarnings(library(xcms))
 suppressWarnings(library(dplyr))
 rda_dir <- "~/Documents/Projects/DBannotate/NPC-RPOS-LCE-SubDB"
 db_dir <- "~/Documents/Projects/massFlowR/packageDEV/db"
+out_directory <- getwd()
 ```
+
 
 `massFlowR` performs automatic annotation during peak alignment if LC-MS files for chemical reference compounds are available. To enable annotation, provide a database table in a csv format when initiating peak alignment (see section [peak annotation](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html#peak-annotation)).
 
@@ -43,13 +47,17 @@ Database table can be obtained from raw LC-MS files in two steps:
 * Build pseudo chemical spectra (PCS) for each compound using the raw LC-MS file (in mzML/NetCDF format)
 * Build database table
 
+
 # Chemical spectra extraction
+
 
 *(code under development)*
 
 Raw LC-MS files had been processed by M.Lewis. Code for corresponding functionality will be added to `massFlowR` package for those that have acquired LC-MS data independently. 
 
+
 # Database table
+
 
 ## Building database from rda files
 
@@ -64,13 +72,20 @@ Previously processed LC-MS files were recorded in rda files. Function `getDB` ca
 * `dbid`  (compound identifier)
 * `dbname` (compound chemical name)
 
-```{r db_table}
+```{r db_table, message = FALSE, echo = FALSE, results = 'hide'}
+buildDB(rda_dir = rda_dir, out_dir = out_directory)
+db_table <- read.csv(file.path(out_directory, "DBtemplate.csv"))
+```
+
+```{r db_table_visible, eval=FALSE}
 # rda_dir <- "absolute_path_to_rda_files"
-# db_dir <- "absolute_path_to_output_directory"
-db_table <- getDB(dir = rda_dir, out_dir = db_dir)
+# out_dir <- "absolute_path_to_output_directory"
+buildDB(rda_dir = rda_dir, out_dir = out_directory)
+db_table <- read.csv(file.path(out_directory, "DBtemplate.csv"))
 ```
 
 ```{r db_table_knitr, echo = FALSE}
+db_table <- db_table[which(db_table$chemid %in% c(1,2,3)),]
 dt <- head(db_table)
 knitr::kable(x = dt,
              format = "html",

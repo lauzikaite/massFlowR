@@ -144,7 +144,6 @@ test_that("getCOSmat() returns correct cosine matrix", {
   ds_bin <- doi_bins[[bin]]
   tmp_bin <- tmp_bins[[bin]]
   cos_matches <- getCOSmat(
-    bin = bin,
     ds_bin = doi_bins[[bin]],
     ds_var = "peakgr",
     tmp_bin = tmp_bins[[bin]],
@@ -190,7 +189,6 @@ test_that("getCOSmat() returns correct cosine matrix", {
   tmp_bins <- rt_bins$tmp
   doi_vars_by_bins <- lapply(doi_bins, function(x) unique(x$peakgr))
   cos_matches <- getCOSmat(
-    bin = 1,
     ds_bin = doi_bins[[bin]],
     ds_var = "peakgr",
     tmp_bin = tmp_bins[[bin]],
@@ -218,7 +216,6 @@ test_that("getCOSmat() returns correct cosine matrix", {
                   header = T,
                   stringsAsFactors = F)
   tmp <- tmp[, c("peakid",	"mz", "rt", "into", "peakgr")]
-  
   ncores <- 1
   rt_bins <- getRTbins(ds = doi,
                        tmp = tmp,
@@ -230,26 +227,53 @@ test_that("getCOSmat() returns correct cosine matrix", {
   doi_bins <- rt_bins$ds
   tmp_bins <- rt_bins$tmp
   doi_vars_by_bins <- lapply(doi_bins, function(x) unique(x$peakgr))
-  cos_matches <- lapply(
-    X = 1,
-    FUN = massFlowR:::getCOSmat,
-    ds_bin = doi_bins[[1]],
-    ds_var = "peakgr",
-    tmp_bin = tmp_bins[[1]],
-    tmp_var = "peakgr",
-    mz_err = params$mz_err,
-    rt_err = params$rt_err,
-    bins = 0.01)
-  doi_vars_by_bins <- lapply(doi_bins, function(x) unique(x$peakgr))
-  
-
-  
-  
+  cos_matches <- list(
+    getCOSmat(
+      ds_bin = doi_bins[[ncores]],
+      ds_var = "peakgr",
+      tmp_bin = tmp_bins[[ncores]],
+      tmp_var = "peakgr",
+      mz_err = mz_err,
+      rt_err = rt_err,
+      bins = bins)
+  )
+  expect_equal(length(cos_matches[[ncores]][[2]]), length(unique(doi$peakgr)))
+  expect_equal(nrow(cos_matches[[ncores]][[1]]), length(unique(tmp$peakgr)))
+  expect_equal(ncol(cos_matches[[ncores]][[1]]), length(unique(doi$peakgr)))
+  expect_equal(max(cos_matches[[ncores]][[1]]), 0.9999)
+  expect_true(cos_matches[[ncores]][[1]]["22","27"] == max(cos_matches[[ncores]][[1]]))
 })
 
 # getMATCHES ---------------------------------------------------------------------------------------------------------
 test_that("getMATCHES() ", {
+  tmp <- addERRS(single_table, mz_err = mz_err, rt_err = rt_err)
+  ## target peaks are: 
+  ## 1) a peak from the same table
+  ## 2) a modified version of the same peak, within matching range 
+  ## 3) a modified version of the same peak, outside of matching range 
+  target_peaks <- rbind(tmp[1,],
+                        tmp[1,] %>% mutate(mz = mz - mz_err/2,
+                                           rt = rt + rt_err/2),
+                        tmp[1,] %>% mutate(mz = mz - mz_err*3,
+                                           rt = rt + rt_err*2))
+  target_peaks <- addERRS(target_peaks, mz_err = mz_err, rt_err = rt_err)
+  matches <- apply(target_peaks, 1, FUN = getMATCHES, tmp = tmp, tmp_var = "peakgr", target_var = "peakgr")
   
+  expect_true(length(matches) == nrow(target_peaks))
+  expect_equal(sapply(matches, nrow), list(1, 1, NULL))
+  expect_equal(sapply(matches, "[[", "peakid"), list(tmp[1, "peakid"], tmp[1, "peakid"], NULL))
+  expect_equal(sapply(matches, colnames),
+               c(rep(list(
+                 c(
+                   "peakid",
+                   "mz",
+                   "rt",
+                   "into",
+                   "tmp_var",
+                   "target_peakid",
+                   "target_var"
+                 )
+               ), 2), list(NULL)))
 })
 
 # buildVECTOR ---------------------------------------------------------------------------------------------------------
@@ -270,15 +294,24 @@ test_that("buildVECTOR()", {
   sample_vec <- buildVECTOR(spec = spec, peaks = peaks)
   expect_true(all(which(sample_vec > 0) == c(101, 14101, 14201)))
   sum(sample_vec[which(sample_vec > 0)])
-  
-  
-
-
 })
 
 # scaleSPEC ---------------------------------------------------------------------------------------------------------
 test_that("scaleSPEC() ", {
-  
+  ## Version A - scale to unit length
+  spec <- data.frame(into = c(
+    rep(0, 10),
+    0.0128555075994933,
+    rep(0, 10),
+    0.271109618049552,
+    rep(0, 10),
+    0.9624626283266
+  ))
+  spec_scaled <- scaleSPEC(spec)
+  expect_identical(length(spec_scaled), nrow(spec))
+  expect_identical(length(which(spec_scaled > 0)), length(which(spec$into > 0)))
+  spec_length <- sum(spec_scaled * spec_scaled)
+  expect_identical(spec_length, 1)
 })
 
 # assignCOS -------------------------------------------------------------------------------------------------

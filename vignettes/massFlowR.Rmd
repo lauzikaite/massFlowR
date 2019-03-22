@@ -6,10 +6,12 @@ output:
     collapsed: false
 vignette: >
   %\VignetteIndexEntry{Introduction to massFlowR package}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
   %\VignettePackage{massFlowR}
   %\VignetteKeywords{mass spectrometry, metabolomics}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
 ---
 
 **Package**: [massFlowR](https://github.com/lauzikaite/massFlowR)<br />
@@ -38,7 +40,9 @@ suppressWarnings(library(dplyr))
 out_directory <- getwd()
 ```
 
+
 # Overview
+
 
 This documents provides an overview of the LC-MS data pre-processing with `massFlowR`.
 
@@ -46,10 +50,13 @@ This documents provides an overview of the LC-MS data pre-processing with `massF
 
 * [Processing of individual LC-MS samples](#individual-samples-processing)
 * [Peak alignment across samples](#peak-alignment)
-    * [Automatic peak annotation](#peak-annotation)
 * [Alignment validation](#alignment-validation)
+* [Peak filling](#peak-filling)
+* [Automatic peak annotation](#peak-annotation)
+
 
 # Installation
+
 
 Install the development version of the package directly from GitHub with:
 
@@ -58,7 +65,9 @@ if (!require("devtools")) install.packages("devtools")
 devtools::install_github("lauzikaite/massflowR")
 ```
 
+
 # Data import
+
 
 LC-MS data in mzML/NetCDF format import is supported. Data import is implemented via `r Biocpkg("mzR")` package.
 
@@ -74,11 +83,15 @@ faahKO_files <- dir(system.file("cdf/WT", package = "faahKO"), full.names = T)
 faahKO_files
 ```
 
+
 # Individual samples processing
+
 
 The first stage in the pipeline is chromatographic peak detection and peak grouping via function `groupPEAKS`.
 
+
 ## Chromatographic peak detection
+
 
 Peaks are detected using the *centWave* algorithm from `r Biocpkg("xcms")` package. Appropriate parameters for the LC-MS experiment must be selected. For advise on this, please see the official `xcms` [manual](https://bioconductor.org/packages/release/bioc/vignettes/xcms/inst/doc/xcms.html#3_initial_data_inspection). Selected parameters must be built into a *CentWaveParam* class object:
 
@@ -88,34 +101,71 @@ cwt_param <- xcms::CentWaveParam(ppm = 25,
                                  snthresh = 10,
                                  noise = 1000,
                                  prefilter =  c(3, 100),
-                                 peakwidth = c(30, 80))
+                                 peakwidth = c(30, 80),
+                                 mzdiff = 0)
 ```
+
 
 ## Chromatographic peak grouping
 
-Detected peaks are grouped into *pseudo chemical spectra* (PCS), which comprise peaks originating from the same chemical compound: adducts and isotopes. For each peak in a sample, function `groupPEAKS`:
+
+Detected peaks are put into groups, which comprise peaks originating from the same chemical compound: adducts and isotopes. For each peak in a sample, function `groupPEAKS`:
 
 * Finds all co-eluting peaks
 * Performs extracted ion chromatogram (EIC) correlation between all co-eluting peaks
 * Builds a network of peaks with high EIC correlation
+* Detects communities of peak within the correlation network (`igraph` package algorithm 
 
-Peaks in the resulting network form a single PCS. Only PCSs with more than one peak are retained in the final peak table and corresponding csv file.
+Peaks in the detected communities form a single peak-group. Only groups with more than one peak are retained in the final peak table.
+
 
 ## Implementation
 
+
 Function `groupPEAKS` processes every LC-MS datafile independently and thus can be implemented in parallel, or during sample acquisition on the machine linked to the LC-MS. A list of paths to LC-MS datafiles (in mzML/NetCDF format) is feeded to `groupPEAKS`, together with the *CentWaveParam* class object, path to output directory and parameters for parallelisation. 
+
 
 `groupPEAKS` writes a csv with detected and grouped peaks in the selected directory for each LC-MS sample separately. The filenames of the generated csv files will be needed for the next stage in the pipeline. The filename starts with the original raw LC-MS filename and ends with "peakgrs.csv".
 
-```{r peak_grouping}
+
+`massFlowR` pipeline requires a metadata table with the following columns for each sample:
+
+* `filename` specifies the basename of the raw LC-MS file.
+* `run_order` specifies the acquisition order for the corresponding LC-MS sample.
+* `raw_filepath` specifies the absolute path to the raw LC-MS file (netCDF/mzML).
+
+
+```{r metadata}
 ## define where processed datafiles should be written
 # out_directory <- "absolute_path_to_output_directory"
 
-## run peak detection and grouping for the listed faahKO files with two workers
-groupPEAKS(files = faahKO_files, out_dir = out_directory, cwt = cwt_param, ncores = 2)
+## create metadata table with required columns 'filename', 'run_order' and 'raw_filepath'
+metadata <-
+  data.frame(
+  filename = gsub(".CDF", "", basename(faahKO_files)),
+  run_order = 1:length(faahKO_files),
+  raw_filepath = faahKO_files
+  )
+write.csv(metadata, file = file.path(out_directory, "metadata.csv"), row.names = FALSE)
 ```
 
+
+```{r experiment_table, echo = FALSE}
+knitr::kable(x = metadata,
+             format = "html",
+             row.names = F) %>% 
+  kableExtra::kable_styling(full_width = TRUE, bootstrap_options = "striped", position = "left")
+```
+
+
+```{r peak_grouping}
+## run peak detection and grouping for the listed faahKO files with two workers
+groupPEAKS(file = file.path(out_directory, "metadata.csv"), out_dir = out_directory, cwt = cwt_param, ncores = 3)
+```
+
+
 # Peak alignment
+
 
 To align peaks across samples in LC-MS experiment, an alignment algorithm, which preserves the structural spectral information, is implemented. 
 
@@ -129,40 +179,46 @@ Therefore, template stores the **moving averages** of *m/z* and *rt* values.
 For each peak in a sample, alignment algorithm:
 
 1. Finds all template peaks within a *m/z* and *rt* window.
-2. Identifies the true match by comparing the spectral similarity between the PCS of the peak-of-interest and all matching template's PCSs.
+2. Identifies the true match by comparing the spectral similarity between the peak-group of the peak-of-interest and all matching template's peak-groups.
 3. Merges the selected template's peak-group with the peak-group of the peak-of-interest. It updates template's *m/z* and *rt*  values for the matching peaks across the template and the sample.
 
 Spectral similarity is measured by obtaining the cosine of the angle between two 2D vectors, representing each PCSs *m/z* and *intensity* values.
 
+
 ## Implementation
 
-To enable peak alignment, firstly create a csv file with as many rows as there are samples in the experiment. File must contain the following columns for each sample:
 
-* `filepaths` specifies the absolute path to a csv file, generated by the `groupPEAKS` function.
-* `run_order` specifies the acquisition order for the corresponding LC-MS sample.
+To enable peak alignment, previous metadata table has to contain additional column:
 
-```{r experiment_table_build}
-## create a csv file, which lists all samples in your experiment and their run order
+* `proc_filepath` specifies the absolute path to a csv file, generated by the `groupPEAKS` function.
+
+```{r metadata_update}
+##  update previous metadata table
 processed_files <- list.files(out_directory, "peakgrs.csv", full.names = T)
-experiment_table <- data.frame(filepaths = processed_files, run_order = 1:length(faahKO_files), stringsAsFactors = F)
-write.csv(experiment_table, file.path(out_directory, "experiment.csv"), row.names = F)
+metadata$proc_filepath <- processed_files
+write.csv(metadata, file.path(out_directory, "metadata_grouped.csv"), row.names = F)
 ```
 
-```{r experiment_table, echo = FALSE}
-knitr::kable(x = experiment_table,
+
+```{r metadata_update_table, echo = FALSE}
+knitr::kable(x = metadata,
              format = "html",
              row.names = F) %>% 
   kableExtra::kable_styling(full_width = TRUE, bootstrap_options = "striped", position = "left")
 ```
 
+
 To initiate peak alignment, use function `buildTMP`, which constructs a `massFlowTemplate`class object. `massFlowTemplate` object stores sample alignment and annotation data and is updated with every sample. Define the desired error window for *m/z* and *rt* (seconds) values, which will be used for the whole experiment. `mz_err = 0.01` and `rt_err = 2` are recommended for high-resolution UPLC-MS data. `mz_err = 0.01` and `rt_err = 10` are suitable for the `faahKO`package data.
+
 
 ```{r buildTMP}
 ## initiate template
-template <- buildTMP(file = file.path(out_directory, "experiment.csv"), mz_err = 0.01, rt_err = 10)
+template <- buildTMP(file = file.path(out_directory, "metadata_grouped.csv"), out_dir = out_directory, mz_err = 0.01, rt_err = 10)
 ```
 
+
 `massFlowTemplate` object stores the most up-to-date template within the `@tmp` slot. Function `buildTMP` creates a template using the first sample in the experiment. To review the samples that are in the experiment, use slot `@samples`.
+
 
 ```{r massFlowTemplate}
 ## review gnerated template using slot "tmp"
@@ -172,6 +228,7 @@ head(template@tmp)
 template@samples
 ```
 
+
 To align peaks across all samples in the study, apply method `alignPEAKS`. `alignPEAKS` updates the `massFlowTemplate` object:
 
 1. Selects next sample to be aligned and checks whether it was already peak-picked and grouped (waits until the corresponding csv file is written).
@@ -179,17 +236,23 @@ To align peaks across all samples in the study, apply method `alignPEAKS`. `alig
 3. Selects best matches using spectral similarity comparison.
 3. Updates template with sample's peaks: adds new and averages matching peaks.
 
+Parameter `ncores` allows a quicker implementation using the parallel backend that is available on the user's machine (i.e. multicore on Unix/Mac and snow on Windows). Select the desired number of parallel workers.
+
+
 ```{r alignPEAKS}
 ## align peaks across all remaining samples
-template <- alignPEAKS(template)
+template <- alignPEAKS(template, out_dir = out_directory, ncores = 2)
 ```
 
+
 Aligned sample's peak tables are stored within the `@data` slot, which lists tables for each sample separately.
+
 
 ```{r data_slot, eval = FALSE}
 ## review alignment results for an individual sample, e.g. the second, using slot "data"
 head(template@data[[2]])
 ```
+
 
 ```{r data_slot_knitr, echo = FALSE}
 ## review alignment results for an individual sample, e.g. the second, using slot "data"
@@ -200,25 +263,67 @@ knitr::kable(x = dt,
   kableExtra::kable_styling(full_width = TRUE, bootstrap_options = c("striped"), position = "left")
 ```
 
+
+
 # Alignment validation
 
-*(under development)*
 
-Once peaks are aligned across all samples, the obtained PCSs are validated. Intensity values for each peak in a group are correlated across all samples. Correlation estimates are then used to build networks of peaks, that behave similarly across all samples. Peaks exhibiting a different pattern in their intensities are put into a new PCS.
+Once peaks are aligned across all samples, the obtained peak-groups are validated. Intensity values for each peak in a group are correlated across all samples. Correlation estimates are then used to build networks of peaks, that behave similarly across all samples. Peaks exhibiting a different pattern in their intensities are put into a new peak-group.
 
-For each PCS, a set of representative peaks, which detection in samples is consistent, are identified. Intensity values of these peaks are then reported for each sample. For samples in which representative peaks are not present, intensity data is re-integrated using original LC-MS files. In contrast to `xcms` package, *m/z* and *rt* values for intensity integration are estimated for each sample separetely. *m/z* and *rt* values are taken from two surrounding samples, in which the peak-of-interest was present, and extrapolated. 
+Each peak-group is a *pseudo chemical spectra* (PCS), which comprised peaks exhibiting consistent behaviour across samples. 
+
+To enable alignment validation, a metadata table and final template file that both were written by the `alignPEAKS` function in the selected directory, must be used. A `massFlowTemplate`class object is first created. 
+
+
+```{r loadALIGNED}
+## get the absolute paths to the updated metadata file and the final template
+m_file <- file.path(out_directory, "aligned.csv")
+tmp_file <- file.path(out_directory, "template.csv")
+
+## initiate validation by first loading aligned samples into a massFlowTemplate object
+template <- loadALIGNED(file = m_file, template = tmp_file, rt_err = 10)
+```
+
+Peak-group validation is enabled by applying the method `validPEAKS` on the `massFlowTemplate`class object. validation can be implemented in parallel using `ncores` parameter. 
+
+
+`validPEAKS` will return a `massFlowTemplate`class object with validated *pseudo chemical spectra*, as well as write peak tables for the obtained PCS:
+
+* intensity_data.csv (intensity values for every peak in PCS in every sample)
+* peaks_data.csv
+* sample_data.csv
+
+
+```{r validPEAKS}
+## Start validation using a massFlowTemplate object
+template <- validPEAKS(template, out_dir = out_directory, ncores = 2, cor_thr = 0.5)
+```
+
+# Peak filling
+
+
+Final step in the pipeline is to re-integrate intensity for peaks that were not detected by the *centWave* using raw LC-MS files. In contrast to `xcms` package, *m/z* and *rt* values for intensity integration are estimated for each sample separetely. *m/z* and *rt* values are intrapolated using a cubic smoothing spline.
+
+
+```{r fillPEAKS}
+## Fill peaks using validated massFlowTemplate object
+template <- fillPEAKS(template, out_dir = out_directory, ncores = 2)
+```
+
 
 # Peak annotation
 
-*(under development)*
 
-If in-house chemical reference database is available, PCS are annotated using representative peaks. For more details how to build a database file, see [annotation using database](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/annotation.html))).
+If in-house chemical reference database is available, PCS are annotated. For more details how to build a database file, see [annotation using database](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/annotation.html))).
+
 
 # See also
+
 
 * [Automatic peak annotation](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/annotation.html)
 
 ```{r teardown, message = FALSE, echo = FALSE}
 unlink(list.files(path = out_directory, pattern = ".csv", full.names = T))
-```
+unlink(list.files(path = out_directory, pattern = ".RDS", full.names = T))
 
+```

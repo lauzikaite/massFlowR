@@ -1,5 +1,13 @@
 # checkFILE -------------------------------------------------------------------------------------------------------
-## Check and load file for alignment
+#' @title Check and load file for peak alignment
+#' 
+#' @description Internal function used within method \code{\link{alignPEAKS}}.
+#' Function checks if file contains all neccessary columns and returns loaded \code{data.frame} if it is correct.
+#'
+#' @param file \code{character} with absolute path to peak-group table.
+#'
+#' @return Function returns a \code{data.frame} of the corresponding file, if table was written correctly.
+#' 
 checkFILE <- function(file = NULL) {
   if (!file.exists(file)) {
     stop("incorrect filepath for: ", file)
@@ -28,6 +36,28 @@ checkFILE <- function(file = NULL) {
 }
 
 # do_alignPEAKS -------------------------------------------------------------------------------------------------------
+#' @title Align dataset's and template peaks using dot-product estimation
+#' 
+#' @description Internal function used within method \code{\link{alignPEAKS}} and function \code{\link{annotatePEAKS}}.
+#' Function aligns all dataset's peaks to the template using dot-product estimation.
+#' 
+#' @param ds \code{data.frame} containing peaks which have to be compared and aligned with the template.
+#' @param tmp \code{data.frame} representing a template with which the dataset is compared to.
+#' @param ds_var_name \code{character} indicating the column name for peak grouping information in the dataset.
+#' Default is set to 'peakgr', which is the output of \code{groupPEAKS} method. 
+#' @param tmp_var_name \code{character} indicating the column name for peak grouping information in the template.
+#' If function is used within \code{alignPEAKS}, then 'peakgr' should be selected.
+#' If function is used within \code{annotatePEAKS}, then 'chemid' should be selected.
+#' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension.
+#' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension.
+#' @param bins \code{numeric} defying step size used in peak-group spectra binning and vector generation. Step size represents MZ dimension.
+#' @param ncores \code{numeric} for number of parallel workers to be used.
+#'
+#' @seealso For details on cosine estimation, refer to \code{\link{alignPEAKS}} method.
+#'
+#'@return Function returns a list of lenght of the number of peak-groups in the dataset.
+#'Each list entry specifies the template's peak-group to which dataset's peak-group was aligned to, as well as matching peaks and obtained cosine.
+#'
 do_alignPEAKS <- function(ds,
                           tmp,
                           ds_var_name,
@@ -48,9 +78,11 @@ do_alignPEAKS <- function(ds,
   ds_bins <- rt_bins$ds
   tmp_bins <- rt_bins$tmp
   
-  ds_vars_by_bins <- lapply(ds_bins, function(x) unique(x$peakgr))
-  ds_vars <-  unique(unlist(lapply(ds_bins, "[[", "peakgr")))
-  tmp_vars <-  unique(unlist(lapply(tmp_bins, "[[", "peakgr")))
+  ds_vars_by_bins <- lapply(ds_bins, function(x) {
+    unique(x[[match(ds_var_name, colnames(x))]])
+  })
+  ds_vars <- unique(unlist(lapply(ds_bins, "[[", ds_var_name)))
+  tmp_vars <- unique(unlist(lapply(tmp_bins, "[[", tmp_var_name)))
   
   ####---- estimate cosines for matching peak-groups between dataset and template
   if (ncores > 1) {
@@ -58,28 +90,27 @@ do_alignPEAKS <- function(ds,
       foreach::foreach(bin = 1:ncores,
                        .inorder = TRUE) %dopar% (
                          massFlowR:::getCOSmat(
-                           bin = bin,
                            ds_bin = ds_bins[[bin]],
-                           ds_var = "peakgr",
+                           ds_var = ds_var_name,
                            tmp_bin = tmp_bins[[bin]],
-                           tmp_var = "peakgr",
-                           mz_err = params$mz_err,
-                           rt_err = params$rt_err,
-                           bins = 0.01
+                           tmp_var = tmp_var_name,
+                           mz_err = mz_err,
+                           rt_err = rt_err,
+                           bins = bins
                          )
                        )
   } else {
     ## run with lapply to have the same, 2-list-within-a-bin-list, structure as with foreach
-    cos_matches <- lapply(
-      X = 1,
-      FUN = massFlowR:::getCOSmat,
-      ds_bin = ds_bins[[1]],
-      ds_var = "peakgr",
-      tmp_bin = tmp_bins[[1]],
-      tmp_var = "peakgr",
-      mz_err = params$mz_err,
-      rt_err = params$rt_err,
-      bins = 0.01)
+    cos_matches <- list(
+      massFlowR:::getCOSmat(
+        ds_bin = ds_bins[[1]],
+        ds_var = ds_var_name,
+        tmp_bin = tmp_bins[[1]],
+        tmp_var = tmp_var_name,
+        mz_err = mz_err,
+        rt_err = rt_err,
+        bins = bins)
+    )
   }
   cos_mat <- matrix(0, nrow = length(tmp_vars), ncol = length(ds_vars))
   rownames(cos_mat) <- tmp_vars
@@ -126,8 +157,27 @@ do_alignPEAKS <- function(ds,
 }
 
 # getRTbins -------------------------------------------------------------------------------------------------------
+#' @title Split a dataset-of-interest and template into \emph{rt} regions (bins) for parallelisation
+#' 
+#' @description Function splits a dataset and a template into \emph{rt} regions, each of which is analysed by an independent parallel worker.
+#' 
+#' @details Function firstly splits the dataset into as many sub-tables as there are parallel workers (could be 1, if serial implementation is selected).
+#' Then template is split into the same number of sub-tables using \emph{rt} regions in the corresponding dataset's sub-tables.
+#'
+#' @param ds \code{data.frame} containing peaks which have to be compared and aligned with the template.
+#' @param tmp \code{data.frame} representing a template with which the dataset is compared to.
+#' @param ds_var_name \code{character} indicating the column name for peak grouping information in the dataset.
+#' Default is set to 'peakgr', which is the output of \code{groupPEAKS} method. 
+#' @param tmp_var_name \code{character} indicating the column name for peak grouping information in the template.
+#' If function is used within \code{alignPEAKS}, then 'peakgr' should be selected.
+#' If function is used within \code{annotatePEAKS}, then 'chemid' should be selected.
+#' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension.
+#' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension.
+#' @param ncores \code{numeric} for number of parallel workers to be used.
+#'
+#' @return Function returns a list with dataset and template tables split into \emph{rt} regions.
+#'
 getRTbins <- function(ds, tmp, ds_var_name, tmp_var_name, mz_err, rt_err, ncores) {
-  ####---- split dataset-of-interest and template into rt regions (bins) for parallelisation
   ## order both peak tables by median rt of the peak-groups
   ds <- orderBYrt(dt = ds, var_name = ds_var_name)
   tmp <- orderBYrt(dt = tmp, var_name = tmp_var_name)
@@ -166,10 +216,10 @@ getRTbins <- function(ds, tmp, ds_var_name, tmp_var_name, mz_err, rt_err, ncores
     peakgrs_previous <- if (bin == 1) {
       0
     } else {
-      tmp_bins[[bin - 1]]$peakgr
+      tmp_bins[[bin - 1]][, tmp_var_ind]
     }
     tmp_by_rt <- tmp[which(tmp$rt_h <= rt_val_max &
-                             !tmp$peakgr %in% peakgrs_previous), ]
+                             !tmp[ , tmp_var_ind] %in% peakgrs_previous), ]
     ## also add peaks that belong to the same peak-group as any of the peaks matched by rt
     tmp_by_group <- tmp[which(tmp[ , tmp_var_ind] %in% tmp_by_rt[ , tmp_var_ind]), ]
     tmp_bins[[bin]] <- tmp_by_group
@@ -178,6 +228,14 @@ getRTbins <- function(ds, tmp, ds_var_name, tmp_var_name, mz_err, rt_err, ncores
 }      
 
 # orderBYrt -------------------------------------------------------------------------------------------------------
+#' @title Order a peak table by variables' \emph{rt}
+#'
+#' @param dt \code{data.frame} of the peak table of interest.
+#' @param var_name \code{character} specifying column name for variables which should be ordered by their \emph{rt}.
+#' Depending on the step in the pipeline, variable name will be either 'peakgr', 'chemid' or 'pcs'.
+#'
+#' @return Function returns ordered \code{data.frame}. 
+#' 
 orderBYrt <- function(dt, var_name) {
   ## extract unique peak-groups or PCS or chemids
   var_ind <- match(var_name, colnames(dt))
@@ -191,7 +249,15 @@ orderBYrt <- function(dt, var_name) {
 }
 
 # addERRS ---------------------------------------------------------------------------------------------------------
-## add error windows using user-defined mz/rt values
+#' @title Add peak matching error windows using user-defined \emph{m/z} and \emph{rt} values
+#'
+#' @description Function adds lower and higher values for \emph{m/z} and \emph{rt} values for each peak in the table.
+#' @param dt \code{data.frame}
+#' @param mz_err \code{numeric} specifying error value for \emph{m/z}.
+#' @param rt_err \code{numeric} specifying error value for \emph{rt}.
+#'
+#' @return Function returns original \code{data.frame} with additional columns 'mz_l', 'mz_h', 'rt_l' and 'rt_h'.
+#' 
 addERRS <- function(dt, mz_err, rt_err) {
   dt[, c("mz_l",
          "mz_h",
@@ -204,11 +270,31 @@ addERRS <- function(dt, mz_err, rt_err) {
 }
 
 # getCOSmat ---------------------------------------------------------------------------------------------------------
-getCOSmat <- function(bin, ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins = 0.01) {
+#' @title Estimate cosine angles between the vectors representing dataset and template peak-groups
+#' 
+#' @description Function estimates cosine angles between matching dataset and template peak-groups.
+#' Function is applied to a single \emph{rt} region(bin) and is used in parallel on multiple \emph{rt} regions.
+#' Function is applied to \emph{rt} region within \code{\link{do_alignPEAKS}} function.
+#' 
+#' @param ds_bin \code{data.frame} for the single \emph{rt} region of the dataset.
+#' @param ds_var \code{character} indicating the column name for peak grouping information in the dataset.
+#' @param tmp_bin \code{data.frame} for the single \emph{rt} region of the template
+#' @param tmp_var \code{character} indicating the column name for peak grouping information in the template.
+#' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension.
+#' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. 
+#' @param bins \code{numeric} defying step size used in peak-group spectra binning and vector generation.#' 
+#'
+#' @return Function returns a list with two entries:
+#' \itemize{
+#'  \item \code{matrix} with obtained cosines between all dataset and template peak-groups.
+#'  \item \code{list} with matching template peaks for every peak-group in the dataset.
+#'  }
+#' 
+getCOSmat <- function(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins = 0.01) {
   
+  ## which column indexes correspond to the given variable names in dataset and template
   ds_var_ind <- match(ds_var, colnames(ds_bin))
   ds_vars <- unique(ds_bin[ , ds_var_ind])
-  
   tmp_var_ind <- match(tmp_var, colnames(tmp_bin))
   tmp_vars <- unique(tmp_bin[ , tmp_var_ind])
   
@@ -281,6 +367,19 @@ getCOSmat <- function(bin, ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bin
 }
 
 # getMATCHES ---------------------------------------------------------------------------------------------------------
+#' @title Get template peaks that match the target peak by \emph{m/z} and \emph{rt} values
+#' 
+#' @description Function find all matching peaks in a template.
+#' Broad \emph{m/z} and \emph{rt} values are used in the search.
+#' Function is applied to every peak in a peak-group of interest.
+#'
+#' @param target_peak \code{matrix} with target peak's \emph{m/z} and \emph{rt} lower and higher values.
+#' @param tmp \code{data.frame} representing a template in which matching peaks are looked for.
+#' @param tmp_var \code{character} indicating the column name for peak grouping information in the template.
+#' @param target_var \code{character} indicating the column name for peak grouping information in the target peak's \code{matrix}.
+#'
+#' @return Function returns a \code{data.frame} with matching template's peaks.
+#' 
 getMATCHES <- function(target_peak, tmp, tmp_var, target_var) {
   ## find matching template target_peaks using mz/rt windows of both target_peaks
   mat <- tmp[which((tmp$mz_l >= target_peak["mz_l"] &
@@ -303,6 +402,18 @@ getMATCHES <- function(target_peak, tmp, tmp_var, target_var) {
 }
 
 # buildVECTOR ---------------------------------------------------------------------------------------------------------
+#' @title Build a vector for a peak-group using peaks \emph{m/z} and intensity values
+#' 
+#' @description Function builds a vector for a peak-group using peaks \emph{m/z} and intensity values.
+#' Function is used to compare multiple peak-groups.
+#' A vector is build for each peak-group separately using full \emph{m/z} range, which includes all peaks from all peak-groups being compared.
+#'
+#' @param spec \code{data.frame} with columns 'mz', 'bin' and 'into'.
+#' Contains a full range of \emph{m/z} values of all peak-groups that are being compared.
+#' @param peaks \code{data.frame} with columns 'mz', 'bin' and 'into' for peaks in a single peak-group.
+#'
+#' @return Function returns a \code{numeric} vector representing peaks of a single peak-group.
+#' 
 buildVECTOR <- function(spec, peaks) {
   peaks$bin <- findInterval(x = peaks$mz, spec$mz)
   ## remove duplicating duplicating bins and any bins that are not representing a peak
@@ -314,11 +425,24 @@ buildVECTOR <- function(spec, peaks) {
 }
 
 # scaleSPEC ---------------------------------------------------------------------------------------------------------
-scaleSPEC <- function(spec, m = 0.6, n = 3) {
+#' @title Scale a vector representing peaks' intensity values
+#' 
+#' @description Function scales a vector representing peaks' intensity values before dot-product estimation of two vectors.
+#' Currently, scaling to unit length is supported.
+#'
+#' @param spec \code{data.frame} with columns 'into' and 'mz'.
+#'
+#' @return Function returns a \code{numeric} vector with scaled intensity values.
+#' 
+#' @seealso \code{\link{getCOSmat}}
+#' 
+scaleSPEC <- function(spec) {
   ## Version A - scale to unit length
   spec$into / (sqrt(sum(spec$into * spec$into)))
   
   ## Version B - according to Stein & Scott, 1994
+  # m = 0.6
+  # n = 3
   ## scale the intensity of every mz ion separately
   ## use m and n weighting factors taken from Stein & Scott, 1994
   # apply(spec, 1, function(x) {
@@ -327,13 +451,20 @@ scaleSPEC <- function(spec, m = 0.6, n = 3) {
 }
 
 # assignCOS ---------------------------------------------------------------------------------------------------------
+#' @title Assign dataset's peak-groups to template peak-groups based on estimated cosine angles
+#'
+#' @param cos \code{matrix} with cosine angles.
+#' Rows correspond to template variables (i.e. peak-group).
+#' Columns correspond to dataset-of-interest variables (i.e. peak-group).
+#'
+#' @return Function returns a \code{matrix} of the same dimension.
+#' Peak-group pairs which should be aligned are marked with TRUE in the output matrix.
+#' 
 assignCOS <- function(cos) {
   ## rank by row, i.e. the template vars
   tmp_rank <- t(apply(cos, 1, FUN = rankCOS))
   ## rank by column, i.e. the ds vars
   ds_rank <- apply(cos, 2, FUN = rankCOS)
-  ## both matrices have the same dimensions
-  
   ## assign peakgroup pairs which have the highest rank both row-wise and column-wise
   assigned <- matrix(FALSE, nrow = nrow(cos), ncol = ncol(cos))
   assigned[which(cos == 0)] <- NA
@@ -411,6 +542,13 @@ assignCOS <- function(cos) {
 }
 
 # rankCOS ---------------------------------------------------------------------------------------------------------
+#' @title Rank cosines, assigning 1 to the highest cosine and 0s to cosine of 0.
+#'
+#' @param x \code{matrix} with cosine values for a single peak-group of interest and all peak-groups in table being matched to.
+#'
+#' @return Function returns \code{numeric} vector with ranks for each peak-group.
+#' Of the same lenght as original x \code{matrix}.
+#' 
 rankCOS <- function(x) {
   cos_0 <- length(which(x == 0))
   cos_pos <- length(x) - cos_0
