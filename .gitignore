@@ -1,5 +1,4 @@
 Meta
-doc
 *~
 *.pdf
 *.Rproj
@@ -10,3 +9,4 @@ inst/doc/*.Rmd
 inst/doc/*.R
 vignettes/*.html
 vignettes/*.R
+
