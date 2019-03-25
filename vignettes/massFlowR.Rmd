@@ -45,8 +45,8 @@ suppressWarnings(library(massFlowR))
 suppressWarnings(library(xcms))
 suppressWarnings(library(dplyr))
 out_directory <- getwd()
-url_m <- "http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/doc/massFlowR.html"
-url_a <- "http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/doc/annotation.html"
+url_m <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/massFlowR.html"
+url_a <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/annotation.html"
 ```
 
 

@@ -37,10 +37,11 @@ suppressWarnings(library(dplyr))
 rda_dir <- "~/Documents/Projects/DBannotate/NPC-RPOS-LCE-SubDB"
 db_dir <- "~/Documents/Projects/massFlowR/packageDEV/db"
 out_directory <- getwd()
+url <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/massFlowR.html"
 ```
 
 
-`massFlowR` performs automatic annotation during peak alignment if LC-MS files for chemical reference compounds are available. To enable annotation, provide a database table in a csv format when initiating peak alignment (see section [peak annotation](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html#peak-annotation)).
+`massFlowR` performs automatic annotation during peak alignment if LC-MS files for chemical reference compounds are available. To enable annotation, provide a database table in a csv format when initiating peak alignment (see section [peak annotation](`r url`)).
 
 Database table can be obtained from raw LC-MS files in two steps:
 
@@ -61,6 +62,7 @@ Raw LC-MS files had been processed by M.Lewis. Code for corresponding functional
 
 ## Building database from rda files
 
+
 Previously processed LC-MS files were recorded in rda files. Function `getDB` can be used to build a database table using these rda files. The generated table will have the following columns:
 
 * `peakid` (unique peak number)
@@ -71,6 +73,7 @@ Previously processed LC-MS files were recorded in rda files. Function `getDB` ca
 * `chemid` (unique database chemical number)
 * `dbid`  (compound identifier)
 * `dbname` (compound chemical name)
+
 
 ```{r db_table, message = FALSE, echo = FALSE, results = 'hide'}
 buildDB(rda_dir = rda_dir, out_dir = out_directory)
@@ -93,6 +96,8 @@ knitr::kable(x = dt,
   kableExtra::kable_styling(full_width = TRUE, bootstrap_options = c("striped"), position = "left")
 ```
 
+
 # See also
 
-* [Introduction to massFlowR](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/annotate/inst/doc/massFlowR.html)
+
+* [Introduction to massFlowR](`r url`)
