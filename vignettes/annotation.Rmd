@@ -95,4 +95,4 @@ knitr::kable(x = dt,
 
 # See also
 
-* [Introduction to massFlowR](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html)
+* [Introduction to massFlowR](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/annotate/inst/doc/massFlowR.html)

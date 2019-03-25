@@ -12,6 +12,13 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
 editor_options: 
   chunk_output_type: console
+bibliography: references.bib
+references:
+- id: dummy
+  title: no title
+  author:
+  - family: noname
+    given: noname
 ---
 
 **Package**: [massFlowR](https://github.com/lauzikaite/massFlowR)<br />
@@ -38,6 +45,8 @@ suppressWarnings(library(massFlowR))
 suppressWarnings(library(xcms))
 suppressWarnings(library(dplyr))
 out_directory <- getwd()
+url_m <- "http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/doc/massFlowR.html"
+url_a <- "http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/doc/annotation.html"
 ```
 
 
@@ -46,7 +55,7 @@ out_directory <- getwd()
 
 This documents provides an overview of the LC-MS data pre-processing with `massFlowR`.
 
-`massFlowR` aligns and annotates structurally-related spectral peaks across LC-MS experiment samples. The pipeline consists of three stages:
+`massFlowR` aligns and annotates structurally-related spectral peaks across LC-MS experiment samples. The pipeline consists of five stages:
 
 * [Processing of individual LC-MS samples](#individual-samples-processing)
 * [Peak alignment across samples](#peak-alignment)
@@ -78,7 +87,7 @@ Load the package and locate the raw CDF files within the `faahKO` package:
 ```{r  data_import}
 library(massFlowR)
 ## Get the full path to the CDF files
-# faahKO_files <- system.file(c('cdf/WT/wt15.CDF', 'cdf/WT/wt16.CDF'), package = "faahKO")
+# faahKO_files <- system.file(c('cdf/WT/wt15.CDF', 'cdf/WT/wt16.CDF'), package = "faahKO"))
 faahKO_files <- dir(system.file("cdf/WT", package = "faahKO"), full.names = T)
 faahKO_files
 ```
@@ -93,7 +102,7 @@ The first stage in the pipeline is chromatographic peak detection and peak group
 ## Chromatographic peak detection
 
 
-Peaks are detected using the *centWave* algorithm from `r Biocpkg("xcms")` package. Appropriate parameters for the LC-MS experiment must be selected. For advise on this, please see the official `xcms` [manual](https://bioconductor.org/packages/release/bioc/vignettes/xcms/inst/doc/xcms.html#3_initial_data_inspection). Selected parameters must be built into a *CentWaveParam* class object:
+Peaks are detected using the *centWave* algorithm from `r Biocpkg("xcms")` package (see [@Tautenhahn2008]). Appropriate parameters for the LC-MS experiment must be selected. For advise on this, please see the official `xcms` [manual](https://bioconductor.org/packages/release/bioc/vignettes/xcms/doc/xcms.html#3_initial_data_inspection). Selected parameters must be built into a *CentWaveParam* class object:
 
 ```{r params}
 ## xcms parameters for peak-picking
@@ -114,7 +123,7 @@ Detected peaks are put into groups, which comprise peaks originating from the sa
 * Finds all co-eluting peaks
 * Performs extracted ion chromatogram (EIC) correlation between all co-eluting peaks
 * Builds a network of peaks with high EIC correlation
-* Detects communities of peak within the correlation network (`igraph` package algorithm 
+* Detects communities of peak within the correlation network (implemented by `igraph` package algorithm, see [@Raghavan2007])
 
 Peaks in the detected communities form a single peak-group. Only groups with more than one peak are retained in the final peak table.
 
@@ -314,16 +323,18 @@ template <- fillPEAKS(template, out_dir = out_directory, ncores = 2)
 # Peak annotation
 
 
-If in-house chemical reference database is available, PCS are annotated. For more details how to build a database file, see [annotation using database](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/annotation.html))).
+If in-house chemical reference database is available, PCS are annotated. For more details how to build a database file, see [annotation using database](`r url_a`)).
 
 
 # See also
 
 
-* [Automatic peak annotation](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/annotation.html)
+* [Automatic peak annotation](`r url_a`)
+
 
 ```{r teardown, message = FALSE, echo = FALSE}
 unlink(list.files(path = out_directory, pattern = ".csv", full.names = T))
 unlink(list.files(path = out_directory, pattern = ".RDS", full.names = T))
-
 ```
+
+# References

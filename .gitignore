@@ -1,4 +1,6 @@
-Meta
+Meta/
+doc/*.Rmd
+doc/*.R
 *~
 *.pdf
 *.Rproj

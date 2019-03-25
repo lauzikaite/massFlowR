@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2019-03-22" />
+<meta name="date" content="2019-03-25" />
 
 <title>Introduction to massFlowR package</title>
 
@@ -277,12 +277,12 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">Introduction to massFlowR package</h1>
-<h4 class="date"><em>22 March 2019</em></h4>
+<h4 class="date"><em>25 March 2019</em></h4>
 
 </div>
 
 
-<p><strong>Package</strong>: <a href="https://github.com/lauzikaite/massFlowR">massFlowR</a><br /> <strong>Authors</strong>: Elzbieta Lauzikaite<br /> <strong>Modified</strong>: 2019-03-22 17:44:13<br /> <strong>Compiled</strong>: Fri Mar 22 17:56:31 2019</p>
+<p><strong>Package</strong>: <a href="https://github.com/lauzikaite/massFlowR">massFlowR</a><br /> <strong>Authors</strong>: Elzbieta Lauzikaite<br /> <strong>Modified</strong>: 2019-03-25 16:24:55<br /> <strong>Compiled</strong>: Mon Mar 25 16:25:35 2019</p>
 <script type="text/javascript">
 document.addEventListener("DOMContentLoaded", function() {
   document.querySelector("h1").className = "title";
@@ -299,7 +299,7 @@ document.addEventListener("DOMContentLoaded", function() {
 <div id="overview" class="section level1">
 <h1><span class="header-section-number">1</span> Overview</h1>
 <p>This documents provides an overview of the LC-MS data pre-processing with <code>massFlowR</code>.</p>
-<p><code>massFlowR</code> aligns and annotates structurally-related spectral peaks across LC-MS experiment samples. The pipeline consists of three stages:</p>
+<p><code>massFlowR</code> aligns and annotates structurally-related spectral peaks across LC-MS experiment samples. The pipeline consists of five stages:</p>
 <ul>
 <li><a href="#individual-samples-processing">Processing of individual LC-MS samples</a></li>
 <li><a href="#peak-alignment">Peak alignment across samples</a></li>
@@ -321,7 +321,7 @@ devtools::install_github(&quot;lauzikaite/massflowR&quot;)</code></pre>
 <p>Load the package and locate the raw CDF files within the <code>faahKO</code> package:</p>
 <pre class="r"><code>library(massFlowR)
 ## Get the full path to the CDF files
-# faahKO_files &lt;- system.file(c('cdf/WT/wt15.CDF', 'cdf/WT/wt16.CDF'), package = &quot;faahKO&quot;)
+# faahKO_files &lt;- system.file(c('cdf/WT/wt15.CDF', 'cdf/WT/wt16.CDF'), package = &quot;faahKO&quot;))
 faahKO_files &lt;- dir(system.file(&quot;cdf/WT&quot;, package = &quot;faahKO&quot;), full.names = T)
 faahKO_files
 #&gt; [1] &quot;/Library/Frameworks/R.framework/Versions/3.5/Resources/library/faahKO/cdf/WT/wt15.CDF&quot;
@@ -336,7 +336,7 @@ faahKO_files
 <p>The first stage in the pipeline is chromatographic peak detection and peak grouping via function <code>groupPEAKS</code>.</p>
 <div id="chromatographic-peak-detection" class="section level2">
 <h2><span class="header-section-number">4.1</span> Chromatographic peak detection</h2>
-<p>Peaks are detected using the <em>centWave</em> algorithm from <a href="http://bioconductor.org/packages/xcms">xcms</a> package. Appropriate parameters for the LC-MS experiment must be selected. For advise on this, please see the official <code>xcms</code> <a href="https://bioconductor.org/packages/release/bioc/vignettes/xcms/inst/doc/xcms.html#3_initial_data_inspection">manual</a>. Selected parameters must be built into a <em>CentWaveParam</em> class object:</p>
+<p>Peaks are detected using the <em>centWave</em> algorithm from <a href="http://bioconductor.org/packages/xcms">xcms</a> package (see <span class="citation">(Tautenhahn, Bottcher, and Neumann 2008)</span>). Appropriate parameters for the LC-MS experiment must be selected. For advise on this, please see the official <code>xcms</code> <a href="https://bioconductor.org/packages/release/bioc/vignettes/xcms/doc/xcms.html#3_initial_data_inspection">manual</a>. Selected parameters must be built into a <em>CentWaveParam</em> class object:</p>
 <pre class="r"><code>## xcms parameters for peak-picking
 cwt_param &lt;- xcms::CentWaveParam(ppm = 25,
                                  snthresh = 10,
@@ -352,7 +352,7 @@ cwt_param &lt;- xcms::CentWaveParam(ppm = 25,
 <li>Finds all co-eluting peaks</li>
 <li>Performs extracted ion chromatogram (EIC) correlation between all co-eluting peaks</li>
 <li>Builds a network of peaks with high EIC correlation</li>
-<li>Detects communities of peak within the correlation network (<code>igraph</code> package algorithm</li>
+<li>Detects communities of peak within the correlation network (implemented by <code>igraph</code> package algorithm, see <span class="citation">(Raghavan, Albert, and Kumara 2007)</span>)</li>
 </ul>
 <p>Peaks in the detected communities form a single peak-group. Only groups with more than one peak are retained in the final peak table.</p>
 </div>
@@ -1348,13 +1348,24 @@ template &lt;- fillPEAKS(template, out_dir = out_directory, ncores = 2)
 </div>
 <div id="peak-annotation" class="section level1">
 <h1><span class="header-section-number">8</span> Peak annotation</h1>
-<p>If in-house chemical reference database is available, PCS are annotated. For more details how to build a database file, see <a href="http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/annotation.html">annotation using database</a>)).</p>
+<p>If in-house chemical reference database is available, PCS are annotated. For more details how to build a database file, see <a href="http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/doc/annotation.html">annotation using database</a>).</p>
 </div>
 <div id="see-also" class="section level1">
 <h1><span class="header-section-number">9</span> See also</h1>
 <ul>
-<li><a href="http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/annotation.html">Automatic peak annotation</a></li>
+<li><a href="http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/doc/annotation.html">Automatic peak annotation</a></li>
 </ul>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1>References</h1>
+<div id="refs" class="references">
+<div id="ref-Raghavan2007">
+<p>Raghavan, Usha Nandini, Réka Albert, and Soundar Kumara. 2007. “Near linear time algorithm to detect community structures in large-scale networks.” <em>Physical Review E</em> 76 (3): 036106. doi:<a href="https://doi.org/10.1103/PhysRevE.76.036106">10.1103/PhysRevE.76.036106</a>.</p>
+</div>
+<div id="ref-Tautenhahn2008">
+<p>Tautenhahn, Ralf, C Bottcher, and S Neumann. 2008. “Highly sensitive feature detection for high resolution LC/MS.” <em>BMC Bioinformatics</em> 9: 16. doi:<a href="https://doi.org/10.1186/1471-2105-9-504">10.1186/1471-2105-9-504</a>.</p>
+</div>
+</div>
 </div>
 
 
