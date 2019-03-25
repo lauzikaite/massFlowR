@@ -1,6 +1,5 @@
 ## Unsorted utility functions
 
-
 # validFILE --------------------------------------------------------------------------------------------------------
 #' @title Check the validity of a raw LC-MS file.
 #' 
@@ -31,8 +30,6 @@ validFILE <- function(f) {
     }
 }
 
-
-
 # readDATA --------------------------------------------------------------------------------------------------------
 #' @title Read raw LC-MS data into memory
 #' 
@@ -43,10 +40,8 @@ validFILE <- function(f) {
 #' @return Function returns \code{OnDiskMSnExp} class object.
 #'
 readDATA <- function(f) {
-  
   ## use try to catch mzML reading error that occurs only on macOS
   raw <- NULL
-  
   while (is.null(raw)) {
     raw <- try(MSnbase::readMSData(f, mode = "onDisk", msLevel. = 1),
                silent = TRUE)
@@ -85,7 +80,6 @@ cleanPEAKS <- function(rn, dt_unique, dt) {
   return(peak)
 }
 
-
 # rbindCLEAN ------------------------------------------------------------------------------------------------------
 #' @title Bind a list of data frames
 #'
@@ -98,7 +92,6 @@ cleanPEAKS <- function(rn, dt_unique, dt) {
 rbindCLEAN <- function(...) {
   rbind(..., make.row.names = F)
 }
-
 
 # scaleEDGES ------------------------------------------------------------------------------------------------------
 #' @title Scale correlation coefficients
@@ -115,7 +108,6 @@ scaleEDGES <- function(x, from = 0.01, to = 10) {
   (x - min(x)) / max(x - min(x)) * (to - from) + from
 }
 
-
 # getCORmat -------------------------------------------------------------------------------------------------------
 #' @title Build a correlation matrix between peaks-of-interest
 #'
@@ -129,7 +121,6 @@ scaleEDGES <- function(x, from = 0.01, to = 10) {
 getCORmat <- function(ind) {
   setNames(as.data.frame(t(utils::combn(ind, 2, simplify = T))), nm = c("from", "to"))
 }
-
 
 # buildGRAPH ------------------------------------------------------------------------------------------------------
 #' @title Build a correlation network of peaks

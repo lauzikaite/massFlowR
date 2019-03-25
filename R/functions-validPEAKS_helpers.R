@@ -271,11 +271,13 @@ exportPEAK <- function(peakid, peaks_vals_samples) {
 #'
 #' @return Function return a \code{data.frame} with median centWave measures for a peak-of-interest across all samples.
 #' 
-getPEAKmedians <- function(peak_n) {
-  medians <-
-    apply(peak_n[, c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax")], 2, median, na.rm = TRUE)
-  npeaks <- length(which(!is.na(peak_n$mz)))
-  peak_nmat <- as.data.frame(cbind(t(medians), npeaks))
-  return(peak_nmat)
-}
+getPEAKmedians <-
+  function(peak_n,
+           values = c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax")) {
+    medians <-
+      apply(peak_n[, match(values, colnames(peak_n))], 2, median, na.rm = TRUE)
+    npeaks <- length(which(!is.na(peak_n$mz)))
+    peak_nmat <- as.data.frame(cbind(t(medians), npeaks))
+    return(peak_nmat)
+  }
 

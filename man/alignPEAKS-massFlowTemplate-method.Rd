@@ -7,12 +7,14 @@
 \title{Align peaks detected in LC-MS samples using spectral similarity comparison}
 \usage{
 \S4method{alignPEAKS}{massFlowTemplate}(object, out_dir = NULL,
-  write_int = TRUE)
+  ncores = 2, write_int = TRUE)
 }
 \arguments{
 \item{object}{\code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.}
 
 \item{out_dir}{\code{character} specifying desired directory for output.}
+
+\item{ncores}{\code{numeric} for number of parallel workers to be used. Set 1 for serial implementation. Default set to 2.}
 
 \item{write_int}{\code{logical} specifying whether a peak table with alignment results should be saved for every sample.
 If TRUE, csv files will be written in the out_dir directory.
@@ -26,7 +28,7 @@ Method writes alignment results to a csv file for each sample in the experiment.
 }
 \description{
 Method aligns peaks across samples in LC-MS experiment using spectral similarity comparison.
-To enable alignment, peaks originating from the same chemical compound were grouped into pseudo chemical spectra (PCS), via function \code{\link{groupPEAKS}}.
+To enable alignment, peaks originating from the same chemical compound were grouped into peak-groups, via function \code{\link{groupPEAKS}}.
 }
 \details{
 Peaks are aligned across samples in their original acquisition order.

@@ -4,7 +4,7 @@ test_basenames <- sapply(test_fnames, function(fname) {
   strsplit(basename(fname), split = "[.]")[[1]][1]
 }, USE.NAMES = F)
 test_basename <- test_basenames[1]
-data_dir <- "/Users/el1514/Documents/Projects/massFlowR/packageDEV/unittest"
+data_dir <- "~/Documents/Projects/massFlowR/packageDEV/unittest"
 # data_dir <- file.path(system.file(package = "massFlowR"), "testdata/")
 
 ####---- single datafile preparation
@@ -13,7 +13,8 @@ cwt <- xcms::CentWaveParam(ppm = 25,
                            noise = 1000,
                            prefilter =  c(3, 100),
                            peakwidth = c(30, 80),
-                           verboseColumns = TRUE)
+                           verboseColumns = TRUE,
+                           mzdiff = 0)
 test_raw <-  MSnbase::readMSData(files = test_fname, mode = "onDisk")
 test_res <- xcms::findChromPeaks(object = test_raw, param = cwt)
 test_pks <- data.frame(xcms::chromPeaks(test_res))
@@ -42,7 +43,8 @@ test_eic_rd <- lapply(1:nrow(test_eic_rd), function(ch) {
 metadata <- data.frame(filename = test_basenames,
                        run_order = 1:2,
                        raw_filepath = test_fnames,
-                       proc_filepath = paste0(file.path(data_dir, test_basenames), "_peakgrs.csv")
+                       proc_filepath = paste0(file.path(data_dir, test_basenames), "_peakgrs.csv"),
+                       stringsAsFactors = F
                        )
 write.csv(metadata, file.path(data_dir, "metadata.csv"), quote = F, row.names = FALSE)
 meta_fname <- file.path(data_dir, "metadata.csv")
@@ -82,7 +84,8 @@ noisy <- bind_rows(single_table %>%
                     filter(peakgr != biggest_pkg),
                   ## return the original peakgr with half and minus 1 peaks
                   biggest %>% 
-                    slice(1:(n()- 1))) %>% 
+                    slice(1:(n()- 1)) %>% 
+                    mutate(noisy = 1)) %>% 
   ## modify mz/into values of the replicated peakgr
   bind_rows(biggest %>% 
               ## increase into values so that added peakgr would be higherd in peak table
@@ -93,7 +96,8 @@ noisy <- bind_rows(single_table %>%
                      rt = rt_new,
                      peakgr = max(single_table$peakgr) + 1,
                      peakid = NULL) %>% 
-              select(- rt_new))
+              select(- rt_new) %>% 
+              mutate(noisy = 2))
 noisy_pkg <- max(noisy$peakgr)  
 noisy <- noisy %>% 
   ## arrange by peak intensity and give a peak number

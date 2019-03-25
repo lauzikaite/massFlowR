@@ -1,17 +1,19 @@
+#' @include classes.R
+#'
+#' @rdname massFlowTemplate-class
+#' 
+#' @title Validate massFlowTemplate class object
+#' 
 validmassFlowTemplate <- function(object) {
-  
   msg <- character()
-
   ####---- basic validity
   if (class(object) != "massFlowTemplate") {
     msg <- c(msg, "Object must be a 'massFlowTemplate' class object")
   }
-  
   ####---- validity basic slots used in initial class built
   if (!file.exists(object@filepath)) {
     msg <- c(msg, "Incorrect filepath for 'file' provided")
   }
-  
   if (nrow(object@samples) > 0) {
     req_cnames <- c("filename",
                     "run_order",
@@ -26,7 +28,6 @@ validmassFlowTemplate <- function(object) {
     }
     }
   }
-  
   if (nrow(object@tmp) > 0) {
     req_cnames <- c("peakid",
                     "mz",
@@ -51,7 +52,6 @@ validmassFlowTemplate <- function(object) {
   if (length(object@params) == 0) {
     msg <- c(msg, paste0("Slot 'params' doesn't contain parameters"))
   }
-  
   ####---- if validPEAKS was already applied
   if (nrow(object@valid) > 0) {
     peaks_validated <- TRUE
@@ -64,14 +64,9 @@ validmassFlowTemplate <- function(object) {
   } else {
     peaks_validated <- FALSE
   }
-  
   if (length(msg)) {
     return(msg)
   } else {
     return(TRUE)
   }
 }
-
-  
-    
-      

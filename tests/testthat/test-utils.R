@@ -1,5 +1,17 @@
 context("utils functions")
 
+# validFILE --------------------------------------------------------------------------------------------------------
+test_that("validFILE", {
+  
+  
+})
+
+# readDATA --------------------------------------------------------------------------------------------------------
+test_that("readDATA", {
+  
+  
+})
+
 # cleanPEAKS ------------------------------------------------------------------------------------------------------
 test_that("cleanPEAKS removes duplicated peaks correctly", {
   ## removes duplicates in mz/rt (as in pickPEAKS)
@@ -72,12 +84,12 @@ test_that("rbindCLEAN", {
 test_that("getCORmat", {
   ## use indeces of co-eluting peaks for a random peak
   # random_peak <- sample(test_pks_rd$peakid, size = 1)
-  random_peak <- 71
+  random_peak <- 91
   random_peak_scpos <-
     c(test_pks_rd[random_peak, "scpos"] - 1, test_pks_rd[random_peak, "scpos"] + 1)
-  random_peak_co <- test_pks_rd[
-    which(dplyr::between(test_pks_rd$scpos,  random_peak_scpos[1],  random_peak_scpos[2])),
-    "peakid"]
+  random_peak_co <-
+    test_pks_rd[which(test_pks_rd$scpos >= random_peak_scpos[1] &
+                        test_pks_rd$scpos <= random_peak_scpos[2]), "peakid"]
   
   ## basic matching
   getCORmat_out <- massFlowR:::getCORmat(ind = random_peak_co)

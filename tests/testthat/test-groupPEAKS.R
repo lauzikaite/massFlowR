@@ -20,9 +20,9 @@ test_that("Functions used by groupPEAKS_paral() returs correct output", {
   expect_equal(length(extractEIC_out), length(test_eic_rd))
   expect_equal(class(extractEIC_out[[1]])[1], "Chromatogram")
   
-  ## (4) groupPEAKSspec
-  groupPEAKSspec_out <-
-    groupPEAKSspec(
+  ## (4) do_groupPEAKS
+  do_groupPEAKS_out <-
+    do_groupPEAKS(
       pks = test_pks_rd,
       eic = test_eic_rd,
       out_dir = data_dir,
@@ -31,15 +31,15 @@ test_that("Functions used by groupPEAKS_paral() returs correct output", {
       return = T
     )
   ## are only peakgrs with 2 or more peaks returned?
-  expect_true(min(table(groupPEAKSspec_out$peakgr)) >= 2)
+  expect_true(min(table(do_groupPEAKS_out$peakgr)) >= 2)
   ## are all peaks assigned to a peakgr
-  expect_false(any(is.na(groupPEAKSspec_out$peakgr)))
+  expect_false(any(is.na(do_groupPEAKS_out$peakgr)))
   ## peakids are newly generated
-  expect_equal(groupPEAKSspec_out$peakid, 1:nrow(groupPEAKSspec_out))
+  expect_equal(do_groupPEAKS_out$peakid, 1:nrow(do_groupPEAKS_out))
   
 })
 
-## functions specific to groupPEAKSspec
+## functions specific to do_groupPEAKS
 test_that("corEIC returns correct table", {
   ## get co-eluting peak indeces for peak no 228 (random)
   test_ind <-
@@ -51,8 +51,7 @@ test_that("corEIC returns correct table", {
   test_cormat_pair <- as.matrix(test_cormat)[1,]
   corEIC_out <-
     massFlowR:::corEIC(pair = test_cormat_pair, eic = test_eic_rd)
-  expect_equal(corEIC_out, 0.9972364)
-  
+  expect_equal(round(corEIC_out, 7), 0.9061045)
   test_cormat$weight <- apply(test_cormat,
                               1,
                               FUN = massFlowR:::corEIC,

@@ -4,10 +4,9 @@ massflowR
 
 Package for pre-processing of high-resolution, untargeted, centroid LC-MS data.
 
-Overview
-========
+`massFlowR` detects and aligns structurally-related spectral peaks across LC-MS experiment samples.
 
-`massFlowR` detects and aligns structurally-related spectral peaks across LC-MS experiment samples. Its pipeline consists of three stages:
+------------------------------------------------------------------------
 
 Individual samples processing
 -----------------------------
@@ -16,25 +15,28 @@ Each LC-MS file in the experiment is processed independently.
 
 -   Chromatographic peak detection enabled by the *centWave* algorithm from `xcms` package.
 
--   Grouping of chromatographic peaks into structurally-related sets of peaks, or, Pseudo-Chemical-Spectra (see [Peak Grouping](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html)).
+-   Grouping of chromatographic peaks into structurally-related groups of peaks (see [Peak Grouping](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/doc/massFlowR.html)).
 
 Individual samples can be processed in real-time during LC-MS spectra acquisition, or in parallel, using backend provided by `doParallel` package.
 
-Alignment
----------
+Peak alignment
+--------------
 
-To align peaks across all samples in the LC-MS experiment, an algorithm, which compares the overall similarity of structurally-related groups of peaks is implemented (see [Peak alignment](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html)).
+To align peaks across all samples in LC-MS experiment, an algorithm, which compares the overall similarity of structurally-related groups of peaks is implemented (see [Peak alignment](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/doc/massFlowR.html)).
 
-Alignment validation and peak filling
--------------------------------------
+Post-alignment processing
+-------------------------
 
-*(under development)*
+Once samples are aligned, the obtained peak groups are validated. Intensity values for each peak in a group are correlated across all samples to identify sets of peaks exhibiting similar behaviour. These sets of peaks are called **Pseudo Chemical Spectra** (PCS).
 
-Once samples are aligned, the obtained peak groups are validated. Intensity values for each peak in a group are correlated across all samples. Correlation estimates are then used to build networks of peaks, that behave similarly across all samples. Peaks exhibiting a different pattern in their intensities are put into a new peak-group.
+Final step in the pipeline is to re-integrate intensity for peaks that were not detected by the *centWave* using raw LC-MS files. *m/z* and *rt* values for intensity integration are estimated for each sample separetely. *m/z* and *rt* values are intrapolated using a cubic smoothing spline.
 
-Finally, for samples, in which a peak from a validated peak-group was not detected, peak-filling is performed. Intensity data is obtained for each missing peak using original LC-MS files. In contrast to `xcms` package, *mz* and *rt* values for intensity integration are estimated for each sample separetely. *mz* and *rt* values are taken from two surrounding samples, in which the peak-of-interest was present, and extrapolated.
+Peak annotation
+---------------
 
-If in-house chemical reference database is available, final validated peak-groups are annotated (see [Peak annotation](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/inst/doc/massFlowR.html)).
+If in-house chemical reference database is available, PCS are annotated. For more details how to build a database file, see [annotation using database](http://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/doc/massFlowR.html)).
+
+------------------------------------------------------------------------
 
 Installation
 ============

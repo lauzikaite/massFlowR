@@ -94,7 +94,7 @@ setMethod("checkNEXT",
 #' @title Align peaks detected in LC-MS samples using spectral similarity comparison
 #'
 #' @description Method aligns peaks across samples in LC-MS experiment using spectral similarity comparison.
-#' To enable alignment, peaks originating from the same chemical compound were grouped into pseudo chemical spectra (PCS), via function \code{\link{groupPEAKS}}.
+#' To enable alignment, peaks originating from the same chemical compound were grouped into peak-groups, via function \code{\link{groupPEAKS}}.
 #'
 #' @details Peaks are aligned across samples in their original acquisition order.
 #' Template is list of all previously detected and aligned peaks.
@@ -110,6 +110,7 @@ setMethod("checkNEXT",
 #'
 #' @param object \code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.
 #' @param out_dir \code{character} specifying desired directory for output.
+#' @param ncores \code{numeric} for number of parallel workers to be used. Set 1 for serial implementation. Default set to 2.
 #' @param write_int \code{logical} specifying whether a peak table with alignment results should be saved for every sample.
 #' If TRUE, csv files will be written in the out_dir directory.
 #' Default set to TRUE.
@@ -127,7 +128,9 @@ setMethod("alignPEAKS",
           signature = "massFlowTemplate",
           function(object,
                    out_dir = NULL,
-                   write_int = TRUE) {
+                   ncores = 2,
+                   write_int = TRUE
+                   ) {
             if (!validObject(object)) {
               stop(validObject(object))
             }
@@ -138,48 +141,147 @@ setMethod("alignPEAKS",
               stop("incorrect filepath for 'out_dir' provided")
             }
             
+            ## register paral backend
+            if (ncores > 1) {
+              cl <- parallel::makeCluster(ncores)
+              doParallel::registerDoParallel(cl)
+            } else {
+              foreach::registerDoSEQ()
+            }
             params <- object@params
             
-            ## generated template and all intermediate alignment peak tables
+            ## filenames for template and final metadata tables
             tmp_fname <- file.path(out_dir, "template.csv")
             aligned_fname <- file.path(out_dir, "aligned.csv")
             
             while (any(object@samples$aligned == FALSE)) {
+              ## check if next peak-group table has been written already
+              doi_fname <- checkNEXT(object)
+              ## output filenames
+              doi_name <- object@samples$filename[object@samples$proc_filepath == doi_fname]
+              doi_fname_out <- paste0(file.path(out_dir, doi_name), "_aligned.csv")
+              ## check if next peak-group table contains correct columns, if so, read csv
+              doi <- checkFILE(file = doi_fname)
+              ## status messages
               message(paste(
                 length(which(object@samples$aligned == F)),
                 "out of" ,
                 nrow(object@samples),
                 "samples left to align."
               ))
-              doi_fname <- checkNEXT(object)
-              doi_name <-
-                object@samples$filename[object@samples$proc_filepath == doi_fname]
-              doi_fname_out <-
-                paste0(file.path(out_dir, doi_name), "_aligned.csv")
               message("Aligning to sample: ", doi_name,  " ... ")
-              out <- addDOI(
-                tmp = object@tmp,
-                tmp_fname = tmp_fname,
-                doi_fname = doi_fname,
-                doi_fname_out = doi_fname_out,
-                mz_err = params$mz_err,
-                rt_err = params$rt_err,
-                bins = params$bins,
-                write_int = write_int
-              )
-              object@tmp <- out$tmp
+              ## get most up-to-date template
+              tmp <- object@tmp
+            
+              doi_to_tmp <- do_alignPEAKS(ds = doi,
+                                          tmp = tmp,
+                                          ds_var_name = "peakgr",
+                                          tmp_var_name = "peakgr",
+                                          mz_err = params$mz_err,
+                                          rt_err = params$rt_err,
+                                          bins = params$bins,
+                                          ncores = ncores)
+              
+              ####---- update template with aligned doi peak-groups
+              ## list to store tmp peakids for every peak in doi
+              doi_to_tmp_peakids <- rep(list(NA), nrow(doi))
+              doi_to_tmp_peakgr <- rep(list(NA), nrow(doi))
+              doi_to_tmp_cos <- rep(list(NA), nrow(doi))
+            
+              ## for EVERY peak-group in doi
+              for (var in 1:length(doi_to_tmp)) {
+                doi_var <- doi_to_tmp[[var]]$ds
+                doi_var_peaks <- doi[doi$peakgr == doi_var, ]
+                tmp_var <-  doi_to_tmp[[var]]$tmp
+                
+                if (is.null(tmp_var)) {
+                  ## use all peaks in the peak-group
+                  doi_peakids <- doi_var_peaks$peakid
+                  ## update tmp: add new peaks under new peakgr, set cos to NA
+                  tmp_peakids <- (max(tmp$peakid) + 1):(max(tmp$peakid) + nrow(doi_var_peaks))
+                  tmp_var <- max(tmp$peakgr) + 1
+                  cos <- NA
+                  utmp <- doi_var_peaks[, c("mz", "rt", "into")]
+                  utmp$peakid <- tmp_peakids
+                  utmp$peakgr <- tmp_var
+                  tmp <- rbind(tmp, utmp)
+                } else {
+                  doi_peakids <- doi_to_tmp[[var]]$mat$target_peakid
+                  tmp_peakids <- doi_to_tmp[[var]]$mat$peakid
+                  cos <- doi_to_tmp[[var]]$cos
+                  ## get mean mz/rt across doi & tmp. Get into values from doi
+                  new_values <- lapply(1:length(tmp_peakids), function(x) {
+                    tmp_p <- tmp_peakids[x]
+                    doi_p <- doi_peakids[x]
+                    tmp_peak <- tmp[match(tmp_p, tmp$peakid), c("mz", "rt", "into")]
+                    doi_peak <- doi[match(doi_p, doi$peakid), c("mz", "rt", "into")]
+                    rt_m <- mean(c(doi_peak$rt, tmp_peak$rt))
+                    mz_m <- mean(c(doi_peak$mz, tmp_peak$mz))
+                    into <- doi_peak$into[which.max(doi_peak$into)]
+                    data.frame(mz_m, rt_m, into)
+                  })
+                  tmp[match(tmp_peakids, tmp$peakid), c("mz", "rt", "into")] <- do.call("rbind", new_values)
+                  ## if any unmatched peaks are left, add them as new
+                  doi_var_peaks <- doi[which(doi$peakgr == doi_var), ]
+                  doi_var_peaks_un <- doi_var_peaks[!doi_var_peaks$peakid %in% doi_peakids, ]
+                  if (nrow(doi_var_peaks_un) > 0) {
+                    tmp_peakids_new <- (max(tmp$peakid) + 1):(max(tmp$peakid) + nrow(doi_var_peaks_un))
+                    utmp <- doi_var_peaks_un[, c("mz", "rt", "into")]
+                    utmp$peakid <- tmp_peakids_new
+                    utmp$peakgr <- tmp_var
+                    tmp <- rbind(tmp, utmp)
+                    tmp_peakids <- c(tmp_peakids, tmp_peakids_new)
+                    doi_peakids <- c(doi_peakids, doi_var_peaks_un$peakid)
+                  }
+                }
+                ## update doi-to-tmp matching info
+                doi_to_tmp_peakids[unlist(doi_peakids)] <- tmp_peakids
+                doi_to_tmp_peakgr[unlist(doi_peakids)] <- tmp_var
+                doi_to_tmp_cos[unlist(doi_peakids)] <- cos
+              }
+              doi$tmp_peakid <- unlist(doi_to_tmp_peakids)
+              doi$tmp_peakgr <- unlist(doi_to_tmp_peakgr)
+              doi$cos <- unlist(doi_to_tmp_cos)
+            
+              object@tmp <- tmp
               object@samples[object@samples$proc_filepath == doi_fname, "aligned"] <-
                 TRUE
               object@samples[object@samples$proc_filepath == doi_fname, "aligned_filepath"] <-
                 doi_fname_out
-              object@data[[doi_name]] <- out$doi
+              object@data[[doi_name]] <- doi
               
+              ## (1) write aligned doi table
+              write.csv(
+                doi,
+                file = doi_fname_out,
+                quote = T,
+                row.names = F
+              )
+              ## (2) write intermediate template generated after this doi
+              if (write_int == T) {
+                write.csv(
+                  tmp,
+                  file = gsub("aligned.csv", "tmp.csv",  doi_fname_out),
+                  quote = T,
+                  row.names = F
+                )
+              }
+              ## (3) overwrite template file
+              write.csv(tmp,
+                        file = tmp_fname,
+                        quote = T,
+                        row.names = F)
             }
+            object@history[length(object@history) + 1] <- "alignPEAKS"
             ## write updated meta file with filepaths to aligned samples
             write.csv(object@samples,
                       aligned_fname,
                       quote = T,
                       row.names = F)
+            
+            if (ncores > 1) {
+              parallel::stopCluster(cl)
+            }
             message("Peaks were aligned across all samples.")
             return(object)
           })
@@ -306,6 +408,7 @@ setMethod("validPEAKS",
             object@values <- peaks_vals_samples
             object@peaks <- peaks_vals_peakids
             object@valid <- peaks_medians_peakids
+            object@history[length(object@history) + 1] <- "validPEAKS"
             
             ####---- data output
             write.csv(
@@ -335,10 +438,9 @@ setMethod("validPEAKS",
 #' @title Fill peaks
 #'
 #' @param object \code{massFlowTemplate} class object.
+#' @param fill_value \code{character} specifying which intensity value should be filled and returned, default set to 'into'.
 #' @param out_dir \code{character} specifying desired directory for output.
-#' @param min_samples \code{numeric} specifying the minimum percentage of samples in which peak has to be detected in order to be considered (default set to 10 percent).
-#' @param cor_thr \code{numeric} defining Pearson correlation coefficient threshold for inter-sample correlation between peaks (default set to 0.75).
-#' @param ncores \code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.
+#' @param ncores \code{numeric} defining number of cores to use for parallelisation. Default set to 2 for parallel implementation.
 #'
 #' @return Method returns peak table with filled intensities for missed peaks.
 #'
@@ -349,12 +451,13 @@ setMethod("validPEAKS",
 setMethod("fillPEAKS",
           signature = "massFlowTemplate",
           function(object,
+                   fill_value = "into",
                    out_dir = NULL,
                    ncores = 2) {
             if (!validObject(object)) {
               stop(validObject(object))
             }
-            if (!peaksVALIDATED(object)) {
+            if (!peaksVALIDATED(object) | object@history != "validPEAKS") {
               stop(
                 "'Object' must be a validated 'massFlowTemplate' class object. \n Run validPEAKS() first."
               )
@@ -459,29 +562,41 @@ setMethod("fillPEAKS",
                 message(paste0(sapply(result[samples_to_fill], "[[", "error")))
               }
             }
-                
+
+            ## update peak medians with median into/maxo values after filling
             peaks_vals <-
               lapply(1:length(object@values), function(sn) {
-                sname <- object@samples$filename[sn]
-                sdata <- result[[sn]]
+                sname = object@samples$filename[sn]
+                sdata = result[[sn]]
                 sdata_out <-
-                  as.data.frame(sdata$into,
+                  as.data.frame(sdata[, match(fill_value, colnames(sdata))],
                                 row.names = NULL)
                 sdata_out <- setNames(sdata_out, sname)
                 return(sdata_out)
-              })
+                })
+            
             peaks_vals <- do.call("cbind", peaks_vals)
-            peaks_vals <- cbind(peaks_medians_peakids, peaks_vals)
-                
-    
+            peaks_median_vals <- apply(peaks_vals, 1, function(x) {
+              median(x[which(x > 0)])
+            })
+            tmp <- object@valid
+            tmp[, "into"] <- peaks_median_vals
+            peaks_vals <- cbind(tmp, peaks_vals)
+
             ## replace object's values
             object@values <- result
+            object@valid <- tmp
+            object@history[length(object@history) + 1] <- "fillPEAKS"
   
-            
             ####---- data output
             write.csv(
               x = peaks_vals,
               file = file.path(out_dir, "filled_intensity_data.csv"),
+              row.names = F
+            )
+            write.csv(
+              x = tmp,
+              file = file.path(out_dir, "final_peaks_data.csv"),
               row.names = F
             )
             
@@ -490,32 +605,3 @@ setMethod("fillPEAKS",
               return(object)
             }
           })
-
-
-
-# setMethod("annotatePEAKS",
-#           signature = "massFlowTemplate",
-#           function(object,
-#                    out_dir = NULL) {
-#             if (!validObject(object)) {
-#               stop(validObject(object))
-#             }
-#             if (!peaksVALIDATED(object)) {
-#               stop(
-#                 "'Object' must be a validated 'massFlowTemplate' class object. \n Run validPEAKS() first."
-#               )
-#             }
-#             if (is.null(out_dir)) {
-#               stop("'out_dir' is required!")
-#             }
-#             if (!dir.exists(out_dir)) {
-#               stop("incorrect filepath for 'out_dir' provided")
-#             }
-#             
-#             
-#             
-#             
-#             
-#             
-# 
-# })

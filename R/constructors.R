@@ -1,57 +1,3 @@
-# buildDB ------------------------------------------------------------------------------------------------------
-#' @aliases buildDB
-#'
-#' @title Build a chemical database template
-#'
-#' @description Function creates a \code{massFlowDB} class object, which will be used for chromatograpic peaks annotation and study samples alignment.
-#'
-#' @param file \code{character} with absolute path to the the database template file (csv).
-#'
-#' @return Function returns a \code{massFlowDB} class object.
-#'
-#' @export
-#'
-#' @seealso \code{\link{massFlowDB}} class
-#'
-#' @examples
-#' ## Build database template using a sample file, provided with the package
-#' data_dir <- system.file("testdata", package = "massFlowR")
-#' db_fname <- file.path(data_dir, "DBtemplate.csv")
-#' db <- buildDB(file = db_fname)
-#'
-buildDB <- function(file = NULL) {
-  if (is.null(file)) {
-    stop("file is required")
-  }
-  if (any(!file.exists(file))) {
-    stop("incorrect filepath provided: ", file)
-  }
-  
-  object <- new("massFlowDB")
-  object@filepath <- file
-  
-  ## populate slot with DB compounds
-  db <- read.csv(file, header = T, stringsAsFactors = F)
-  required_colnames <-
-    c("peakid",
-      "mz",
-      "rt",
-      "into",
-      "peakgr",
-      "chemid",
-      "dbid",
-      "dbname")
-  if (any(!required_colnames %in% colnames(db))) {
-    stop("DB file is missing columns: ",
-         paste0(required_colnames[which(!required_colnames %in% colnames(db))],
-                collapse = ", "))
-  }
-  
-  object@db <- db
-  return(object)
-}
-
-
 # buildTMP --------------------------------------------------------------------------------------------------------
 #' Build a sample alignment and annotation template
 #'
@@ -110,9 +56,7 @@ buildTMP <-
     message(paste("Building template using sample:", doi_name, " ..."))
     ## write 1st sample in the standard output format
     doi <- checkFILE(file = doi_fname)
-    doi <- getCLUSTS(dt = doi)
-    doi[, c("tmp_peakid", "tmp_peakgr", "new_mz", "new_rt")] <-
-      doi[, c("peakid", "peakgr", "mz", "rt")]
+    doi[, c("tmp_peakid", "tmp_peakgr")] <- doi[, c("peakid", "peakgr")]
     doi[,c("cos")] <- NA
     write.csv(
       doi,
