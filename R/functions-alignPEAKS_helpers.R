@@ -311,11 +311,11 @@ getCOSmat <- function(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins = 0
     target <- ds_bin[which(ds_bin[, ds_var_ind] == var), ]
     
     ## match template peaks by mz/rt window
-    matches <- apply(target, 1, FUN = getMATCHES, tmp = tmp_bin, tmp_var = tmp_var, target_var = ds_var)
-    if (is.null(matches)) {
+    matches <- lapply(1:nrow(target), FUN = getMATCHES, target = target, tmp = tmp_bin, tmp_var = tmp_var, target_var = ds_var)
+    matches <- do.call("rbind", matches)
+    if (nrow(matches) == 0) {
       next
     }
-    matches <- do.call("rbind", matches)
     
     ## build mz spectra using all target peaks and all matched peaks
     matches_all <- tmp_bin[which(tmp_bin[, tmp_var_ind] %in% matches$tmp_var), ]
@@ -380,20 +380,29 @@ getCOSmat <- function(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins = 0
 #'
 #' @return Function returns a \code{data.frame} with matching template's peaks.
 #' 
-getMATCHES <- function(target_peak, tmp, tmp_var, target_var) {
+getMATCHES <- function(n, target, tmp, tmp_var, target_var) {
+  target_peak <- target[n, ]
   ## find matching template target_peaks using mz/rt windows of both target_peaks
-  mat <- tmp[which((tmp$mz_l >= target_peak["mz_l"] &
-                      tmp$mz_l <= target_peak["mz_h"]) |
-                     (tmp$mz_h >= target_peak["mz_l"] &
-                        tmp$mz_h <= target_peak["mz_h"])),]
-  mat <- mat[which((mat$rt_l >= target_peak["rt_l"] &
-                      mat$rt_l <= target_peak["rt_h"]) |
-                     (mat$rt_h >= target_peak["rt_l"] &
-                        mat$rt_h <= target_peak["rt_h"])),]
+  # mat <- tmp[which((tmp$mz_l >= target_peak["mz_l"] &
+  #                     tmp$mz_l <= target_peak["mz_h"]) |
+  #                    (tmp$mz_h >= target_peak["mz_l"] &
+  #                       tmp$mz_h <= target_peak["mz_h"])),]
+  mat <- tmp[which((tmp$mz_l >= target_peak$"mz_l" &
+                      tmp$mz_l <= target_peak$"mz_h") |
+                     (tmp$mz_h >= target_peak$"mz_l" &
+                        tmp$mz_h <= target_peak$"mz_h")), ]
+  # mat <- mat[which((mat$rt_l >= target_peak["rt_l"] &
+  #                     mat$rt_l <= target_peak["rt_h"]) |
+  #                    (mat$rt_h >= target_peak["rt_l"] &
+  #                       mat$rt_h <= target_peak["rt_h"])),]
+  mat <- mat[which((mat$rt_l >= target_peak$"rt_l" &
+                      mat$rt_l <= target_peak$"rt_h") |
+                     (mat$rt_h >= target_peak$"rt_l" &
+                        mat$rt_h <= target_peak$"rt_h")), ]
   if (nrow(mat) > 0) {
     mat$tmp_var <- mat[, match(tmp_var, names(mat))]
-    mat$target_var <- target_peak[match(target_var, names(target_peak))]
-    mat$target_peakid <- target_peak["peakid"]
+    mat$target_var <- target_peak[[match(target_var, names(target_peak))]]
+    mat$target_peakid <- target_peak$"peakid"
     mat <- mat[ ,c("peakid", "mz", "rt", "into", "tmp_var", "target_peakid", "target_var")]
     return(mat)
   } else {

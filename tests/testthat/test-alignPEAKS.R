@@ -257,7 +257,7 @@ test_that("getMATCHES() ", {
                         tmp[1,] %>% mutate(mz = mz - mz_err*3,
                                            rt = rt + rt_err*2))
   target_peaks <- addERRS(target_peaks, mz_err = mz_err, rt_err = rt_err)
-  matches <- apply(target_peaks, 1, FUN = getMATCHES, tmp = tmp, tmp_var = "peakgr", target_var = "peakgr")
+  matches <- lapply(1:nrow(target_peaks), getMATCHES, target = target_peaks, tmp = tmp, tmp_var = "peakgr", target_var = "peakgr")
   
   expect_true(length(matches) == nrow(target_peaks))
   expect_equal(sapply(matches, nrow), list(1, 1, NULL))
