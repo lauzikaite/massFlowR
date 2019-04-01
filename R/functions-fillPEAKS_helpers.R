@@ -15,11 +15,11 @@ modelPEAKS <- function(p, vars, object) {
 smoothVALUE <- function(var, x, peak, lambda = 10) {
   y <- peak[,match(var, names(peak))]
   present <- which(!is.na(y))
-  mod <- smooth.spline(x = x[present],
+  mod <- stats::smooth.spline(x = x[present],
                        y = y[present],
                        lambda = lambda,
                        cv = TRUE)
-  predicted <- predict(mod, x = x[-present])$y
+  predicted <- stats::predict(mod, x = x[-present])$y
   y[is.na(y)] <- predicted
   return(y)
 }

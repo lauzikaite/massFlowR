@@ -56,13 +56,8 @@ readDATA <- function(f) {
 # cleanPEAKS ------------------------------------------------------------------------------------------------------
 #' @title Clean peak table from duplicating peaks
 #'
-#' @description Function for every duplicated peak returns a single entry.
-#' Peak duplication can appear because of:
-#' \itemize{
-#' \item artefacts in centWave peak table (identical mz/rt) (inside \code{\link{pickPEAKS}} function)
-#' \item different datafile-of-interest peaks matching the same template peaks (identical mz/rt/peakid) (inside \code{\link{addDOI}} function)
-#' }
-#'
+#' @description Return a single entry for every duplicated peak (i.e. peak with the same emph{m/z} and \emph{rt} values).
+#' 
 #' @param rn \code{numeric} specifying a single row number (rowname) of the peak table.
 #' @param dt_unique \code{data.frame} with unique peaks' \emph{m/z} and \emph{rt} values, with as many rows, as there are unique peaks.
 #' @param dt \code{data.frame} object containing the peak table from which duplicated peaks should be removed.

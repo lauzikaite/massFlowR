@@ -15,5 +15,5 @@ getINT(s, peak)
 Function returns an \code{integer} with peak intensities.
 }
 \description{
-
+Get intensity of a peak-of-interest in a single sample.
 }

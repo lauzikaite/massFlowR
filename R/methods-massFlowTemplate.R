@@ -20,14 +20,15 @@ setValidity("massFlowTemplate", function(object)
 
 
 # filepath ------------------------------------------------------------------------------------------------------
-#' @include classes.R
+#' @aliases filepath
+#' 
+#' @title Obtain the absolute path to metadata file of the experiment
 #'
-#' @rdname massFlowTemplate-class
-#'
-#' @title Obtain absolute path to metadata file of the experiment.
-#'
-#' @description Function returs the absolute path to the \code{csv} file used when building the \code{massFlowTemplate} object.
-#' File contains study sample names and their acquisition (run) order.
+#' @description Obtain the absolute path to metadata file of the experiment.
+#' 
+#' @param object \code{massFlowTemplate} class object
+#' 
+#' @seealso \code{\link{massFlowTemplate-class}}
 #'
 #' @export
 #'
@@ -37,11 +38,15 @@ setMethod("filepath", signature = "massFlowTemplate", function(object) {
 
 
 # peaksVALIDATED ------------------------------------------------------------------------------------------------------
-#' @include classes.R
-#'
-#' @rdname massFlowTemplate-class
-#'
-#' @title Check if massFlowTemplate object was validated using validPEAKS.
+#' @aliases peaksVALIDATED
+#' 
+#' @title Check if massFlowTemplate object was validated
+#' 
+#' @description Method returns TRUE if \code{massFlowTemplate} object has been validated via \code{\link{validPEAKS}} method.
+#' 
+#' @param object \code{massFlowTemplate} class object
+#' 
+#' @seealso \code{\link{massFlowTemplate-class}}
 #'
 #' @export
 #'

@@ -9,6 +9,9 @@ getPEAKmedians(peak_n, values = c("mz", "mzmin", "mzmax", "rt", "rtmin",
 }
 \arguments{
 \item{peak_n}{\code{data.frame} with centWave measures for a peak-of-interest in every sample}
+
+\item{values}{\code{character} with centWave measures for which medians should be estimated.
+Default set to: c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax")}
 }
 \value{
 Function return a \code{data.frame} with median centWave measures for a peak-of-interest across all samples.

@@ -42,7 +42,7 @@ test_that("getRTbins() correctly splits two dataframes to rt bins", {
   expect_true(all(length(out$ds) == 2, length(out$tmp) == 2))
   
   ## all peakids are exported
-  expect_true(all(single_table$peakid %in% union(out$tmp[[1]]$peakid, out$tmp[[2]]$peakid)))
+  expect_true(all(single_table$peakid %in% c(out$tmp[[1]]$peakid, out$tmp[[2]]$peakid)))
   expect_true(all(single_table$peakid %in% c(out$ds[[1]]$peakid, out$ds[[2]]$peakid)))
   
   ## all peaks in the ds bin must also be present in the corresponding tmp bin
@@ -61,8 +61,7 @@ test_that("getRTbins() correctly splits two dataframes to rt bins", {
                               (ds_ordered$rt + rt_err) <= rt_bin_1[2])]
   peaks_in_common <- ds_ordered$peakid[which(ds_ordered$peakgr %in% peakgrs_in_common)]
   expect_identical(peaks_in_common,
-                   intersect(out$tmp[[1]]$peakid,
-                             out$tmp[[2]]$peakid))
+                   base::intersect(out$tmp[[1]]$peakid, out$tmp[[2]]$peakid))
 })
 
 # orderBYrt ---------------------------------------------------------------------------------------------------------
@@ -251,11 +250,15 @@ test_that("getMATCHES() ", {
   ## 1) a peak from the same table
   ## 2) a modified version of the same peak, within matching range 
   ## 3) a modified version of the same peak, outside of matching range 
-  target_peaks <- rbind(tmp[1,],
-                        tmp[1,] %>% mutate(mz = mz - mz_err/2,
-                                           rt = rt + rt_err/2),
-                        tmp[1,] %>% mutate(mz = mz - mz_err*3,
-                                           rt = rt + rt_err*2))
+  target_peak1 <- tmp[1, ]
+  target_peak2 <- tmp[1, ]
+  target_peak2$mz <- target_peak2$mz - (mz_err/2)
+  target_peak2$rt <- target_peak2$rt + (rt_err/2)
+  target_peak3 <- tmp[1,]
+  target_peak3$mz <- target_peak3$mz - (mz_err*3)
+  target_peak3$rt <- target_peak3$rt + (rt_err*3)
+  
+  target_peaks <- rbind(target_peak1, target_peak2, target_peak3)
   target_peaks <- addERRS(target_peaks, mz_err = mz_err, rt_err = rt_err)
   matches <- lapply(1:nrow(target_peaks), getMATCHES, target = target_peaks, tmp = tmp, tmp_var = "peakgr", target_var = "peakgr")
   
@@ -384,7 +387,6 @@ test_that("assignCOS() correctly assigns pairs to maximise top-top matching", {
                        TRUE, NA, NA, NA),
                      nrow = 4, ncol = 4)
   expect_equal(cos_assigned, expected)
-
 })
 
 # rankCOS ---------------------------------------------------------------------------------------------------------
@@ -411,5 +413,4 @@ test_that("rankCOS() correctly ranks cosines, giving 1 to the highest cosine", {
                        0, 0, 1, 0),
                      nrow = 4, ncol = 4)
   expect_equal(cos_ranked, expected)
-  
 })

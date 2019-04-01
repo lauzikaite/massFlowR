@@ -11,7 +11,7 @@ getPEAKIDS(pkg)
 List length is equal to number of peak-groups.}
 }
 \value{
-
+Function returns peakids for the given network community.
 }
 \description{
 Function is used after \code{\link{validPEAKGR}} has been applied to identify communities of peaks using correlation network analysis.

@@ -313,7 +313,7 @@ getCOSmat <- function(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins = 0
     ## match template peaks by mz/rt window
     matches <- lapply(1:nrow(target), FUN = getMATCHES, target = target, tmp = tmp_bin, tmp_var = tmp_var, target_var = ds_var)
     matches <- do.call("rbind", matches)
-    if (nrow(matches) == 0) {
+    if (is.null(matches)) {
       next
     }
     
@@ -373,7 +373,8 @@ getCOSmat <- function(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins = 0
 #' Broad \emph{m/z} and \emph{rt} values are used in the search.
 #' Function is applied to every peak in a peak-group of interest.
 #'
-#' @param target_peak \code{matrix} with target peak's \emph{m/z} and \emph{rt} lower and higher values.
+#' @param n \code{numeric} representing row number in the target peak's table.
+#' @param target \code{matrix} with target peak's \emph{m/z} and \emph{rt} lower and higher values.
 #' @param tmp \code{data.frame} representing a template in which matching peaks are looked for.
 #' @param tmp_var \code{character} indicating the column name for peak grouping information in the template.
 #' @param target_var \code{character} indicating the column name for peak grouping information in the target peak's \code{matrix}.
@@ -383,18 +384,10 @@ getCOSmat <- function(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins = 0
 getMATCHES <- function(n, target, tmp, tmp_var, target_var) {
   target_peak <- target[n, ]
   ## find matching template target_peaks using mz/rt windows of both target_peaks
-  # mat <- tmp[which((tmp$mz_l >= target_peak["mz_l"] &
-  #                     tmp$mz_l <= target_peak["mz_h"]) |
-  #                    (tmp$mz_h >= target_peak["mz_l"] &
-  #                       tmp$mz_h <= target_peak["mz_h"])),]
   mat <- tmp[which((tmp$mz_l >= target_peak$"mz_l" &
                       tmp$mz_l <= target_peak$"mz_h") |
                      (tmp$mz_h >= target_peak$"mz_l" &
                         tmp$mz_h <= target_peak$"mz_h")), ]
-  # mat <- mat[which((mat$rt_l >= target_peak["rt_l"] &
-  #                     mat$rt_l <= target_peak["rt_h"]) |
-  #                    (mat$rt_h >= target_peak["rt_l"] &
-  #                       mat$rt_h <= target_peak["rt_h"])),]
   mat <- mat[which((mat$rt_l >= target_peak$"rt_l" &
                       mat$rt_l <= target_peak$"rt_h") |
                      (mat$rt_h >= target_peak$"rt_l" &

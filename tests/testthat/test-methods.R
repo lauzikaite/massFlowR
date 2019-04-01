@@ -1,5 +1,14 @@
 context("methods for massFlowTemplate")
 
+# basic methods -----------------------------------------------------------------------------------------------------
+test_that("basic methods for massFlowTemplate", {
+  tmp <- buildTMP(file = meta_fname, out_dir = data_dir)
+  expect_true(validmassFlowTemplate(tmp))
+  expect_true(filepath(tmp) == meta_fname)
+  expect_false(peaksVALIDATED(tmp))
+})
+
+
 # checkNEXT ---------------------------------------------------------------------------------------------------
 test_that("checkNEXT() returns the correct filename", {
   tmp <- buildTMP(file = meta_fname, out_dir = data_dir)
@@ -7,7 +16,7 @@ test_that("checkNEXT() returns the correct filename", {
   expect_equal(expected_next, checkNEXT(tmp))
 })
 
-# align identical tables---------------------------------------------------------------------------------------------------
+# alignPEAKS identical tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two identical samples via alignPEAKS() is correct", {
   tmp <- buildTMP(file = dup_meta_fname, out_dir = data_dir, rt_err = rt_err)
   tmp <- alignPEAKS(tmp, out_dir = data_dir)
@@ -17,18 +26,16 @@ test_that("alignment of two identical samples via alignPEAKS() is correct", {
   # all samples were aligned
   expect_true(all(tmp@samples[,"aligned"])) 
   # aligned tables for identical samples are also identical
-  expect_true(all_equal(
-    tmp_data1 %>% select(-cos),
-    tmp_data2 %>% select(-cos),
-    # table 1 will have peakids as integers, table 2 will have peakids as numerics because addDOI converts to numeric
-    convert = T))
+  expect_true(all(tmp_data1[match(tmp_data1$peakid, tmp_data2$peakid), "mz"] == tmp_data2$mz))
+  expect_true(all(tmp_data1[match(tmp_data1$peakid, tmp_data2$peakid), "rt"] == tmp_data2$rt))
+  
   # generated tmp is identical to original table
   expect_equal(nrow(tmp@tmp), nrow(single_table))
-  expect_true(all_equal(tmp@tmp[which(tmp@tmp$peakid %in% single_table$peakid),c("peakid", "mz", "rt", "into", "peakgr")],
-                        single_table[,c("peakid", "mz", "rt", "into", "peakgr")]))
+  expect_true(all(tmp@tmp[match(tmp@tmp$peakid, single_table$peakid), c("peakid", "mz", "rt", "into", "peakgr")] ==
+                    single_table[,c("peakid", "mz", "rt", "into", "peakgr")]))
 })
 
-# align different tables---------------------------------------------------------------------------------------------------
+# alignPEAKS different tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two different samples via alignPEAKS() is correct", {
   tmp <- buildTMP(file = meta_fname, out_dir = data_dir, rt_err = rt_err)
   tmp <- alignPEAKS(tmp, out_dir = data_dir)
@@ -67,7 +74,7 @@ test_that("alignment of two different samples via alignPEAKS() is correct", {
   expect_equal(nrow(data2), nrow(tmp_data2))
 })
   
-# align almost identical tables---------------------------------------------------------------------------------------------------
+# alignPEAKS almost identical tables---------------------------------------------------------------------------------------------------
 test_that("alignment of two ALMOST identical samples via alignPEAKS() is correct", {
   tmp <- buildTMP(file = noisy_meta_fname, out_dir = data_dir, rt_err = rt_err)
   tmp <- alignPEAKS(tmp, out_dir = data_dir)
@@ -88,7 +95,16 @@ test_that("alignment of two ALMOST identical samples via alignPEAKS() is correct
   expect_true(all(pkg_grouped_2$tmp_peakid %in% pkg_grouped_1$tmp_peakid))
   
   ## checking whether addDOI correctly "kicked-out" previously grouped noisy peakgr
-  expect_true(all(is.na(tmp_data2[which(tmp_data2$tmp_peakgr == noisy_pkg),"cos"])))
-  expect_false(any(tmp_tmp[which(tmp_tmp$peakgr == noisy_pkg),"peakid"] %in%  tmp_data1$tmp_peakid))
+  expect_true(all(is.na(tmp_data2[which(tmp_data2$tmp_peakgr == noisy_pkg), "cos"])))
+  expect_false(any(tmp_tmp[which(tmp_tmp$peakgr == noisy_pkg), "peakid"] %in% tmp_data1$tmp_peakid))
 })
 
+# validPEAKS---------------------------------------------------------------------------------------------------
+test_that("validPEAKS", {
+  
+})
+
+# fillPEAKS---------------------------------------------------------------------------------------------------
+test_that("fillPEAKS", {
+  
+})

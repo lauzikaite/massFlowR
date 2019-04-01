@@ -44,8 +44,8 @@ buildTMP <-
         bins = bins
       )
     )
-    if (!validObject(object)) {
-      stop(validObject(object))
+    if (validmassFlowTemplate(object) != TRUE) {
+      stop(validmassFlowTemplate(object))
     }
     doi_first <- min(object@samples$run_order)
     doi_fname <-

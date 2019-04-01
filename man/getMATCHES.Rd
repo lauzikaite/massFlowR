@@ -4,10 +4,12 @@
 \alias{getMATCHES}
 \title{Get template peaks that match the target peak by \emph{m/z} and \emph{rt} values}
 \usage{
-getMATCHES(target_peak, tmp, tmp_var, target_var)
+getMATCHES(n, target, tmp, tmp_var, target_var)
 }
 \arguments{
-\item{target_peak}{\code{matrix} with target peak's \emph{m/z} and \emph{rt} lower and higher values.}
+\item{n}{\code{numeric} representing row number in the target peak's table.}
+
+\item{target}{\code{matrix} with target peak's \emph{m/z} and \emph{rt} lower and higher values.}
 
 \item{tmp}{\code{data.frame} representing a template in which matching peaks are looked for.}
 

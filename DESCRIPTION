@@ -1,6 +1,6 @@
 Package: massFlowR
 Version: 1.3
-Date: 2019-03-22
+Date: 2019-04-01
 Title: LC-MS Data Pre-Processing
 Description: massFlowR performs peak-picking, peak alignment and annotation for high-throughput LC-MS experiments in real-time.
 Author: Elzbieta Lauzikaite <e.lauzikaite14@imperial.ac.uk>
@@ -13,6 +13,7 @@ Depends:
     R (>= 3.5),
 Imports:
     methods,
+    stats,
     xcms (>= 3.0.0),
     utils,
     grDevices,
@@ -20,15 +21,11 @@ Imports:
     faahKO,
     igraph,
     MSnbase,
-    ggplot2,
+    parallel,
     doParallel (>= 1.0.11),
-    BiocParallel,
     foreach (>= 1.4.4),
-    tidyr,
-    viridis
 RoxygenNote: 6.1.1
 Suggests:
-    dplyr,
     testthat,
     knitr,
     kableExtra,

@@ -52,8 +52,7 @@ buildDB <- function(
   }
 
   db_files <- list.files(path = rda_dir, pattern = "*.rda", full.names = T) 
-  # pb <- dplyr::progress_estimated(n = length(db_files))
-  pb <- txtProgressBar(min = 0, max = length(db_files), style = 3)
+  pb <- utils::txtProgressBar(min = 0, max = length(db_files), style = 3)
 
   ####---- for each DB compound
   db <- NULL
@@ -119,15 +118,14 @@ buildDB <- function(
     # remove table from the environment, to make sure next file is not corrupted
     rm(chem.file) 
     # update progress bar
-    setTxtProgressBar(pb, chem)
-    
+    utils::setTxtProgressBar(pb, chem)
   }  
   
-  ## arrange peaks and get unique peak numbers
-  db <- db[base::with(db, order(chemid, -into)),]
+  ## arrange peaks by chemid and into, and get unique peak numbers
+  db <- db[order(db$chemid, -db$into), ]
   db$rt <- db$rt * 60
   db$peakid <- 1:nrow(db)
-  db <- db[,c("peakid", "mz", "rt", "into", "chemid", "dbid", "dbname")]
+  db <- db[, c("peakid", "mz", "rt", "into", "chemid", "dbid", "dbname")]
   write.csv(db, file.path(out_dir, "DBtemplate.csv"), quote = T, row.names = F)
-  message("Database was created.")
+  message("\n Database was created.")
 }

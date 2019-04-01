@@ -33,7 +33,6 @@ options(kpb.suppress_noninteractive = TRUE) ## supressing progress bar
 ```{r libraries, message = FALSE, echo = FALSE}
 suppressWarnings(library(massFlowR))
 suppressWarnings(library(xcms))
-suppressWarnings(library(dplyr))
 rda_dir <- "~/Documents/Projects/DBannotate/NPC-RPOS-LCE-SubDB"
 db_dir <- "~/Documents/Projects/massFlowR/packageDEV/db"
 out_directory <- getwd()
@@ -90,10 +89,12 @@ db_table <- read.csv(file.path(out_directory, "DBtemplate.csv"))
 ```{r db_table_knitr, echo = FALSE}
 db_table <- db_table[which(db_table$chemid %in% c(1,2,3)),]
 dt <- head(db_table)
-knitr::kable(x = dt,
-             format = "html",
-             row.names = F) %>% 
-  kableExtra::kable_styling(full_width = TRUE, bootstrap_options = c("striped"), position = "left")
+
+kableExtra::kable_styling(
+  knitr::kable(x = dt,
+           format = "html",
+           row.names = F),
+  full_width = TRUE, bootstrap_options = c("striped"), position = "left")
 ```
 
 

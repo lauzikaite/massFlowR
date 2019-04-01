@@ -10,12 +10,9 @@
 #' }
 #'
 #' @import foreach
+#' @import doParallel
 #' @importFrom grDevices dev.off pdf
-#' @importFrom methods new
-#' @importFrom methods show
+#' @importFrom methods new show validObject
 #' @importFrom stats cor median na.omit setNames
 #' @importFrom utils packageVersion read.csv write.csv
 "_PACKAGE"
-
-## quiets concerns of R CMD check about the .'s that appear in dplyr pipes
-if(getRversion() >= "2.15.1")  utils::globalVariables(c("."))

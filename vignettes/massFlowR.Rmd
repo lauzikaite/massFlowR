@@ -43,7 +43,6 @@ options(kpb.suppress_noninteractive = TRUE)
 ## load libraries quietly to avoid printing messages in the vignette
 suppressWarnings(library(massFlowR))
 suppressWarnings(library(xcms))
-suppressWarnings(library(dplyr))
 out_directory <- getwd()
 url_m <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/massFlowR.html"
 url_a <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/annotation.html"
@@ -160,16 +159,17 @@ write.csv(metadata, file = file.path(out_directory, "metadata.csv"), row.names =
 
 
 ```{r experiment_table, echo = FALSE}
-knitr::kable(x = metadata,
+kableExtra::kable_styling(
+  knitr::kable(x = metadata,
              format = "html",
-             row.names = F) %>% 
-  kableExtra::kable_styling(full_width = TRUE, bootstrap_options = "striped", position = "left")
+             row.names = F),
+  full_width = TRUE, bootstrap_options = "striped", position = "left")
 ```
 
 
 ```{r peak_grouping}
 ## run peak detection and grouping for the listed faahKO files with two workers
-groupPEAKS(file = file.path(out_directory, "metadata.csv"), out_dir = out_directory, cwt = cwt_param, ncores = 3)
+groupPEAKS(file = file.path(out_directory, "metadata.csv"), out_dir = out_directory, cwt = cwt_param, ncores = 2)
 ```
 
 
@@ -210,10 +210,11 @@ write.csv(metadata, file.path(out_directory, "metadata_grouped.csv"), row.names 
 
 
 ```{r metadata_update_table, echo = FALSE}
-knitr::kable(x = metadata,
+kableExtra::kable_styling(
+  knitr::kable(x = metadata,
              format = "html",
-             row.names = F) %>% 
-  kableExtra::kable_styling(full_width = TRUE, bootstrap_options = "striped", position = "left")
+             row.names = F),
+  full_width = TRUE, bootstrap_options = "striped", position = "left")
 ```
 
 
@@ -266,10 +267,11 @@ head(template@data[[2]])
 ```{r data_slot_knitr, echo = FALSE}
 ## review alignment results for an individual sample, e.g. the second, using slot "data"
 dt <- head(template@data[[2]])
-knitr::kable(x = dt,
+kableExtra::kable_styling(
+  knitr::kable(x = dt,
              format = "html",
-             row.names = F) %>% 
-  kableExtra::kable_styling(full_width = TRUE, bootstrap_options = c("striped"), position = "left")
+             row.names = F),
+  full_width = TRUE, bootstrap_options = c("striped"), position = "left")
 ```
 
 

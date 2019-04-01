@@ -149,7 +149,7 @@ corPEAKS <- function(pair, pkg_ints, min_samples_n) {
 # getINT --------------------------------------------------------------------------------------------------------
 #' @title Get intensity of a peak-of-interest in a single sample.
 #' 
-#' @description 
+#' @description Get intensity of a peak-of-interest in a single sample.
 #'
 #' @param s \code{numeric} indicating sample's run order.
 #' @param peak \code{data.frame} with intensities of the peak-of-interest in all samples.
@@ -198,7 +198,7 @@ extractCOMMUNITIES <- function(peakgrs_split) {
 #' @param pkg \code{list} with communities into which each peak-group was split to.
 #' List length is equal to number of peak-groups.
 #'
-#' @return
+#' @return Function returns peakids for the given network community.
 #' 
 #' @seealso \code{\link{validPEAKGR}}, \code{\link{validPEAKS}}.
 #' 
@@ -268,6 +268,8 @@ exportPEAK <- function(peakid, peaks_vals_samples) {
 #' @title Get median centWave measures for a peak-of-interest across all samples in which it was detected.
 #'
 #' @param peak_n \code{data.frame} with centWave measures for a peak-of-interest in every sample
+#' @param values \code{character} with centWave measures for which medians should be estimated.
+#' Default set to: c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax")
 #'
 #' @return Function return a \code{data.frame} with median centWave measures for a peak-of-interest across all samples.
 #' 

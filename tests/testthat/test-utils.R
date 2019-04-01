@@ -2,14 +2,20 @@ context("utils functions")
 
 # validFILE --------------------------------------------------------------------------------------------------------
 test_that("validFILE", {
-  
-  
+  # original CDF
+  expect_true(validFILE(test_fname)) 
+  # incorrect CDF filename
+  expect_equal(validFILE(gsub(".CDF", ".xxx", test_fname)),
+               paste0("File doesn't exist: ", gsub(".CDF", ".xxx", test_fname)))
+  ## csv is a wrong filetype
+  expect_equal(validFILE(meta_fname), 
+               paste0("File format is unsupported: ", meta_fname))
 })
 
 # readDATA --------------------------------------------------------------------------------------------------------
 test_that("readDATA", {
-  
-  
+  raw <- readDATA(test_fname)
+  expect_true(class(raw) ==  "OnDiskMSnExp")
 })
 
 # cleanPEAKS ------------------------------------------------------------------------------------------------------
@@ -24,14 +30,21 @@ test_that("cleanPEAKS removes duplicated peaks correctly", {
     dt = test_pks
   )
   pks_clean <- do.call("rbindCLEAN", pks_clean)
-  expect_true(all_equal(test_pks_rd %>% select(-peakid),
-                        pks_clean))
+  pks_clean <- pks_clean[order(pks_clean$into, decreasing = T), ]
+  pks_clean$peakid <- 1:nrow(pks_clean)
+  
+  expect_true(nrow(pks_clean) == nrow(test_pks_rd))
+  expect_true(all(sapply(1:nrow(pks_clean), function(x) {
+    pks_clean$mz[x] == test_pks_rd$mz[x]
+  })))
+  expect_true(all(sapply(1:nrow(pks_clean), function(x) {
+    pks_clean$rt[x] == test_pks_rd$rt[x]
+  })))
   
   ## removes duplicated peakids (as in addDOI)
-  # create peak table with duplicated peakids
-  test_pks_dup <- test_pks_rd %>%
-    bind_rows(., test_pks_rd %>% filter(peakid %in% c(1, 10, 20)))
-  # cleanup peak table
+  # create peak table with duplicated peaks 1, 10 and 20
+  test_pks_dup <- rbind(test_pks_rd,
+                        test_pks_rd[which(test_pks_rd$peakid %in% c(1, 10, 20)), ])
   pks_unique <- unique(test_pks_dup[, c("mz", "rt")])
   pks_clean <- lapply(
     1:nrow(pks_unique),
@@ -40,8 +53,14 @@ test_that("cleanPEAKS removes duplicated peaks correctly", {
     dt = test_pks_dup
   )
   pks_clean <- do.call("rbindCLEAN", pks_clean)
+  expect_true(nrow(pks_clean) == nrow(test_pks_rd))
   expect_true(any(duplicated(test_pks_dup$peakid)))
-  expect_true(all_equal(test_pks_rd, pks_clean))
+  expect_true(all(sapply(1:nrow(pks_clean), function(x) {
+    pks_clean$mz[x] == test_pks_rd$mz[x]
+  })))
+  expect_true(all(sapply(1:nrow(pks_clean), function(x) {
+    pks_clean$rt[x] == test_pks_rd$rt[x]
+  })))
 })
 
 # scaleEDGES ------------------------------------------------------------------------------------------------------
@@ -105,14 +124,15 @@ test_that("getCORmat", {
     do.call("rbind", pairs)
   })
   random_peak_pairs <- do.call("rbind", random_peak_pairs)
-  expect_true(all(apply(random_peak_pairs, 1, function(pair) {
-    nrow(
-      getCORmat_out %>%
-        filter(from == pair[1] | to == pair[1]) %>%
-        filter(from == pair[[2]] | to == pair[[2]])
-    )
-  }) == 1))
-
+  random_peak_pairs_out <- lapply(1:nrow(random_peak_pairs), function(x) {
+    pair <- random_peak_pairs[x, ]
+    pair_mat <- getCORmat_out[which((getCORmat_out$from == pair[1] |
+                                       getCORmat_out$to == pair[1]) &
+                                      (getCORmat_out$from == pair[2] |
+                                         getCORmat_out$to == pair[2])), ]
+    nrow(pair_mat)
+  })
+  expect_true(all(random_peak_pairs_out == 1))
   })
 
 # buildGRAPH ------------------------------------------------------------------------------------------------------
@@ -122,9 +142,8 @@ test_that("buildGRAPH", {
   peak <- 21
   peak_scpos <-
     c(test_pks_rd[peak, "scpos"] - 1, test_pks_rd[peak, "scpos"] + 1)
-  peak_co <-
-    test_pks_rd[which(dplyr::between(test_pks_rd$scpos,  peak_scpos[1],  peak_scpos[2])),
-                "peakid"]
+  peak_co <- test_pks_rd[which(test_pks_rd$scpos >= peak_scpos[1] &
+                                 test_pks_rd$scpos <= peak_scpos[2]),  "peakid"]
   peak_cormat <- getCORmat(ind = peak_co)
   peak_cormat$weight <-
     apply(peak_cormat, 1, FUN = corEIC, eic = test_eic_rd)
