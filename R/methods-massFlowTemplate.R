@@ -354,11 +354,15 @@ setMethod("validPEAKS",
             if (min_samples_n < 3) {
               min_samples_n <- 3
             }
+            if (min_samples_n > samples_n) {
+              stop("Object has ", samples_n, " samples",
+                   "\n minimum 3 samples are required for validation.")
+            }
             peakgrs_split <- foreach::foreach(pkg = peakgrs,
                                               .inorder = TRUE) %dopar% (
                                                 massFlowR:::validPEAKGR(
                                                   pkg = pkg,
-                                                  peakgrs_ints = peakgrs_ints,
+                                                  pkg_ints = peakgrs_ints[[pkg]],
                                                   out_dir = out_dir,
                                                   min_samples_n = min_samples_n,
                                                   cor_thr = cor_thr
@@ -462,7 +466,7 @@ setMethod("fillPEAKS",
             if (!validObject(object)) {
               stop(validObject(object))
             }
-            if (!peaksVALIDATED(object) | object@history != "validPEAKS") {
+            if (!peaksVALIDATED(object) | !"validPEAKS" %in% object@history) {
               stop(
                 "'Object' must be a validated 'massFlowTemplate' class object. \n Run validPEAKS() first."
               )

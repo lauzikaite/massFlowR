@@ -4,13 +4,13 @@
 \alias{validPEAKGR}
 \title{Validate a peak-group-of-interest by performing a cross-sample Pearson correlation.}
 \usage{
-validPEAKGR(pkg, peakgrs_ints, out_dir, cor_thr, min_samples_n,
+validPEAKGR(pkg, pkg_ints, out_dir, cor_thr, min_samples_n,
   save_plot = FALSE)
 }
 \arguments{
 \item{pkg}{\code{numeric} specifying a peak-group-of-interest.}
 
-\item{peakgrs_ints}{\code{list} with centWave values, listed by peak-groups.}
+\item{pkg_ints}{\code{data.frame} with centWave values for the peak-group-of-interest.}
 
 \item{out_dir}{\code{character} specifying desired directory for output, if plotting is selected.}
 

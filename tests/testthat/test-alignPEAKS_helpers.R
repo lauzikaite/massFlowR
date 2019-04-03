@@ -1,4 +1,4 @@
-context("alignPEAKS_helpers")
+context("helper functions for alignPEAKS method")
 
 # checkFILE---------------------------------------------------------------------------------------------------
 test_that("Checking grouped peaks csv tables via checkFILE is correct", {

@@ -7,7 +7,6 @@ modelPEAKS <- function(p, vars, object) {
                       peak = peak)
   peak_vals <- setNames(as.data.frame(do.call("cbind", pred_vals)),
                         nm = vars)
-  # peak_vals$sample_order <- 1:nrow(peak)
   return(peak_vals)
 }
 

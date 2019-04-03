@@ -121,6 +121,23 @@ write.csv(noisy_metadata, file.path(data_dir, "metadata_noisy.csv"), quote = F, 
 noisy_meta_fname <- file.path(data_dir, "metadata_noisy.csv")
 
 
+# large study tables -----------------------------------------------------------------------------------------------------
+large_fnames <-
+  list.files(file.path(system.file(package = "faahKO"), "cdf/WT/"), full.names = T)
+large_basenames <- sapply(large_fnames, function(fname) {
+  strsplit(basename(fname), split = "[.]")[[1]][1]
+}, USE.NAMES = F)
+## prepare metadata
+large_metadata <- data.frame(filename = large_basenames,
+                       run_order = 1:length(large_basenames),
+                       raw_filepath = large_fnames,
+                       proc_filepath = paste0(file.path(data_dir, large_basenames), "_peakgrs.csv"),
+                       stringsAsFactors = F)
+write.csv(large_metadata, file.path(data_dir, "metadata_large.csv"), quote = F, row.names = FALSE)
+large_meta_fname <- file.path(data_dir, "metadata_large.csv")
+groupPEAKS(file = large_meta_fname, out_dir = data_dir, cwt = cwt)
+
+# other vars -----------------------------------------------------------------------------------------------------
 ## list db template
 ## template includes three first peak-groups of sample wt15
 db_fname <- file.path(data_dir, "DBtemplate.csv")

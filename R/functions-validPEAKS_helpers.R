@@ -37,7 +37,7 @@ extractPEAKGR <- function(pkg, object, samples) {
 #' These communities are returned as independent peak-goups, or, Pseudo Chemical Spectra.
 #'
 #' @param pkg \code{numeric} specifying a peak-group-of-interest.
-#' @param peakgrs_ints  \code{list} with centWave values, listed by peak-groups.
+#' @param pkg_ints  \code{data.frame} with centWave values for the peak-group-of-interest.
 #' @param out_dir \code{character} specifying desired directory for output, if plotting is selected.
 #' @param cor_thr \code{numeric} defining Pearson correlation coefficient threshold for inter-sample correlation between peaks. 
 #' @param min_samples_n \code{numeric} specifying the minimum number of samples in which peak has to be detected in order to be considered.
@@ -48,26 +48,19 @@ extractPEAKGR <- function(pkg, object, samples) {
 #'
 validPEAKGR <-
   function(pkg,
-           peakgrs_ints,
+           pkg_ints,
            out_dir,
            cor_thr,
            min_samples_n,
            save_plot = FALSE
            ) {
-    ## extract intensities for the peak-group of interest
-    pkg_ints <- peakgrs_ints[[pkg]]
-    
     ####---- build correlation network between all peaks in the peak-group ----
-    peaks_ids <- unique(pkg_ints$peakid)
-    ## make peak-peak pairs
-    pkg_cor <- setNames(as.data.frame(t(utils::combn(
-      peaks_ids, 2, simplify = T
-    ))),
-    ## column names "from" and "to" will be needed in graph generation
-    nm = c("from", "to"))
-  
+    pkg_cor <- t(utils::combn(unique(pkg_ints$peakid),
+                              2,
+                              simplify = T))
+    
     ## weight is the correlation coefficient
-    pkg_cor$weight <- apply(
+    weight <- apply(
       pkg_cor,
       1,
       FUN = corPEAKS,
@@ -76,6 +69,9 @@ validPEAKGR <-
     )
     
     ## build network between peaks in the peak-group and report communities
+    ## data.frame is required for igraph in buildGRAPH
+    pkg_cor <-
+      setNames(data.frame(cbind(pkg_cor, weight)), nm = c("from", "to", "weight"))
     title <- paste0("Peak-group-", pkg)
     pkg_coms <-
       buildGRAPH(
@@ -93,8 +89,6 @@ validPEAKGR <-
       })
 
     ####---- extract intensity data for each detected community and return as a list of data frames ----
-    # find best-representative peaks in all split-peak-groups
-    # peak_counts <- lapply(unique(pkg_ints$new_peakgr), FUN = countPEAKS, pkg_ints = pkg_ints)
     new_peakgrs <- lapply(unique(pkg_ints$new_peakgr), function(npg) {
       new_pkg <- pkg_ints[pkg_ints$new_peakgr == npg,]
       # drop temporaly assigned new_peakgr id, since these are not unique across all peak-groups
@@ -117,8 +111,8 @@ validPEAKGR <-
 #' @return Function returns a \code{numeric} indicating Pearson correlation coefficient between the two peaks of interest.
 #' 
 corPEAKS <- function(pair, pkg_ints, min_samples_n) {
-  x <- pair["from"]
-  y <- pair["to"]
+  x <- pair[1]
+  y <- pair[2]
   
   pkg_ints_x <- pkg_ints[which(pkg_ints$peakid == x),]
   pkg_ints_y <- pkg_ints[which(pkg_ints$peakid == y),]

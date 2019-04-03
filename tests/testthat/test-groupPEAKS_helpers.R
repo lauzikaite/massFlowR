@@ -1,4 +1,4 @@
-context("Functions used by groupPEAKS() returs correct output")
+context("helper functions used by groupPEAKS function")
 
 # pickPEAKS --------------------------------------------------------------------------------------------------------
 test_that("pickPEAKS()", {

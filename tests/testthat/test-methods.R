@@ -101,10 +101,49 @@ test_that("alignment of two ALMOST identical samples via alignPEAKS() is correct
 
 # validPEAKS---------------------------------------------------------------------------------------------------
 test_that("validPEAKS", {
+  ####---- object with 2 samples will stop due to size
+  tmp <- buildTMP(file = meta_fname, out_dir = data_dir, rt_err = rt_err)
+  tmp <- alignPEAKS(tmp, out_dir = data_dir)
+  expect_error(validPEAKS(tmp, out_dir = data_dir, ncores = 2),
+               "Object has 2 samples\n minimum 3 samples are required for validation.")
   
+  ####---- use large study
+  tmp <- buildTMP(file = large_meta_fname, out_dir = data_dir, rt_err = rt_err)
+  tmp <- alignPEAKS(tmp, out_dir = data_dir)
+  validPEAKS_out <- validPEAKS(tmp, out_dir = data_dir, ncores = 2)
+  expect_true(class(validPEAKS_out) == "massFlowTemplate")
+  expect_true(peaksVALIDATED(validPEAKS_out))
+  # check object slots
+  expect_true(nrow(validPEAKS_out@valid) > 0)
+  expect_true(length(validPEAKS_out@peaks) == nrow(validPEAKS_out@valid)) # an entry for every peak in the final template
+  expect_true(length(validPEAKS_out@values) == nrow(validPEAKS_out@samples)) # an entry for every sample
+  expect_true(NA %in% unlist(lapply(validPEAKS_out@values, "[[", "into"))) # some missed peaks with NA
+  expect_true(all(sapply(validPEAKS_out@peaks, nrow) == nrow(tmp@samples))) # a row for every peak for every sample
+  # were files written?
+  expect_true(length(grep("intensity_data.csv", list.files(data_dir))) > 0)
+  expect_true(length(grep("peaks_data.csv", list.files(data_dir))) > 0)
+  expect_true(length(grep("sample_data.csv", list.files(data_dir))) > 0)
+  expect_true(length(grep("object.RDS", list.files(data_dir))) > 0)
 })
 
 # fillPEAKS---------------------------------------------------------------------------------------------------
 test_that("fillPEAKS", {
+  ####---- use large study
+  tmp <- buildTMP(file = large_meta_fname, out_dir = data_dir, rt_err = rt_err)
+  tmp <- alignPEAKS(tmp, out_dir = data_dir)
+  expect_error(fillPEAKS(tmp)) # needs validation first
+  tmp <- validPEAKS(tmp, out_dir = data_dir)
+  fillPEAKS_out <- fillPEAKS(tmp, out_dir = data_dir)
+  expect_true(class(fillPEAKS_out) == "massFlowTemplate")
+  expect_true(peaksVALIDATED(fillPEAKS_out))
+  expect_true(length(fillPEAKS_out@values) == nrow(fillPEAKS_out@samples))
+  expect_true(is.numeric(unlist(lapply(fillPEAKS_out@values, "[[", "into"))))
+  expect_false(NA %in% unlist(lapply(fillPEAKS_out@values, "[[", "into"))) # NO NAs
+  expect_true("into"  %in% colnames(fillPEAKS_out@valid)) # new column added with median into values
+  # were files written?
+  expect_true(length(grep("filled_intensity_data.csv", list.files(data_dir))) > 0)
+  expect_true(length(grep("final_peaks_data.csv", list.files(data_dir))) > 0)
+  expect_true(length(grep("sample_data.csv", list.files(data_dir))) > 0)
+  expect_true(length(grep("object.RDS", list.files(data_dir))) > 0)
   
 })
