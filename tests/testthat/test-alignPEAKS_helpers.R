@@ -33,33 +33,48 @@ test_that("Checking grouped peaks csv tables via checkFILE is correct", {
 
 # getRTbins ---------------------------------------------------------------------------------------------------------
 test_that("getRTbins() correctly splits two dataframes to rt bins", {
-  
+  ## make dummy table:
+  ## 20 peaks, 4 peakgroups: peakgroups number 2 and 3 are very close
+  ## split dummy table into two rt bins
+  ## as number 2 and 3 are very close, they will be included in both bin 1 and 2
+  dummy <- data.frame(peakid = 1:20,
+                      peakgr = rep(1:4, each = 5),
+                      rt = rep(c(100, 299, 301, 400), each = 5))
+  ncores <- 2
   ## use the same table as both ds and tmp
-  ds_ordered <- orderBYrt(dt = single_table, var_name = "peakgr")
-  out <- getRTbins(ds = single_table, tmp = single_table, ds_var_name = "peakgr", tmp_var_name = "peakgr", mz_err = mz_err, rt_err = rt_err, ncores = 2)
-  
+  out <-
+    getRTbins(
+      ds = dummy,
+      tmp = dummy,
+      ds_var_name = "peakgr",
+      tmp_var_name = "peakgr",
+      mz_err = mz_err,
+      rt_err = rt_err,
+      ncores = ncores
+    )
+
   ## number of created rt bins equals ncores
-  expect_true(all(length(out$ds) == 2, length(out$tmp) == 2))
+  expect_true(all(length(out$ds) == ncores, length(out$tmp) == ncores))
   
   ## all peakids are exported
-  expect_true(all(single_table$peakid %in% c(out$tmp[[1]]$peakid, out$tmp[[2]]$peakid)))
-  expect_true(all(single_table$peakid %in% c(out$ds[[1]]$peakid, out$ds[[2]]$peakid)))
+  expect_true(all(dummy$peakid %in% c(out$tmp[[1]]$peakid, out$tmp[[2]]$peakid)))
+  expect_true(all(dummy$peakid %in% c(out$ds[[1]]$peakid, out$ds[[2]]$peakid)))
   
-  ## all peaks in the ds bin must also be present in the corresponding tmp bin
+  ## since ds and tmp are identical, all peaks in the ds bin must also be present in the corresponding tmp bin
   expect_true(all(
     out$ds[[1]]$peakid %in% out$tmp[[1]]$peakid,
     out$ds[[2]]$peakid %in% out$tmp[[2]]$peakid
   ))
   
   ## obtained tmp bins must overlap for common rt values
-  rt_bin_1 <- c(min(out$ds[[1]]$rt - rt_err),
-                max(out$ds[[1]]$rt + rt_err))
-  rt_bin_2 <- c(min(out$ds[[2]]$rt - rt_err),
-                max(out$ds[[2]]$rt + rt_err))
+  rt_bin_1 <- c(min(out$tmp[[1]]$rt - rt_err),
+                max(out$tmp[[1]]$rt + rt_err))
+  rt_bin_2 <- c(min(out$tmp[[2]]$rt - rt_err),
+                max(out$tmp[[2]]$rt + rt_err))
   peakgrs_in_common <-
-    ds_ordered$peakgr[which((ds_ordered$rt - rt_err) >= rt_bin_2[1] &
-                              (ds_ordered$rt + rt_err) <= rt_bin_1[2])]
-  peaks_in_common <- ds_ordered$peakid[which(ds_ordered$peakgr %in% peakgrs_in_common)]
+    dummy$peakgr[which((dummy$rt - rt_err) >= rt_bin_2[1] &
+                              (dummy$rt + rt_err) <= rt_bin_1[2])]
+  peaks_in_common <- dummy$peakid[which(dummy$peakgr %in% peakgrs_in_common)]
   expect_identical(peaks_in_common,
                    base::intersect(out$tmp[[1]]$peakid, out$tmp[[2]]$peakid))
 })

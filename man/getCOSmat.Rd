@@ -4,7 +4,7 @@
 \alias{getCOSmat}
 \title{Estimate cosine angles between the vectors representing dataset and template peak-groups}
 \usage{
-getCOSmat(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins = 0.01)
+getCOSmat(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins)
 }
 \arguments{
 \item{ds_bin}{\code{data.frame} for the single \emph{rt} region of the dataset.}

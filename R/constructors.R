@@ -7,7 +7,7 @@
 #' @param out_dir \code{character} specifying desired directory for output.
 #' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
-#' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).
+#' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).
 #'
 #' @return A \code{massFlowTemplate} class object.
 #'
@@ -17,7 +17,7 @@ buildTMP <-
            out_dir = NULL,
            mz_err = 0.01,
            rt_err = 2,
-           bins = 0.01
+           bins = 0.05
            ) {
     if (is.null(file)) {
       stop("'file' is required")
@@ -96,7 +96,7 @@ buildTMP <-
 #' @param template A \code{character} with path to the csv file with the latest template obtained by \code{alignPEAKS} function.
 #' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
-#' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).
+#' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).
 #'
 #' @return A \code{massFlowTemplate} class object.
 #'
@@ -109,7 +109,7 @@ loadALIGNED <-
            template = NULL,
            mz_err = 0.01,
            rt_err = 2,
-           bins = 0.01) {
+           bins = 0.05) {
   
     if (is.null(file)) {
       stop("Input 'file' is required")

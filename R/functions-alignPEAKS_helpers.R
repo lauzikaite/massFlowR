@@ -81,6 +81,9 @@ do_alignPEAKS <- function(ds,
   ds_vars_by_bins <- lapply(ds_bins, function(x) {
     unique(x[[match(ds_var_name, colnames(x))]])
   })
+  tmp_vars_by_bins <- lapply(tmp_bins, function(x) {
+    unique(x[[match(tmp_var_name, colnames(x))]])
+  })
   ds_vars <- unique(unlist(lapply(ds_bins, "[[", ds_var_name)))
   tmp_vars <- unique(unlist(lapply(tmp_bins, "[[", tmp_var_name)))
   
@@ -116,12 +119,19 @@ do_alignPEAKS <- function(ds,
   rownames(cos_mat) <- tmp_vars
   colnames(cos_mat) <- ds_vars
   
+  ####---- join sliced cosine matrices into one (tmp slices can be overlapping)
   for (bin in 1:ncores) {
     cos_mat_bin <- cos_matches[[bin]][[1]]
-    cos_mat[match(rownames(cos_mat_bin), rownames(cos_mat), nomatch = 0),
-            match(colnames(cos_mat_bin), colnames(cos_mat), nomatch = 0)] <-
-      cos_mat_bin[match(rownames(cos_mat), rownames(cos_mat_bin), nomatch = 0),
-                  match(colnames(cos_mat), colnames(cos_mat_bin), nomatch = 0)]
+    x_vars_bin <- tmp_vars_by_bins[[bin]]
+    y_vars_bin <- ds_vars_by_bins[[bin]]
+    # cos_mat[match(rownames(cos_mat_bin), rownames(cos_mat), nomatch = 0),
+    #         match(colnames(cos_mat_bin), colnames(cos_mat), nomatch = 0)] <-
+    #   cos_mat_bin[match(rownames(cos_mat), rownames(cos_mat_bin), nomatch = 0),
+    #               match(colnames(cos_mat), colnames(cos_mat_bin), nomatch = 0)]
+    cos_mat[match(x_vars_bin, rownames(cos_mat), nomatch = 0),
+            match(y_vars_bin, colnames(cos_mat), nomatch = 0)] <-
+      cos_mat_bin[match(x_vars_bin, rownames(cos_mat_bin), nomatch = 0),
+                  match(y_vars_bin, colnames(cos_mat_bin), nomatch = 0)]
   }
   
   ####---- assign ds peakgroups to tmp according to cosines
@@ -212,14 +222,16 @@ getRTbins <- function(ds, tmp, ds_var_name, tmp_var_name, mz_err, rt_err, ncores
   for (bin in 1:ncores) {
     ## get all peaks that are below current bin max rt value,
     ## and have not been included in the previous bin
-    rt_val_max <- max(ds_bins[[bin]]$rt_h)
-    peakgrs_previous <- if (bin == 1) {
+    rt_val_min <- if (bin == 1) {
       0
     } else {
-      tmp_bins[[bin - 1]][, tmp_var_ind]
+      min(ds_bins[[bin]]$rt_l)
     }
-    tmp_by_rt <- tmp[which(tmp$rt_h <= rt_val_max &
-                             !tmp[ , tmp_var_ind] %in% peakgrs_previous), ]
+    rt_val_max <- max(ds_bins[[bin]]$rt_h)
+    
+    ## include overlapping peaks which could be matched by getMATCHES
+    tmp_by_rt <- tmp[which(tmp$rt_l <= rt_val_max & 
+                             tmp$rt_h >= rt_val_min), ]
     ## also add peaks that belong to the same peak-group as any of the peaks matched by rt
     tmp_by_group <- tmp[which(tmp[ , tmp_var_ind] %in% tmp_by_rt[ , tmp_var_ind]), ]
     tmp_bins[[bin]] <- tmp_by_group
@@ -290,7 +302,7 @@ addERRS <- function(dt, mz_err, rt_err) {
 #'  \item \code{list} with matching template peaks for every peak-group in the dataset.
 #'  }
 #' 
-getCOSmat <- function(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins = 0.01) {
+getCOSmat <- function(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins) {
   
   ## which column indexes correspond to the given variable names in dataset and template
   ds_var_ind <- match(ds_var, colnames(ds_bin))
@@ -348,7 +360,7 @@ getCOSmat <- function(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins = 0
         )))  * (sqrt(sum(
           matched_vec * matched_vec
         ))))
-      return(round(cos_angle, 4))
+      return(round(cos_angle, 8))
     })
     
     ## update cosine matrix with cosines

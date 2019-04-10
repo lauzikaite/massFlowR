@@ -7,7 +7,7 @@
 \title{Validate aligned peaks and their corresponding peak-groups}
 \usage{
 \S4method{validPEAKS}{massFlowTemplate}(object, out_dir = NULL,
-  min_samples = 10, cor_thr = 0.75, ncores = 2)
+  min_samples = 2, cor_thr = 0.75, ncores = 2)
 }
 \arguments{
 \item{object}{\code{massFlowTemplate} class object.}
