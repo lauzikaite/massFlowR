@@ -5,7 +5,7 @@
 \title{Build sample alignment and annotation template using already aligned samples}
 \usage{
 loadALIGNED(file = NULL, template = NULL, mz_err = 0.01,
-  rt_err = 2, bins = 0.01)
+  rt_err = 2, bins = 0.05)
 }
 \arguments{
 \item{file}{A \code{character} with path to the csv file, specifying samples filenames and their acquisition order.}
@@ -16,7 +16,7 @@ loadALIGNED(file = NULL, template = NULL, mz_err = 0.01,
 
 \item{rt_err}{A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).}
 
-\item{bins}{A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.01).}
+\item{bins}{A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).}
 }
 \value{
 A \code{massFlowTemplate} class object.

@@ -355,7 +355,7 @@ setMethod("validPEAKS",
               min_samples_n <- 2
             }
             if (min_samples_n > samples_n) {
-              stop("Object has ", samples_n, " samples",
+              stop("object has ", samples_n, " samples",
                    "\n minimum 3 samples are required for validation.")
             }
             peakgrs_split <- foreach::foreach(pkg = peakgrs,
@@ -468,7 +468,7 @@ setMethod("fillPEAKS",
             }
             if (!peaksVALIDATED(object) | !"validPEAKS" %in% object@history) {
               stop(
-                "'Object' must be a validated 'massFlowTemplate' class object. \n Run validPEAKS() first."
+                "'object' must be a validated 'massFlowTemplate' class object. \n Run validPEAKS() first."
               )
             }
             if (is.null(out_dir)) {
@@ -614,3 +614,97 @@ setMethod("fillPEAKS",
               return(object)
             }
           })
+
+
+# adjustBATCH -------------------------------------------------------------
+setMethod("adjustBATCH",
+          signature = "massFlowTemplate",
+          function(object,
+                   out_dir = NULL,
+                   batch_next_file = NULL,
+                   batch_end_roi = NULL,
+                   batch_start_roi = NULL) {
+            if (!validObject(object)) {
+              stop(validObject(object))
+            }
+            # if (!peaksVALIDATED(object)) {
+            #   stop("object must be validated first")
+            # }
+            if (any(is.null(out_dir) |
+                is.null(batch_next_file) |
+                    is.null(batch_end_roi),
+                    is.null(batch_start_roi))) {
+              stop("check your arguments. Required inputs are: object, out_dir, batch_next_file, batch_end_roi, batch_start_roi")
+            }
+            if (!dir.exists(out_dir)) {
+              stop("incorrect filepath for 'out_dir' provided")
+            }
+            params <- object@params
+            ## load and check provided reference compounds tables
+            roi_end <- read.csv(batch_end_roi, header = T, stringsAsFactors = F)
+            roi_start <- read.csv(batch_start_roi, header = T, stringsAsFactors = F)
+            if (nrow(roi_end)  != nrow(roi_start)) {
+              stop("provided reference compounds integration tables are inconsistent")
+            }
+            ## load metadata of the next batch
+            next_samples <- read.csv(batch_next_file, header = T, stringsAsFactors = F)
+            ## for every reference compound:
+            ## (1) Find corresponding peaks in the end sample
+            ## (2) Check if corresponding peaks are among the validated peaks
+            ## (3) Find corresponding peaks in the start sample
+            ## (4) Get rt differences between end and start
+            # val_pks <- object@valid # validated peaks 
+            val_pks <- object@tmp # lazy fix for simulated data
+            data_start <- read.csv(next_samples$proc_filepath[1], header = T, stringsAsFactors = F) # starting sample of the next batch
+            # data_end <- object@data[[94]] # lazy fix for devset
+            data_end <- object@data[[nrow(object@samples)]] # last sample in the batch
+            rt_difs <- lapply(
+              1:nrow(roi_end),
+              FUN = checkCOMPOUND,
+              val_pks = val_pks,
+              roi_end = roi_end,
+              roi_start = roi_start,
+              data_end = data_end,
+              data_start = data_start
+            )
+            if (length(unlist(rt_difs)) <= 3) {
+              warning("peaks corresponding to provided reference compounds: ",
+                      length(unlist(rt_difs)))
+              ans <- 0
+              while (ans < 1) {
+                ans <- readline("Do you wish to proceed with batch adjustion? Enter Y/N ")
+                ## catch if input is N/n
+                ans <- ifelse((grepl("N", ans) | grepl("n", ans)),
+                              2, 1)
+                if (ans == 2) {
+                  stop("method was stopped.")
+                }
+              }
+            }
+            ## prepare template for next batch:
+            ## (1) extract validated peaks
+            ## (2) adjust their rt values 
+            tmp <- object@tmp
+            tmp <- tmp[match(val_pks$peakid, tmp$peakid), ]
+            rt_dif <- median(unlist(rt_difs))
+            tmp$rt <- tmp$rt + rt_dif
+            
+            ## create new object for the next batch, which will replace current object
+            next_samples[, "aligned"] <- FALSE
+            next_samples[, "aligned_filepath"] <- NA
+            next_object <- new(
+              "massFlowTemplate",
+              filepath = batch_next_file,
+              samples = next_samples,
+              tmp = tmp,
+              params = list(
+                mz_err = params$mz_err,
+                rt_err = params$rt_err,
+                bins = params$bins
+              )
+            )
+            if (validmassFlowTemplate(next_object) != TRUE) {
+              stop(validmassFlowTemplate(next_object))
+            }
+            return(next_object)
+            })
