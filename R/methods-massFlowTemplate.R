@@ -358,7 +358,7 @@ setMethod("validPEAKS",
               stop("object has ", samples_n, " samples",
                    "\n minimum 3 samples are required for validation.")
             }
-            peakgrs_split <- foreach::foreach(pkg = peakgrs,
+            peakgrs_split <- foreach::foreach(pkg = seq(length(peakgrs)),
                                               .inorder = TRUE) %dopar% (
                                                 massFlowR:::validPEAKGR(
                                                   pkg = pkg,
