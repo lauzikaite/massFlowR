@@ -105,7 +105,7 @@ test_that("validPEAKS", {
   tmp <- buildTMP(file = meta_fname, out_dir = data_dir, rt_err = rt_err)
   tmp <- alignPEAKS(tmp, out_dir = data_dir)
   expect_error(validPEAKS(tmp, out_dir = data_dir, ncores = 2),
-               "Object has 2 samples\n minimum 3 samples are required for validation.")
+               "object has 2 samples\n minimum 3 samples are required for validation.")
   
   ####---- use large study
   tmp <- buildTMP(file = large_meta_fname, out_dir = data_dir, rt_err = rt_err)

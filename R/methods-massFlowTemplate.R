@@ -312,7 +312,7 @@ setMethod("validPEAKS",
           signature = "massFlowTemplate",
           function(object,
                    out_dir = NULL,
-                   min_samples = 2,
+                   min_samples_n = 3,
                    cor_thr = 0.75,
                    ncores = 2) {
             if (!validObject(object)) {
@@ -349,10 +349,8 @@ setMethod("validPEAKS",
             samples <-
               object@samples[which(object@samples$aligned == TRUE),]
             samples_n <- nrow(samples)
-            min_samples_n <-
-              ceiling((samples_n * min_samples) / 100)
-            if (min_samples_n < 2) {
-              min_samples_n <- 2
+            if (min_samples_n < 3) {
+              min_samples_n <- 3
             }
             if (min_samples_n > samples_n) {
               stop("object has ", samples_n, " samples",

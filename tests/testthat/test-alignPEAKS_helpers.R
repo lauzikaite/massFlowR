@@ -254,7 +254,7 @@ test_that("getCOSmat() returns correct cosine matrix", {
   expect_equal(length(cos_matches[[ncores]][[2]]), length(unique(doi$peakgr)))
   expect_equal(nrow(cos_matches[[ncores]][[1]]), length(unique(tmp$peakgr)))
   expect_equal(ncol(cos_matches[[ncores]][[1]]), length(unique(doi$peakgr)))
-  expect_equal(max(cos_matches[[ncores]][[1]]), 0.9999)
+  expect_equal(max(cos_matches[[ncores]][[1]]), 0.99996)
   expect_true(cos_matches[[ncores]][[1]]["22","27"] == max(cos_matches[[ncores]][[1]]))
 })
 
@@ -316,7 +316,7 @@ test_that("buildVECTOR()", {
 
 # scaleSPEC ---------------------------------------------------------------------------------------------------------
 test_that("scaleSPEC() ", {
-  ## Version A - scale to unit length
+  
   spec <- data.frame(into = c(
     rep(0, 10),
     0.0128555075994933,
@@ -324,12 +324,22 @@ test_that("scaleSPEC() ", {
     0.271109618049552,
     rep(0, 10),
     0.9624626283266
-  ))
+  ), mz = 1:33)
   spec_scaled <- scaleSPEC(spec)
   expect_identical(length(spec_scaled), nrow(spec))
   expect_identical(length(which(spec_scaled > 0)), length(which(spec$into > 0)))
-  spec_length <- sum(spec_scaled * spec_scaled)
-  expect_identical(spec_length, 1)
+  
+  ## Version A - scale to unit length
+  # spec_length <- sum(spec_scaled * spec_scaled)
+  # expect_identical(spec_length, 1)
+  
+  ## Version B
+  m <- 0.6
+  n <- 3
+  expect_identical(spec_scaled, apply(spec, 1, function(x) {
+    x[["into"]] ^ m * x[["mz"]] ^ n
+  }))
+  
 })
 
 # assignCOS -------------------------------------------------------------------------------------------------

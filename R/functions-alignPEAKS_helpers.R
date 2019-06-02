@@ -450,13 +450,11 @@ buildVECTOR <- function(spec, peaks) {
 #' 
 #' @seealso \code{\link{getCOSmat}}
 #' 
-scaleSPEC <- function(spec) {
+scaleSPEC <- function(spec,  m = 0.6, n = 3) {
   ## Version A - scale to unit length (emphasises most intense peak)
   # spec$into / (sqrt(sum(spec$into * spec$into)))
   
   ## Version B - according to Stein & Scott, 1994
-  m = 0.6
-  n = 3
   # scale the intensity of every mz ion separately
   # use m and n weighting factors taken from Stein & Scott, 1994
   apply(spec, 1, function(x) {

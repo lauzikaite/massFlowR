@@ -16,7 +16,7 @@ test_that("initialise massFlowTemplate class object using default parameters", {
   data1 <- tmp@data[[1]]
   expect_true(all(data1$peakid %in% single_table$peakid))
   expect_true(all(data1$peakid[match(data1$peakid, single_table$peakid)] == single_table$peakid))
-  expect_true(all(tmp@params$mz_err == 0.01, tmp@params$rt_err == 2, tmp@params$bins == 0.01))
+  expect_true(all(tmp@params$mz_err == 0.01, tmp@params$rt_err == 2, tmp@params$bins == 0.05))
 })
 
 # loadALIGNED------------------------------------------------------------------------------------------------------
