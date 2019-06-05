@@ -4,7 +4,7 @@
 \alias{scaleSPEC}
 \title{Scale a vector representing peaks' intensity values}
 \usage{
-scaleSPEC(spec)
+scaleSPEC(spec, m = 0.6, n = 3)
 }
 \arguments{
 \item{spec}{\code{data.frame} with columns 'into' and 'mz'.}
