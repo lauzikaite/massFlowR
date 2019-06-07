@@ -442,9 +442,11 @@ buildVECTOR <- function(spec, peaks) {
 #' @title Scale a vector representing peaks' intensity values
 #' 
 #' @description Function scales a vector representing peaks' intensity values before dot-product estimation of two vectors.
-#' Currently, scaling to unit length is supported.
+#' Currently, scaling according to method in Stein & Scott, 1994 is supported.
 #'
 #' @param spec \code{data.frame} with columns 'into' and 'mz'.
+#' @param m \code{numeric}, set to 0.6 by default.
+#' @param n \code{numeric}, set to 3 by default.
 #'
 #' @return Function returns a \code{numeric} vector with scaled intensity values.
 #' 

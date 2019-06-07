@@ -298,7 +298,7 @@ setMethod("alignPEAKS",
 #'
 #' @param object \code{massFlowTemplate} class object.
 #' @param out_dir \code{character} specifying desired directory for output.
-#' @param min_samples \code{numeric} specifying the minimum percentage of samples in which peak has to be detected in order to be considered (default set to 10 percent).
+#' @param min_samples_n \code{numeric} specifying the minimum percentage of samples in which peak has to be detected in order to be considered (default set to 10 percent).
 #' @param cor_thr \code{numeric} defining Pearson correlation coefficient threshold for inter-sample correlation between peaks (default set to 0.75).
 #' @param ncores \code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.
 #'

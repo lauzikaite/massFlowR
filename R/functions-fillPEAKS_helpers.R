@@ -51,7 +51,8 @@ fillSAMPLE <- function(s, sname, sdata, values) {
     }
     
     ## get into and maxo values for each peak
-    values_filled <- data.frame()
+    values_filled <- as.data.frame(setNames(replicate(n = ncol(values) + 2, numeric(), simplify = FALSE), nm = c(names(values), "maxo", "into")))
+    
     for (p in 1:length(peaks_int)) {
       peak  <- peaks_int[[p]]
       values_filled[p, names(values)] <- values[p,]
@@ -77,7 +78,7 @@ fillSAMPLE <- function(s, sname, sdata, values) {
         values_filled[p, c("maxo", "into")] <- c(maxo, into)
         
       } else {
-        ## return default values
+        ## return default values - 0s
         values_filled[p, c("maxo", "into")] <- 0
       }
     }

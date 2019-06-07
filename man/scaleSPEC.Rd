@@ -8,13 +8,17 @@ scaleSPEC(spec, m = 0.6, n = 3)
 }
 \arguments{
 \item{spec}{\code{data.frame} with columns 'into' and 'mz'.}
+
+\item{m}{\code{numeric}, set to 0.6 by default.}
+
+\item{n}{\code{numeric}, set to 3 by default.}
 }
 \value{
 Function returns a \code{numeric} vector with scaled intensity values.
 }
 \description{
 Function scales a vector representing peaks' intensity values before dot-product estimation of two vectors.
-Currently, scaling to unit length is supported.
+Currently, scaling according to method in Stein & Scott, 1994 is supported.
 }
 \seealso{
 \code{\link{getCOSmat}}

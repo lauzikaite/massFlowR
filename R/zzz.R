@@ -1,7 +1,7 @@
 .onAttach <- function(libname, pkgname) {
   packageStartupMessage(
-    paste0("\nThis is massFlowR version ", packageVersion("massFlowR"), ": development", "\n",
-          "Date of built: ", packageDate("massFlowR")))
+    paste0("\nThis is massFlowR version ", utils::packageVersion("massFlowR"), ": development", "\n",
+          "Date of built: ", utils::packageDate("massFlowR")))
 }
 
 .onLoad <- function(libname = find.package("massFlowR"), pkgname = "massFlowR"){
