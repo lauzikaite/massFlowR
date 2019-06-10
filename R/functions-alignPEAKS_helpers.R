@@ -91,8 +91,9 @@ do_alignPEAKS <- function(ds,
   if (ncores > 1) {
     cos_matches <-
       foreach::foreach(bin = 1:ncores,
-                       .inorder = TRUE) %dopar% (
-                         massFlowR:::getCOSmat(
+                       .inorder = TRUE,
+                       .export = c("getCOSmat")) %dopar% (
+                         getCOSmat(
                            ds_bin = ds_bins[[bin]],
                            ds_var = ds_var_name,
                            tmp_bin = tmp_bins[[bin]],
@@ -105,7 +106,7 @@ do_alignPEAKS <- function(ds,
   } else {
     ## run with lapply to have the same, 2-list-within-a-bin-list, structure as with foreach
     cos_matches <- list(
-      massFlowR:::getCOSmat(
+      getCOSmat(
         ds_bin = ds_bins[[1]],
         ds_var = ds_var_name,
         tmp_bin = tmp_bins[[1]],
@@ -301,6 +302,8 @@ addERRS <- function(dt, mz_err, rt_err) {
 #'  \item \code{matrix} with obtained cosines between all dataset and template peak-groups.
 #'  \item \code{list} with matching template peaks for every peak-group in the dataset.
 #'  }
+#' 
+#' @export
 #' 
 getCOSmat <- function(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins) {
   

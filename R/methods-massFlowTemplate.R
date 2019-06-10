@@ -339,7 +339,8 @@ setMethod("validPEAKS",
             peakgrs <- unique(object@tmp$peakgr)
             peakgrs <- peakgrs[order(peakgrs)]
             peakgrs_ints <- foreach::foreach(pkg = peakgrs,
-                                             .inorder = TRUE) %dopar% (massFlowR:::extractPEAKGR(pkg = pkg,
+                                             .inorder = TRUE,
+                                             .export = c("extractPEAKGR")) %dopar% (extractPEAKGR(pkg = pkg,
                                                                                                  object = object))
             saveRDS(peakgrs_ints, file = paste0(out_dir, "/peakgrs_ints.RDS"))
             saveRDS(object, file = paste0(out_dir, "/object.RDS"))
@@ -357,8 +358,9 @@ setMethod("validPEAKS",
                    "\n minimum 3 samples are required for validation.")
             }
             peakgrs_split <- foreach::foreach(pkg = seq(length(peakgrs)),
-                                              .inorder = TRUE) %dopar% (
-                                                massFlowR:::validPEAKGR(
+                                              .inorder = TRUE,
+                                              .export = c("validPEAKGR")) %dopar% (
+                                                validPEAKGR(
                                                   pkg = pkg,
                                                   pkg_ints = peakgrs_ints[[pkg]],
                                                   out_dir = out_dir,
@@ -375,20 +377,23 @@ setMethod("validPEAKS",
             ## export centWave measures for final template's peaks in each sample, listed by sample
             peaks_vals_samples <-
               foreach::foreach(sn = 1:nrow(samples),
-                               .inorder = TRUE) %dopar% (massFlowR:::exportSAMPLE(sdata = object@data[[sn]],
+                               .inorder = TRUE,
+                               .export = c("exportSAMPLE")) %dopar% (exportSAMPLE(sdata = object@data[[sn]],
                                                                                   final_tmp = final_tmp))
             
             ## get centWave measures for each peak and each sample, listed by peakid
             peaks_vals_peakids <-
               foreach::foreach(peakid = final_tmp$peakid,
-                               .inorder = TRUE) %dopar% (massFlowR:::exportPEAK(peakid = peakid,
+                               .inorder = TRUE,
+                               .export = c("exportPEAK")) %dopar% (exportPEAK(peakid = peakid,
                                                                                 peaks_vals_samples = peaks_vals_samples))
             names(peaks_vals_peakids) <- final_tmp$peakid
             
             ## get median centWave measures for each peak and each sample, listed by peakid
             peaks_medians_peakids <-
               foreach::foreach(n = 1:length(peaks_vals_peakids),
-                               .inorder = TRUE) %dopar% (massFlowR:::getPEAKmedians(peak_n = peaks_vals_peakids[[n]]))
+                               .inorder = TRUE,
+                               .export = c("getPEAKmedians")) %dopar% (getPEAKmedians(peak_n = peaks_vals_peakids[[n]]))
             peaks_medians_peakids <-
               do.call("rbindCLEAN", peaks_medians_peakids)
             peaks_medians_peakids$peakid <- final_tmp$peakid
@@ -492,7 +497,8 @@ setMethod("fillPEAKS",
             ## iterate over every peakid in the validated peak-table
             peakids <- object@valid$peakid
             peaks_mod <- foreach::foreach(p = peakids,
-                                          .inorder = TRUE) %dopar% (massFlowR:::modelPEAKS(
+                                          .inorder = TRUE, 
+                                          .export = c("modelPEAKS")) %dopar% (modelPEAKS(
                                             p = p,
                                             vars = c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax"),
                                             object = object
@@ -503,8 +509,9 @@ setMethod("fillPEAKS",
             ## extract only the peaks that have to be filled
             peaks_miss <-
               foreach::foreach(s = 1:length(object@values),
-                               .inorder = TRUE) %dopar% (
-                                 massFlowR:::extractMISS(
+                               .inorder = TRUE,
+                               .export = c("extractMISS")) %dopar% (
+                                 extractMISS(
                                    s = s,
                                    values = object@values,
                                    peaks_mod = peaks_mod,
@@ -542,8 +549,9 @@ setMethod("fillPEAKS",
                 result[samples_proc] <- foreach::foreach(
                   s = samples_proc,
                   .inorder = TRUE,
-                  .errorhandling = "pass") %dopar% (tryCatch({
-                    massFlowR:::fillSAMPLE(
+                  .errorhandling = "pass",
+                  .export = c("fillSAMPLE")) %dopar% (tryCatch({
+                    fillSAMPLE(
                       s = s,
                       sname = object@samples$raw_filepath[s],
                       sdata = object@values[[s]],
@@ -615,6 +623,25 @@ setMethod("fillPEAKS",
 
 
 # adjustBATCH -------------------------------------------------------------
+#' @aliases adjustBATCH
+#' 
+#' @title adjustBATCH
+#' 
+#' @description Development mode.
+#' Method adjusts retention time between two analytical batches using a set of features for which regions of integration (ROI) in \emph{mz}, \emph{rt} and \emph{into} domains are specified by the user.
+#'
+#' @param object \code{massFlowTemplate} class object.
+#' @param out_dir \code{character} specifying desired directory for output.
+#' @param batch_end \code{character} with filename of the last sample in batch No 1.
+#' @param batch_start \code{character} with filename of the first sample in batch No 2.
+#' @param batch_next_metadata \code{character} with path to metadata file for batch No 2.
+#' @param batch_end_roi \code{character} with path to csv file with regions of integrations for the last sample in batch No 1.
+#' @param batch_start_roi \code{character} with path to csv file with regions of integrations for the first sample in batch No 2.
+#'
+#' @return Method returns \code{massFlowTemplate} class object with updated template, such that \emph{rt} of the features are adjusted according to the observed batch-change effect. 
+#' 
+#' @export
+#'
 setMethod("adjustBATCH",
           signature = "massFlowTemplate",
           function(object,
@@ -704,13 +731,9 @@ setMethod("adjustBATCH",
             rt_dif <- median(unlist(rt_difs))
             
             ## version B - model rt change
-            
-            plot(roi_end$rt, unlist(lapply(rt_difs, function(x) {
+            graphics::plot(roi_end$rt, unlist(lapply(rt_difs, function(x) {
               ifelse(is.null(x), NA, x)
             })))
-            
-            
-            
             
             tmp$rt <- tmp$rt + rt_dif
             
