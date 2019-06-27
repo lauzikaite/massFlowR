@@ -174,10 +174,5 @@ buildGRAPH <-
       )
       grDevices::dev.off()
     }
-    
-    # ## plot three mostly connected peaks
-    # other_peaks <- V(g)$name[order(degree(g), decreasing = T)[-c(1:3)]]
-    # top_peaks <- V(g)$name[order(degree(g), decreasing = T)[c(1:3)]]
-    
     return(mem)
   }
