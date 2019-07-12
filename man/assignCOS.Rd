@@ -4,17 +4,22 @@
 \alias{assignCOS}
 \title{Assign dataset's peak-groups to template peak-groups based on estimated cosine angles}
 \usage{
-assignCOS(cos)
+assignCOS(cos, cutoff = 0)
 }
 \arguments{
 \item{cos}{\code{matrix} with cosine angles.
 Rows correspond to template variables (i.e. peak-group).
 Columns correspond to dataset-of-interest variables (i.e. peak-group).}
+
+\item{cutoff}{\code{numeric} for spectra similarity score threshold, set to 0 by default.}
 }
 \value{
-Function returns a \code{matrix} of the same dimension.
-Peak-group pairs which should be aligned are marked with TRUE in the output matrix.
+Function returns a \code{matrix} of the same dimensions.
+Peak-groups which should be grouped/aligned into one are marked with TRUE in the output matrix.
 }
 \description{
-Assign dataset's peak-groups to template peak-groups based on estimated cosine angles
+Maximise peak-groups assignment by selecting highest-scoring match for each peak-group in the template.
+}
+\details{
+Function is used for peak-group alignment by \code{\link{alignPEAKS}} method and for automatic annotation on \code{\link{massFlowAnno-class}} object.
 }

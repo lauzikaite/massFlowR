@@ -146,8 +146,7 @@ setMethod("alignPEAKS",
 
     ## register paral backend
     if (ncores > 1) {
-      cl <- parallel::makeCluster(ncores)
-      doParallel::registerDoParallel(cl)
+      doParallel::registerDoParallel(cores = ncores)
     } else {
       foreach::registerDoSEQ()
     }
@@ -287,7 +286,7 @@ setMethod("alignPEAKS",
     )
 
     if (ncores > 1) {
-      parallel::stopCluster(cl)
+      foreach::registerDoSEQ()
     }
     message("Peaks were aligned across all samples.")
     return(object)
@@ -332,8 +331,7 @@ setMethod("validPEAKS",
     }
     ## register paral backend
     if (ncores > 1) {
-      cl <- parallel::makeCluster(ncores)
-      doParallel::registerDoParallel(cl)
+      doParallel::registerDoParallel(cores = ncores)
     } else {
       foreach::registerDoSEQ()
     }
@@ -437,8 +435,6 @@ setMethod("validPEAKS",
     peaks_vals <- do.call("cbind", peaks_vals)
     peaks_vals <- cbind(peaks_medians_peakids, peaks_vals)
 
-    parallel::stopCluster(cl)
-
     object@values <- peaks_vals_samples
     object@peaks <- peaks_vals_peakids
     object@valid <- peaks_medians_peakids
@@ -460,6 +456,9 @@ setMethod("validPEAKS",
       file = file.path(out_dir, "peaks_data.csv"),
       row.names = F
     )
+    if (ncores > 1) {
+      foreach::registerDoSEQ()
+    }
     message("All peak-groups were succesfully validated.")
     return(object)
   }

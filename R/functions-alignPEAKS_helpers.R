@@ -65,7 +65,8 @@ do_alignPEAKS <- function(ds,
                           mz_err,
                           rt_err,
                           bins,
-                          ncores) {
+                          ncores,
+                          anno = FALSE) {
   
   ####---- split dataset and template into rt regions for parallelisation
   rt_bins <- getRTbins(ds = ds,
@@ -88,34 +89,21 @@ do_alignPEAKS <- function(ds,
   tmp_vars <- unique(unlist(lapply(tmp_bins, "[[", tmp_var_name)))
   
   ####---- estimate cosines for matching peak-groups between dataset and template
-  if (ncores > 1) {
-    cos_matches <-
-      foreach::foreach(bin = 1:ncores,
-                       .inorder = TRUE,
-                       .export = c("getCOSmat")) %dopar% (
-                         getCOSmat(
-                           ds_bin = ds_bins[[bin]],
-                           ds_var = ds_var_name,
-                           tmp_bin = tmp_bins[[bin]],
-                           tmp_var = tmp_var_name,
-                           mz_err = mz_err,
-                           rt_err = rt_err,
-                           bins = bins
-                         )
+  cos_matches <-
+    foreach::foreach(bin = 1:ncores,
+                     .inorder = TRUE,
+                     .export = c("getCOSmat")) %dopar% (
+                       getCOSmat(
+                         ds_bin = ds_bins[[bin]],
+                         ds_var = ds_var_name,
+                         tmp_bin = tmp_bins[[bin]],
+                         tmp_var = tmp_var_name,
+                         mz_err = mz_err,
+                         rt_err = rt_err,
+                         bins = bins
                        )
-  } else {
-    ## run with lapply to have the same, 2-list-within-a-bin-list, structure as with foreach
-    cos_matches <- list(
-      getCOSmat(
-        ds_bin = ds_bins[[1]],
-        ds_var = ds_var_name,
-        tmp_bin = tmp_bins[[1]],
-        tmp_var = tmp_var_name,
-        mz_err = mz_err,
-        rt_err = rt_err,
-        bins = bins)
-    )
-  }
+                     )
+
   cos_mat <- matrix(0, nrow = length(tmp_vars), ncol = length(ds_vars))
   rownames(cos_mat) <- tmp_vars
   colnames(cos_mat) <- ds_vars
@@ -125,46 +113,46 @@ do_alignPEAKS <- function(ds,
     cos_mat_bin <- cos_matches[[bin]][[1]]
     x_vars_bin <- tmp_vars_by_bins[[bin]]
     y_vars_bin <- ds_vars_by_bins[[bin]]
-    # cos_mat[match(rownames(cos_mat_bin), rownames(cos_mat), nomatch = 0),
-    #         match(colnames(cos_mat_bin), colnames(cos_mat), nomatch = 0)] <-
-    #   cos_mat_bin[match(rownames(cos_mat), rownames(cos_mat_bin), nomatch = 0),
-    #               match(colnames(cos_mat), colnames(cos_mat_bin), nomatch = 0)]
     cos_mat[match(x_vars_bin, rownames(cos_mat), nomatch = 0),
             match(y_vars_bin, colnames(cos_mat), nomatch = 0)] <-
       cos_mat_bin[match(x_vars_bin, rownames(cos_mat_bin), nomatch = 0),
                   match(y_vars_bin, colnames(cos_mat_bin), nomatch = 0)]
   }
-  
-  ####---- assign ds peakgroups to tmp according to cosines
-  cos_assigned <- assignCOS(cos = cos_mat)
-  ds_true <- apply(cos_assigned, 2, function(x) which(x))
-  ds_assigned <- which(sapply(ds_true, length) > 0)
-  ds_vars_assigned <- ds_vars[ds_assigned]
-  tmp_assigned <- unlist(ds_true[ds_assigned])
-  tmp_vars_assigned <- tmp_vars[tmp_assigned]
-  
-  ####---- extract matches for assigned peakgroups only
-  ds_to_tmp <- rep(list(NA), length(ds_vars))
-
-  for (var in 1:length(ds_vars)) {
-    ds_var <- ds_vars[var]
-    if (ds_var %in% ds_vars_assigned) {
-      ## get the corresponding assigned tmp peagroup
-      tmp_var <- tmp_vars_assigned[which(ds_vars_assigned == ds_var)]
-      ## extract mathes between the assigned peakgroups
-      bin <- which(sapply(ds_vars_by_bins, function(x) ds_var %in% x))
-      mat <- cos_matches[[bin]][[2]][[which(ds_vars_by_bins[[bin]] == ds_var)]]
-      mat <- mat[which(mat$tmp_var == tmp_var), ]
-      ## extract cosine between the assigned peakgroups
-      cos <- cos_mat[match(tmp_var, rownames(cos_mat)), match(ds_var, colnames(cos_mat))]
-    } else {
-      tmp_var <- NULL
-      mat <- NULL
-      cos <- NULL
+  ####---- for annotation, return all found matches for every ds peakgroup
+  if (anno == TRUE) {
+    return(cos_mat)
+  } else {
+    ####---- assign ds peakgroups to tmp according to cosines
+    cos_assigned <- assignCOS(cos = cos_mat)
+    ds_true <- apply(cos_assigned, 2, function(x) which(x))
+    ds_assigned <- which(sapply(ds_true, length) > 0)
+    ds_vars_assigned <- ds_vars[ds_assigned]
+    tmp_assigned <- unlist(ds_true[ds_assigned])
+    tmp_vars_assigned <- tmp_vars[tmp_assigned]
+    
+    ####---- extract matches for assigned peakgroups only
+    ds_to_tmp <- rep(list(NA), length(ds_vars))
+    
+    for (var in 1:length(ds_vars)) {
+      ds_var <- ds_vars[var]
+      if (ds_var %in% ds_vars_assigned) {
+        ## get the corresponding assigned tmp peagroup
+        tmp_var <- tmp_vars_assigned[which(ds_vars_assigned == ds_var)]
+        ## extract mathes between the assigned peakgroups
+        bin <- which(sapply(ds_vars_by_bins, function(x) ds_var %in% x))
+        mat <- cos_matches[[bin]][[2]][[which(ds_vars_by_bins[[bin]] == ds_var)]]
+        mat <- mat[which(mat$tmp_var == tmp_var), ]
+        ## extract cosine between the assigned peakgroups
+        cos <- cos_mat[match(tmp_var, rownames(cos_mat)), match(ds_var, colnames(cos_mat))]
+      } else {
+        tmp_var <- NULL
+        mat <- NULL
+        cos <- NULL
+      }
+      ds_to_tmp[[var]] <- list("ds" = ds_var, "tmp" = tmp_var, "mat" = mat, "cos" = cos)
     }
-    ds_to_tmp[[var]] <- list("ds" = ds_var, "tmp" = tmp_var, "mat" = mat, "cos" = cos)
+    return(ds_to_tmp)
   }
-  return(ds_to_tmp)
 }
 
 # getRTbins -------------------------------------------------------------------------------------------------------
@@ -469,15 +457,26 @@ scaleSPEC <- function(spec,  m = 0.6, n = 3) {
 
 # assignCOS ---------------------------------------------------------------------------------------------------------
 #' @title Assign dataset's peak-groups to template peak-groups based on estimated cosine angles
+#' 
+#' @description Maximise peak-groups assignment by selecting highest-scoring match for each peak-group in the template.
+#' 
+#' @details Function is used for peak-group alignment by \code{\link{alignPEAKS}} method and for automatic annotation on \code{\link{massFlowAnno-class}} object.
 #'
 #' @param cos \code{matrix} with cosine angles.
 #' Rows correspond to template variables (i.e. peak-group).
 #' Columns correspond to dataset-of-interest variables (i.e. peak-group).
+#' @param cutoff \code{numeric} for spectra similarity score threshold, set to 0 by default.
 #'
-#' @return Function returns a \code{matrix} of the same dimension.
-#' Peak-group pairs which should be aligned are marked with TRUE in the output matrix.
+#' @return Function returns a \code{matrix} of the same dimensions.
+#' Peak-groups which should be grouped/aligned into one are marked with TRUE in the output matrix.
 #' 
-assignCOS <- function(cos) {
+assignCOS <- function(cos, cutoff = 0) {
+  
+  ## if a similarity threshold should be applied used for assignment
+  if (cutoff > 0){
+    cos[which(cos < cutoff)] <- 0
+  }
+  
   ## rank by row, i.e. the template vars
   tmp_rank <- t(apply(cos, 1, FUN = rankCOS))
   ## rank by column, i.e. the ds vars

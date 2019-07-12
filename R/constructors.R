@@ -181,3 +181,66 @@ loadALIGNED <-
     message("A 'massFlowTemplate' object was succesfully built with aligned samples.")
     return(object)
   }
+
+
+# buildANNO ---------------------------------------------------------------
+#' @title Build a \code{massFlowAnno} class object.
+#'
+#' @param ds_file \code{character} for absolute path to the csv file with final peak table obtained with \code{\link{fillPEAKS}}.
+#' @param meta_file \code{character} for absolute path to the csv file, specifying samples filenames and their acquisition order.
+#' @param out_dir \code{character} specifying desired directory for output.
+#' 
+#' @return A \code{massFlowAnno} class object.
+#' 
+#' @export
+#'
+buildANNO <- function(ds_file = NULL,
+                      meta_file = NULL,
+                      out_dir = NULL
+                      ) {
+  
+  if (is.null(ds_file) | is.null(meta_file)) {
+    stop("'ds_file' and  'meta_file' are required")
+  }
+  if (!file.exists(ds_file)) {
+    stop("incorrect filepath for 'ds_file' provided")
+  }
+  if (!file.exists(meta_file)) {
+    stop("incorrect filepath for 'meta_file' provided")
+  }
+  if (is.null(out_dir)) {
+    stop("'out_dir' is required")
+  }
+  if (!dir.exists(out_dir)) {
+    stop("incorrect filepath for 'out_dir' provided")
+  }
+  
+  ## load dataset intensity table
+  ds_dat <- read.csv(ds_file, header = TRUE, stringsAsFactors = FALSE)
+  ds_dat_cnames <- c("mz", "mzmin", "mzmax", "rt","rtmin", "rtmax","npeaks", "peakid", "pcs", "into")
+  if (any(!ds_dat_cnames %in% colnames(ds_dat))) {
+    stop("provided intensity table must contain columns: ", paste0(ds_dat_cnames, collapse = ", "))
+  }
+  
+  ## load and order metadata by run order
+  samples <- read.csv(meta_file, header = TRUE, stringsAsFactors = FALSE)
+  samples <- samples[order(samples$run_order), ]
+  
+  ## for each pseudo chemical spectra, retain the intensity values from the sample with highest intensity for the corresponding peaks
+  dat <- ds_dat[, -c(match(ds_dat_cnames, colnames(ds_dat)))]
+  intens <- lapply(unique(ds_dat$pcs), FUN = getINTENSE, int_dat = ds_dat, dat = dat)
+  intens <- do.call("rbind", intens)
+  ds <- ds_dat[ , ds_dat_cnames[which(ds_dat_cnames != "into")]]
+  ds <- cbind(ds, intens)
+  
+  object <- new(
+    "massFlowAnno",
+    filepath = ds_file,
+    samples = samples,
+    data = ds_dat,
+    ds = ds
+  )
+  message("A 'massFlowAnno' object was succesfully built with ", nrow(samples), " samples.")
+  return(object)
+}
+

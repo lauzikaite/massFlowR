@@ -5,5 +5,8 @@ setGeneric("checkNEXT", function(object) standardGeneric("checkNEXT"))
 setGeneric("validPEAKS", function(object, out_dir,  ncores = 2, ...) standardGeneric("validPEAKS"))
 setGeneric("fillPEAKS", function(object, fill_value = "into", out_dir, ncores = 2, ...) standardGeneric("fillPEAKS"))
 setGeneric("adjustBATCH", function(object, out_dir, ...) standardGeneric("adjustBATCH"))
-
+setGeneric("annotateDS", function(object, db_file, out_dir, ...) standardGeneric("annotateDS"))
+setGeneric("plotPCS", function(object, pcs, anno = FALSE, cutoff = 0, out_dir = NULL,...) standardGeneric("plotPCS"))
+setGeneric("plotCHEMID", function(object, chemid, cutoff = 0, out_dir = NULL, ...) standardGeneric("plotCHEMID"))
+setGeneric("comparePCS", function(object, pcs, out_dir = NULL,...) standardGeneric("comparePCS"))
 

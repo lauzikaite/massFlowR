@@ -5,7 +5,7 @@
 \title{Align dataset's and template peaks using dot-product estimation}
 \usage{
 do_alignPEAKS(ds, tmp, ds_var_name, tmp_var_name, mz_err, rt_err, bins,
-  ncores)
+  ncores, anno = FALSE)
 }
 \arguments{
 \item{ds}{\code{data.frame} containing peaks which have to be compared and aligned with the template.}
