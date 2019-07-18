@@ -2,7 +2,6 @@
 output:
   github_document
 ---
-[![Build Status](https://travis-ci.org/lauzikaite/massFlowR.svg?branch=master)](https://travis-ci.org/lauzikaite/massFlowR)
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(echo = TRUE,
@@ -16,6 +15,10 @@ annotation_url <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/
 ```
 
 # massflowR
+
+
+[![Build Status](https://travis-ci.org/lauzikaite/massFlowR.svg?branch=master)](https://travis-ci.org/lauzikaite/massFlowR)
+
 
 Package for pre-processing of high-resolution, untargeted, centroid LC-MS data.
 
