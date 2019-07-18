@@ -1,7 +1,7 @@
-^Meta$
-^doc$
-^massflowR\.Rproj$
-^\.Rproj\.user$
-^\.travis\.yml$
-^README.Rmd
-^CODE_OF_CONDUCT\.md$
+^.*\.Rproj$         # Automatically added by RStudio,
+^\.Rproj\.user$     # used for temporary files. 
+^README\.Rmd$       # An Rmarkdown file used to generate README.md
+^cran-comments\.md$ # Comments for CRAN submission
+^NEWS\.md$          # A news file written in Markdown
+^\.travis\.yml$     # Used for continuous integration testing with travis
+^.gitignore         # git

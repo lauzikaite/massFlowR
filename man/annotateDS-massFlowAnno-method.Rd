@@ -3,6 +3,7 @@
 \docType{methods}
 \name{annotateDS,massFlowAnno-method}
 \alias{annotateDS,massFlowAnno-method}
+\alias{annotateDS}
 \title{Annotate dataset using chemical reference database.}
 \usage{
 \S4method{annotateDS}{massFlowAnno}(object, db_file = NULL,

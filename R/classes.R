@@ -60,7 +60,7 @@ setClass(
 #' @slot samples \code{data.frame} storing study sample names and their acquisition order.
 #' @slot data \code{data.frame} with peak intensity values for each sample. 
 #' @slot ds \code{data.frame} with pseudo-chemical-spectra intensity values of samples with the highest intensity for that PCS.
-#' @slot db \code{data.frame} storing chemical standards database table, obtained with \code{\link{buildBD}}.
+#' @slot db \code{data.frame} storing chemical standards database table, obtained with \code{\link{buildDB}}.
 #' @slot anno \code{data.frame} storing peak table with database annotations (if any).
 #' @slot mat \code{matrix} with peak annotation results, rows are chemid (database chemicals) and columns are PCS.
 #' @slot params \code{list} containg database matching parameters.

@@ -38,7 +38,7 @@ checkFILE <- function(file = NULL) {
 # do_alignPEAKS -------------------------------------------------------------------------------------------------------
 #' @title Align dataset's and template peaks using dot-product estimation
 #' 
-#' @description Internal function used within method \code{\link{alignPEAKS}} and function \code{\link{annotatePEAKS}}.
+#' @description Internal function used within method \code{\link{alignPEAKS}} and function \code{\link{annotateDS}}.
 #' Function aligns all dataset's peaks to the template using dot-product estimation.
 #' 
 #' @param ds \code{data.frame} containing peaks which have to be compared and aligned with the template.
@@ -52,6 +52,7 @@ checkFILE <- function(file = NULL) {
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension.
 #' @param bins \code{numeric} defying step size used in peak-group spectra binning and vector generation. Step size represents MZ dimension.
 #' @param ncores \code{numeric} for number of parallel workers to be used.
+#' @param anno \code{logical} whether function is used to align samples or to annotate final features with a database. Set to FALSE by default.
 #'
 #' @seealso For details on cosine estimation, refer to \code{\link{alignPEAKS}} method.
 #'
@@ -169,7 +170,7 @@ do_alignPEAKS <- function(ds,
 #' Default is set to 'peakgr', which is the output of \code{groupPEAKS} method. 
 #' @param tmp_var_name \code{character} indicating the column name for peak grouping information in the template.
 #' If function is used within \code{alignPEAKS}, then 'peakgr' should be selected.
-#' If function is used within \code{annotatePEAKS}, then 'chemid' should be selected.
+#' If function is used within \code{annotateDS}, then 'chemid' should be selected.
 #' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension.
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension.
 #' @param ncores \code{numeric} for number of parallel workers to be used.

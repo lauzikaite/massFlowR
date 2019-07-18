@@ -3,6 +3,7 @@
 \docType{methods}
 \name{comparePCS,massFlowAnno-method}
 \alias{comparePCS,massFlowAnno-method}
+\alias{comparePCS}
 \title{Plot selected pseudo chemical spectra intensities over acquisition order.}
 \usage{
 \S4method{comparePCS}{massFlowAnno}(object, pcs = NULL, out_dir = NULL)

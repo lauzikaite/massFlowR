@@ -1,7 +1,7 @@
 # buildTMP --------------------------------------------------------------------------------------------------------
-#' Build a sample alignment and annotation template
+#' @title Build a sample alignment and annotation template
 #'
-#' Functions builds a \code{massFlowTemplate} class object, which stores study sample information.
+#' @description  Functions builds a \code{massFlowTemplate} class object, which stores study sample information.
 #'
 #' @param file \code{character} for absolute path to the csv file, specifying samples filenames and their acquisition order.
 #' @param out_dir \code{character} specifying desired directory for output.
@@ -85,9 +85,9 @@ buildTMP <-
 
 
 # loadALIGNED -----------------------------------------------------------------------------------------------------
-#' Build sample alignment and annotation template using already aligned samples
+#' @title Build sample alignment and annotation template using already aligned samples
 #'
-#' Function handles the construction of \code{massFlowTemplate} class object from already aligned samples.
+#' @description Function handles the construction of \code{massFlowTemplate} class object from already aligned samples.
 #' Function enables user to continue an interrupted peak alignment process, facilitated by \code{alignPEAKS} function.
 #'
 #' @details Arguments are identical to the ones used by \code{\link{buildTMP}} constructor function.

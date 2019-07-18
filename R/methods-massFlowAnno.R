@@ -22,8 +22,10 @@ setValidity("massFlowAnno", function(object)
   validmassFlowAnno(object))
 
 # annotateDS --------------------------------------------------------------
+#' @aliases annotateDS
+#' 
 #' @title Annotate dataset using chemical reference database.
-#'
+#' 
 #' @description Method annotates a dataset using a chemical reference database.
 #' Peak-groups, or Pseudo Chemical Spectra (PCS), in the dataset are compared with the peak-groups representing reference compounds in the database.
 #' PCS are annotated using dot-product estimation between the spectra of the PCS and the corresponding chemical in the database.
@@ -34,7 +36,7 @@ setValidity("massFlowAnno", function(object)
 #' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 10 (sec).
 #' @param ncores \code{numeric} for number of parallel workers to be used. Set 1 for serial implementation. Default set to 2.
-#'
+#' 
 #' @return Method writes an updated dataset table with columns 'chemid', 'dbname', and 'similarity',
 #' indicating matched chemical reference standards from the database.
 #' Column 'similarity' indicates the stringth of spectral similarity between the PCS and the corresponding chemical compound, ranging from 0 to 1.
@@ -117,7 +119,7 @@ setMethod("annotateDS",
       )
     })
     ds_to_db <- do.call("rbind", ds_to_db)
-    write.csv(ds_to_db, file = paste0(out_dir, "DSannotated.csv"), row.names = FALSE)
+    write.csv(ds_to_db, file = file.path(out_dir, "DSannotated.csv"), row.names = FALSE)
 
     object@db <- db
     object@mat <- cos_mat
@@ -138,18 +140,20 @@ setMethod("annotateDS",
 )
 
 # plotPCS -----------------------------------------------------------------
+#' @aliases plotPCS
+#' 
 #' @title Plot selected pseudo chemical spectra
 #' 
 #' @description Method returns a plot with the selected single pseudo chemical spectra in the sample in which it was most intense.
 #' If anno set to TRUE, spectra of top five annotated database compounds are also plotted.
 #' If out_dir is provided, generated plot is written as a png file. Otherwise, spectra is plotted on current graphical device.
 #' \code{massFlowAnno} class object must be annotated using \code{\link{annotateDS}} method first.
-#'
+#' 
 #' @param object \code{massFlowAnno} class object.
-#' @param pcs \code{numeric} specifying pseudo chemical spectra to look at.
+#' @param pcs \code{numeric} specifying one or more pseudo chemical spectra to look at.
 #' @param anno \code{logical} whether spectra of annotated database compounds should be plotted.
 #' @param cutoff \code{numeric} specifying spectral similarity score value.
-#' @param out_dir \code{character} specifying desired directory for generated figure. Default set to NULL and figure is plotted to graphical device. 
+#' @param out_dir \code{character} specifying desired directory for generated figure. Default set to NULL and figure is plotted to graphical device.
 #'
 #' @return Method returns a plot with the spectra of single pseudo chemical spectra.
 #' 
@@ -242,16 +246,18 @@ setMethod("plotPCS",
 )
 
 # plotCHEMID --------------------------------------------------------------
+#' @aliases plotCHEMID
+#' 
 #' @title Plot selected database chemical compound.
 #' 
 #' @description Method returns a plot with the selected chemical compound's spectra and top five annotated pseudo chemical spectra in the dataset.
 #' If out_dir is provided, generated plot is written as a png file. Otherwise, spectra is plotted on current graphical device.
 #' \code{massFlowAnno} class object must be annotated using \code{\link{annotateDS}} method first.
-#'
+#' 
 #' @param object \code{massFlowAnno} class object.
 #' @param chemid \code{numeric} specifying chemical compound id to look at.
 #' @param cutoff \code{numeric} specifying spectral similarity score value.
-#' @param out_dir \code{character} specifying desired directory for generated figure. Default set to NULL and figure is plotted to graphical device. 
+#' @param out_dir \code{character} specifying desired directory for output.
 #'
 #' @return Method returns a plot with the spectra of selected chemical compound and top five annotated pseudo chemical spectra from the dataset.
 #' 
@@ -330,13 +336,15 @@ To aid visualisation, select higher cutoff value")
 )
 
 # comparePCS --------------------------------------------------------------
+#' @aliases comparePCS
+#' 
 #' @title Plot selected pseudo chemical spectra intensities over acquisition order.
 #' 
 #' @description Method returns a plot with the selected single pseudo chemical spectra intensities in all samples.
 #' If anno set to TRUE, spectra of top five annotated database compounds are also plotted.
 #' If out_dir is provided, generated plot is written as a png file. Otherwise, spectra is plotted on current graphical device.
 #' \code{massFlowAnno} class object must be annotated using \code{\link{annotateDS}} method first.
-#'
+#' 
 #' @param object \code{massFlowAnno} class object.
 #' @param pcs \code{numeric} specifying one or more pseudo chemical spectra to look at.
 #' @param out_dir \code{character} specifying desired directory for generated figure. Default set to NULL and figure is plotted to graphical device. 
@@ -344,8 +352,7 @@ To aid visualisation, select higher cutoff value")
 #' @return Method returns a plot with the intensities of single pseudo chemical spectra.
 #' 
 #' @export
-#'
-
+#' 
 setMethod("comparePCS",
   signature = "massFlowAnno",
   function(object,

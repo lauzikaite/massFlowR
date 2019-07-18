@@ -16,7 +16,7 @@ Default is set to 'peakgr', which is the output of \code{groupPEAKS} method.}
 
 \item{tmp_var_name}{\code{character} indicating the column name for peak grouping information in the template.
 If function is used within \code{alignPEAKS}, then 'peakgr' should be selected.
-If function is used within \code{annotatePEAKS}, then 'chemid' should be selected.}
+If function is used within \code{annotateDS}, then 'chemid' should be selected.}
 
 \item{mz_err}{\code{numeric} specifying the window for peak matching in the MZ dimension.}
 

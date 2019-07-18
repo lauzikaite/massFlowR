@@ -7,7 +7,7 @@
 \title{Align peaks detected in LC-MS samples using spectral similarity comparison}
 \usage{
 \S4method{alignPEAKS}{massFlowTemplate}(object, out_dir = NULL,
-  ncores = 2, write_int = TRUE)
+  ncores = 2, write_int = FALSE)
 }
 \arguments{
 \item{object}{\code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.}
@@ -18,7 +18,7 @@
 
 \item{write_int}{\code{logical} specifying whether a peak table with alignment results should be saved for every sample.
 If TRUE, csv files will be written in the out_dir directory.
-Default set to TRUE.}
+Default set to FALSE}
 }
 \value{
 Method updates \code{\link{massFlowTemplate}} class object.

@@ -30,7 +30,7 @@ This class enables annotation of the final peak table obtained with massFlowR pi
 
 \item{\code{ds}}{\code{data.frame} with pseudo-chemical-spectra intensity values of samples with the highest intensity for that PCS.}
 
-\item{\code{db}}{\code{data.frame} storing chemical standards database table, obtained with \code{\link{buildBD}}.}
+\item{\code{db}}{\code{data.frame} storing chemical standards database table, obtained with \code{\link{buildDB}}.}
 
 \item{\code{anno}}{\code{data.frame} storing peak table with database annotations (if any).}
 

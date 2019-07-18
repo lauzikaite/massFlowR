@@ -15,14 +15,14 @@ Each LC-MS file in the experiment is processed independently.
 
 -   Chromatographic peak detection enabled by the *centWave* algorithm from `xcms` package.
 
--   Grouping of chromatographic peaks into structurally-related groups of peaks (see [Peak Grouping](https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/massFlowR.html)).
+-   Grouping of chromatographic peaks into structurally-related groups of peaks (see [Peak Grouping](https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/processing.html)).
 
 Individual samples can be processed in real-time during LC-MS spectra acquisition, or in parallel, using backend provided by `doParallel` package.
 
 Peak alignment
 --------------
 
-To align peaks across all samples in LC-MS experiment, an algorithm, which compares the overall similarity of structurally-related groups of peaks is implemented (see [Peak alignment](https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/massFlowR.html)).
+To align peaks across all samples in LC-MS experiment, an algorithm, which compares the overall similarity of structurally-related groups of peaks is implemented (see [Peak alignment](https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/processing.html)).
 
 Post-alignment processing
 -------------------------
@@ -34,7 +34,18 @@ Final step in the pipeline is to re-integrate intensity for peaks that were not 
 Peak annotation
 ---------------
 
-If in-house chemical reference database is available, PCS are annotated. For more details how to build a database file, see [annotation using database](https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/massFlowR.html)).
+If in-house chemical reference database is available, PCS are annotated. For more details how to build a database file, see [annotation using database](https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/annotation.html)).
+
+------------------------------------------------------------------------
+
+Vignettes
+---------
+
+More information is available in vignettes:
+
+-   [massFlowR overview](https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/massFlowR.html)
+-   [Data processing](https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/processing.html)
+-   [Automatic annotation](https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/annotation.html)
 
 ------------------------------------------------------------------------
 

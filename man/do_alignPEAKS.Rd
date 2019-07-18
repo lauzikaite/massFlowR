@@ -26,13 +26,15 @@ If function is used within \code{annotatePEAKS}, then 'chemid' should be selecte
 \item{bins}{\code{numeric} defying step size used in peak-group spectra binning and vector generation. Step size represents MZ dimension.}
 
 \item{ncores}{\code{numeric} for number of parallel workers to be used.}
+
+\item{anno}{\code{logical} whether function is used to align samples or to annotate final features with a database. Set to FALSE by default.}
 }
 \value{
 Function returns a list of lenght of the number of peak-groups in the dataset.
 Each list entry specifies the template's peak-group to which dataset's peak-group was aligned to, as well as matching peaks and obtained cosine.
 }
 \description{
-Internal function used within method \code{\link{alignPEAKS}} and function \code{\link{annotatePEAKS}}.
+Internal function used within method \code{\link{alignPEAKS}} and function \code{\link{annotateDS}}.
 Function aligns all dataset's peaks to the template using dot-product estimation.
 }
 \seealso{

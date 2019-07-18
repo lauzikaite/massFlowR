@@ -3,6 +3,7 @@
 \docType{methods}
 \name{plotPCS,massFlowAnno-method}
 \alias{plotPCS,massFlowAnno-method}
+\alias{plotPCS}
 \title{Plot selected pseudo chemical spectra}
 \usage{
 \S4method{plotPCS}{massFlowAnno}(object, pcs = NULL, anno = FALSE,
@@ -11,7 +12,7 @@
 \arguments{
 \item{object}{\code{massFlowAnno} class object.}
 
-\item{pcs}{\code{numeric} specifying pseudo chemical spectra to look at.}
+\item{pcs}{\code{numeric} specifying one or more pseudo chemical spectra to look at.}
 
 \item{anno}{\code{logical} whether spectra of annotated database compounds should be plotted.}
 

@@ -1,5 +1,4 @@
-#' @aliases buildDB
-#' 
+# buildDB ---------------------------------------------------------------------------------------------------------
 #' @title Build a chemical reference database table using rda files
 #' 
 #' @description Function generates a chemical reference database table from rda files in the selected directory (rda_dir).
@@ -23,7 +22,7 @@
 #' 
 #' @export
 #' 
-#' @seealso \code{\link{annotatePEAKS}}
+#' @seealso \code{\link{annotateDS}}
 #'
 buildDB <- function(
   rda_dir = NULL,
@@ -126,6 +125,6 @@ buildDB <- function(
   db$rt <- db$rt * 60
   db$peakid <- 1:nrow(db)
   db <- db[, c("peakid", "mz", "rt", "into", "chemid", "dbid", "dbname")]
-  write.csv(db, file.path(out_dir, "DBtemplate.csv"), quote = T, row.names = F)
+  write.csv(db, file.path(out_dir, "database.csv"), quote = T, row.names = F)
   message("\n Database was created.")
 }

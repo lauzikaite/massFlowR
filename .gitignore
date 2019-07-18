@@ -9,8 +9,3 @@ doc/*.R
 .Rproj.user
 .Rhistory
 .RData
-inst/doc/*.Rmd
-inst/doc/*.R
-vignettes/*.html
-vignettes/*.R
-

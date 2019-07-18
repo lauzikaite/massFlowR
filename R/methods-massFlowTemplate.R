@@ -117,7 +117,7 @@ setMethod("checkNEXT",
 #' @param ncores \code{numeric} for number of parallel workers to be used. Set 1 for serial implementation. Default set to 2.
 #' @param write_int \code{logical} specifying whether a peak table with alignment results should be saved for every sample.
 #' If TRUE, csv files will be written in the out_dir directory.
-#' Default set to TRUE.
+#' Default set to FALSE
 #'
 #' @return Method updates \code{\link{massFlowTemplate}} class object.
 #' Slot @@tmp is updated after each round of sample alignment.
@@ -133,7 +133,7 @@ setMethod("alignPEAKS",
   function(object,
              out_dir = NULL,
              ncores = 2,
-             write_int = TRUE) {
+             write_int = FALSE) {
     if (!validObject(object)) {
       stop(validObject(object))
     }
@@ -258,31 +258,31 @@ setMethod("alignPEAKS",
       write.csv(
         doi,
         file = doi_fname_out,
-        quote = T,
-        row.names = F
+        quote = TRUE,
+        row.names = FALSE
       )
       ## (2) write intermediate template generated after this doi
-      if (write_int == T) {
+      if (write_int == TRUE) {
         write.csv(
           tmp,
           file = gsub("aligned.csv", "tmp.csv", doi_fname_out),
-          quote = T,
-          row.names = F
+          quote = TRUE,
+          row.names = FALSE
         )
       }
       ## (3) overwrite template file
       write.csv(tmp,
         file = tmp_fname,
-        quote = T,
-        row.names = F
+        quote = TRUE,
+        row.names = FALSE
       )
     }
     object@history[length(object@history) + 1] <- "alignPEAKS"
     ## write updated meta file with filepaths to aligned samples
     write.csv(object@samples,
       aligned_fname,
-      quote = T,
-      row.names = F
+      quote = TRUE,
+      row.names = FALSE
     )
 
     if (ncores > 1) {
@@ -347,8 +347,8 @@ setMethod("validPEAKS",
       pkg = pkg,
       object = object
     ))
-    saveRDS(peakgrs_ints, file = paste0(out_dir, "/peakgrs_ints.RDS"))
-    saveRDS(object, file = paste0(out_dir, "/object.RDS"))
+    # saveRDS(peakgrs_ints, file = paste0(out_dir, "/peakgrs_ints.RDS"))
+    # saveRDS(object, file = paste0(out_dir, "/object.RDS"))
 
     ## validate peak-groups by sample intensity correlation network
     ## in case validation is run before full alignment of the study, adjust sample n
@@ -377,7 +377,7 @@ setMethod("validPEAKS",
         cor_thr = cor_thr
       )
     )
-    saveRDS(peakgrs_split, file = paste0(out_dir, "/peakgrs_split.RDS"))
+    # saveRDS(peakgrs_split, file = paste0(out_dir, "/peakgrs_split.RDS"))
 
     ## retain only communities with > 1 peak
     final_tmp <-
@@ -444,17 +444,7 @@ setMethod("validPEAKS",
     write.csv(
       x = peaks_vals,
       file = file.path(out_dir, "intensity_data.csv"),
-      row.names = F
-    )
-    write.csv(
-      x = samples,
-      file = file.path(out_dir, "sample_data.csv"),
-      row.names = F
-    )
-    write.csv(
-      x = final_tmp,
-      file = file.path(out_dir, "peaks_data.csv"),
-      row.names = F
+      row.names = FALSE
     )
     if (ncores > 1) {
       foreach::registerDoSEQ()
@@ -651,12 +641,7 @@ setMethod("fillPEAKS",
     write.csv(
       x = peaks_vals,
       file = file.path(out_dir, "filled_intensity_data.csv"),
-      row.names = F
-    )
-    write.csv(
-      x = tmp,
-      file = file.path(out_dir, "final_peaks_data.csv"),
-      row.names = F
+      row.names = FALSE
     )
     if (validObject(object)) {
       message("All peak-groups were succesfully filled")

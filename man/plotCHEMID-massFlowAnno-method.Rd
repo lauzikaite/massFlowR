@@ -3,6 +3,7 @@
 \docType{methods}
 \name{plotCHEMID,massFlowAnno-method}
 \alias{plotCHEMID,massFlowAnno-method}
+\alias{plotCHEMID}
 \title{Plot selected database chemical compound.}
 \usage{
 \S4method{plotCHEMID}{massFlowAnno}(object, chemid = NULL,
@@ -15,7 +16,7 @@
 
 \item{cutoff}{\code{numeric} specifying spectral similarity score value.}
 
-\item{out_dir}{\code{character} specifying desired directory for generated figure. Default set to NULL and figure is plotted to graphical device.}
+\item{out_dir}{\code{character} specifying desired directory for output.}
 }
 \value{
 Method returns a plot with the spectra of selected chemical compound and top five annotated pseudo chemical spectra from the dataset.
