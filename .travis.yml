@@ -1,0 +1,38 @@
+language: r
+r: bioc-devel
+cache:
+  packages: true
+sudo: required
+warnings_are_errors: true
+
+
+# workaround stolen https://github.com/sneumann/xcms/blob/master/.travis.yml
+addons:
+  apt:
+    packages:
+      - libnetcdf-dev
+      - netcdf-bin # libnetcdf-dev doesn't contain nc-config in ubuntu 12.04 (in 16.04 [xerus] it is part of libnetcdf-dev)
+      - libhdf5-dev
+      - libgit2-dev # git2r
+      - texlive-latex-recommended
+      - texlive-fonts-extra
+
+
+matrix:
+  allow_failures:
+    - r: bioc-devel
+
+
+bioc_required: true
+
+
+r_packages:
+      - covr
+      - testthat
+      - knitr
+      - roxygen2
+
+
+before_install:
+  - "if [ ${TRAVIS_OS_NAME} = 'osx' ]; then brew update; fi"
+  - "if [ ${TRAVIS_OS_NAME} = 'osx' ]; then brew install libgit2; fi"
