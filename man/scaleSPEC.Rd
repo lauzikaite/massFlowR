@@ -4,14 +4,14 @@
 \alias{scaleSPEC}
 \title{Scale a vector representing peaks' intensity values}
 \usage{
-scaleSPEC(spec, m = 0.6, n = 3)
+scaleSPEC(spec, m = 3, n = 0.6)
 }
 \arguments{
 \item{spec}{\code{data.frame} with columns 'into' and 'mz'.}
 
-\item{m}{\code{numeric}, set to 0.6 by default.}
+\item{m}{\code{numeric}, mass power set to 3 by default.}
 
-\item{n}{\code{numeric}, set to 3 by default.}
+\item{n}{\code{numeric}, intensity power set to 0.6 by default.}
 }
 \value{
 Function returns a \code{numeric} vector with scaled intensity values.

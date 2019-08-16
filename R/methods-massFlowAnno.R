@@ -23,9 +23,9 @@ setValidity("massFlowAnno", function(object)
 
 # annotateDS --------------------------------------------------------------
 #' @aliases annotateDS
-#' 
+#'
 #' @title Annotate dataset using chemical reference database.
-#' 
+#'
 #' @description Method annotates a dataset using a chemical reference database.
 #' Peak-groups, or Pseudo Chemical Spectra (PCS), in the dataset are compared with the peak-groups representing reference compounds in the database.
 #' PCS are annotated using dot-product estimation between the spectra of the PCS and the corresponding chemical in the database.
@@ -36,7 +36,7 @@ setValidity("massFlowAnno", function(object)
 #' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 10 (sec).
 #' @param ncores \code{numeric} for number of parallel workers to be used. Set 1 for serial implementation. Default set to 2.
-#' 
+#'
 #' @return Method writes an updated dataset table with columns 'chemid', 'dbname', and 'similarity',
 #' indicating matched chemical reference standards from the database.
 #' Column 'similarity' indicates the stringth of spectral similarity between the PCS and the corresponding chemical compound, ranging from 0 to 1.
@@ -90,7 +90,7 @@ setMethod("annotateDS",
     #### ---- compare dataset with the database
     message("Annotating dataset... ")
     ds <- object@ds
-    cos_mat <- do_alignPEAKS(
+    ds_to_db_anno <- do_alignPEAKS(
       ds = ds,
       tmp = db,
       ds_var_name = "pcs",
@@ -101,6 +101,8 @@ setMethod("annotateDS",
       ncores = ncores,
       anno = TRUE
     )
+    feats_mat <- ds_to_db_anno[[2]]
+    cos_mat <- ds_to_db_anno[[1]]
 
     #### ---- prep anotation table for export
     ds_to_db <- lapply(unique(ds$pcs), function(pcs) {
@@ -113,6 +115,7 @@ setMethod("annotateDS",
       data.frame(
         pcs = pcs,
         chemid = paste0(chemids, collapse = ", "),
+        dbid = paste0(dbids, collapse = ", "),
         dbname = paste0(dbnames, collapse = ", "),
         similarity = paste0(cos, collapse = ", "),
         stringsAsFactors = FALSE
@@ -123,7 +126,7 @@ setMethod("annotateDS",
 
     object@db <- db
     object@mat <- cos_mat
-    object@anno <- ds_to_db
+    object@anno <- feats_mat
     object@params <- list(
       mz_err = mz_err,
       rt_err = rt_err
@@ -139,220 +142,294 @@ setMethod("annotateDS",
   }
 )
 
-# plotPCS -----------------------------------------------------------------
-#' @aliases plotPCS
+
+# findANNOchemid ----------------------------------------------------------
+#' @aliases findANNOchemid
 #' 
-#' @title Plot selected pseudo chemical spectra
+#' @title Find annotations for selected chemical compound id
 #' 
-#' @description Method returns a plot with the selected single pseudo chemical spectra in the sample in which it was most intense.
-#' If anno set to TRUE, spectra of top five annotated database compounds are also plotted.
-#' If out_dir is provided, generated plot is written as a png file. Otherwise, spectra is plotted on current graphical device.
-#' \code{massFlowAnno} class object must be annotated using \code{\link{annotateDS}} method first.
-#' 
-#' @param object \code{massFlowAnno} class object.
-#' @param pcs \code{numeric} specifying one or more pseudo chemical spectra to look at.
-#' @param anno \code{logical} whether spectra of annotated database compounds should be plotted.
-#' @param cutoff \code{numeric} specifying spectral similarity score value.
-#' @param out_dir \code{character} specifying desired directory for generated figure. Default set to NULL and figure is plotted to graphical device.
+#' @description Method returns all valid annotations for the selected chemical compound.
 #'
-#' @return Method returns a plot with the spectra of single pseudo chemical spectra.
+#' @param object \code{massFlowAnno} class object.
+#' @param chemid \code{numeric} specifying one chemical compound id to look at.
+#' @param cutoff \code{numeric} specifying cosine threshold, annotations below are not reported. Default set to 0.
+#' 
+#' @return Method returns a \code{data.frame} with all valid pseudo chemical spectra annotated to the selected chemical reference database compound.
 #' 
 #' @export
 #'
-setMethod("plotPCS",
-  signature = "massFlowAnno",
-  function(object,
-             pcs = NULL,
-             anno = FALSE,
-             cutoff = 0,
-             out_dir = NULL) {
-    cos_mat <- object@mat
-    samples <- object@samples
-    ds_dat_cnames <- c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax", "npeaks", "peakid", "pcs", "into")
-
-    ds <- object@ds
-    pcs_dat <- ds[ds$pcs == pcs, ]
-    gg_title <- paste0("pseudo chemical spectra: ", pcs)
-
-    ## extract chemids matching to specified pcs
-    pcs_mat <- cos_mat[, match(pcs, colnames(cos_mat))]
-    pcs_chemid <- names(which(pcs_mat > cutoff))
-
-    ## order matching chemids by their cosines
-    db <- object@db
-    cos <- cos_mat[pcs_chemid, as.character(pcs)]
-    pcs_chemid <- pcs_chemid[order(cos, decreasing = TRUE)]
-    cos <- round(cos[order(cos, decreasing = TRUE)], digits = 3)
-
-    ## make summary annotation table
-    pcs_db <- db[db$chemid %in% pcs_chemid, ]
-    pcs_db_sum <- pcs_db[match(pcs_chemid, pcs_db$chemid), c("chemid", "dbid", "dbname")]
-    pcs_db_sum$"spectral similarity" <- cos
-    if (nrow(pcs_db_sum) == 0) {
-      pcs_db_sum <- data.frame(chemid = NA, dbid = NA, dbname = NA, "spectral similarity" = NA)
-    } else {
-      if (nrow(pcs_db_sum) > 5) {
-        pcs_db_sum <- pcs_db_sum[1:5, ]
-      }
-    }
-    gg_tb <- gridExtra::tableGrob(pcs_db_sum, rows = NULL, theme = gridExtra::ttheme_default(base_size = 8))
-
-    if (anno == TRUE) {
-      if (length(pcs_chemid) == 0) {
-        stop("PCS have 0 matching compounds with spectral similarity value higher than the selected cutoff")
-      } else {
-        if (length(pcs_chemid) > 5) {
-          stop("PCS compound have > 5 matching compounds with spectral similarity value higher than the selected cutoff.
-               To aid visualisation, select higher cutoff value")
-        }
-      }
-      #### ---- Plot spectral comparison
-      dat <- merge(pcs_dat, pcs_db, by = intersect(names(pcs_dat), names(pcs_db)), all = TRUE)
-
-      ## make color_by column
-      dat$color_by <- match(dat$chemid, pcs_chemid)
-      dat$color_by[is.na(dat$color_by)] <- 0
-
-      ## set column for colors: Dataset PCS is 0, Database chemids are numbered from 1 by their cosine
-      gg_labels <- setNames(c("PCS", paste0("chemid ", pcs_chemid)), nm = seq(0, length(cos)))
-      gg_cols <- viridis::viridis(n = length(pcs_chemid), begin = 0.2, end = 0.95)
-      gg_cols <- c("Black", gg_cols)
-    } else {
-      #### ---- PCS spectra alone
-      dat <- pcs_dat
-      dat$color_by <- 0
-      gg_labels <- setNames("PCS", nm = 0)
-      gg_cols <- "Black"
-    }
-
-    gg <- plotSPECTRA(dat, gg_cols, gg_labels, gg_title)
-    gg <- gridExtra::arrangeGrob(gg, gridExtra::arrangeGrob(gg_tb), ncol = 1, heights = c(4, 1))
-
-    if (!is.null(out_dir)) {
-      ## save plot
-      ggplot2::ggsave(
-        file = paste0("/plotPCS-", pcs, ".png"),
-        gg,
-        device = "png",
-        path = out_dir,
-        dpi = 300,
-        width = 25, height = 25, units = "cm",
-        limitsize = FALSE
-      )
-    } else {
-      gridExtra::grid.arrange(gg)
-    }
-  }
-)
-
-# plotCHEMID --------------------------------------------------------------
-#' @aliases plotCHEMID
-#' 
-#' @title Plot selected database chemical compound.
-#' 
-#' @description Method returns a plot with the selected chemical compound's spectra and top five annotated pseudo chemical spectra in the dataset.
-#' If out_dir is provided, generated plot is written as a png file. Otherwise, spectra is plotted on current graphical device.
-#' \code{massFlowAnno} class object must be annotated using \code{\link{annotateDS}} method first.
-#' 
-#' @param object \code{massFlowAnno} class object.
-#' @param chemid \code{numeric} specifying chemical compound id to look at.
-#' @param cutoff \code{numeric} specifying spectral similarity score value.
-#' @param out_dir \code{character} specifying desired directory for output.
-#'
-#' @return Method returns a plot with the spectra of selected chemical compound and top five annotated pseudo chemical spectra from the dataset.
-#' 
-#' @export
-#'
-setMethod("plotCHEMID",
+setMethod("findANNOchemid",
   signature = "massFlowAnno",
   function(object,
              chemid = NULL,
-             cutoff = 0.5,
-             out_dir = NULL) {
+             cutoff = 0) {
+    if (is.null(chemid)) {
+      stop("'chemid' is required")
+    }
+    if (length(chemid) > 1) {
+      stop("only one 'chemid' is permitted")
+    }
     cos_mat <- object@mat
-    int_dat <- object@data
-    samples <- object@samples
-    ds_dat_cnames <- c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax", "npeaks", "peakid", "pcs", "into")
+    db <- object@db
 
     ## extract PCS matching to specified CHEMID
     chemid_mat <- cos_mat[match(chemid, rownames(cos_mat)), ]
     chemid_pcs <- names(which(chemid_mat > cutoff))
 
     if (length(chemid_pcs) == 0) {
-      stop("chemical compound have 0 matching PCS with spectral similarity value higher than the selected cutoff")
+      warning("chemical compound matches 0 PCS with cos > cutoff")
+      return(NULL)
     } else {
-      if (length(chemid_pcs) > 5) {
-        stop("chemical compound have > 5 matching PCS with spectral similarity value higher than the selected cutoff.
-To aid visualisation, select higher cutoff value")
+      ## order matched pcs by their cosines
+      cos <- cos_mat[as.character(chemid), chemid_pcs]
+      chemid_pcs <- chemid_pcs[order(cos, decreasing = TRUE)]
+      cos <- round(cos[order(cos, decreasing = TRUE)], digits = 3)
+      res <- data.frame(
+        chemid = chemid,
+        dbid = unique(db$dbid[db$chemid == chemid]),
+        dbname = unique(db$dbname[db$chemid == chemid]),
+        pcs = chemid_pcs,
+        cos = cos,
+        row.names = NULL,
+        stringsAsFactors = FALSE
+      )
+      message(
+        "chemical compound matches ", length(chemid_pcs), " PCS with cos > cutoff: \n",
+        paste0(chemid_pcs, collapse = ", ")
+      )
+      return(res)
+    }
+  }
+)
+
+# findANNOpcs -------------------------------------------------------------
+#' @aliases findANNOpcs
+#' 
+#' @title Find annotations for selected pseudo chemical spectra
+#' 
+#' @description Method returns all valid annotations for the selected pseudo chemical spectra.
+#'
+#' @param object \code{massFlowAnno} class object.
+#' @param pcs \code{numeric} specifying one pseudo chemical spectra to look at.
+#' @param cutoff \code{numeric} specifying cosine threshold, annotations below are not reported. Default set to 0.
+#'
+#' @return Method returns a \code{data.frame} with all valid chemical reference database compounds annotated to the selected pseudo chemical spectra. 
+#' 
+#' @export
+#'
+setMethod("findANNOpcs",
+  signature = "massFlowAnno",
+  function(object,
+             pcs = NULL,
+             cutoff = 0) {
+    if (is.null(pcs)) {
+      stop("'pcs' is required")
+    }
+    if (length(pcs) > 1) {
+      stop("only one 'pcs' is permitted")
+    }
+    cos_mat <- object@mat
+    db <- object@db
+
+    ## extract PCS matching to specified CHEMID
+    pcs_mat <- cos_mat[, match(pcs, colnames(cos_mat))]
+    pcs_chemid <- names(which(pcs_mat > cutoff))
+
+    if (length(pcs_chemid) == 0) {
+      warning("PCS matches 0 chemical compounds with cos > cutoff")
+      return(NULL)
+    } else {
+      ## order matched pcs by their cosines
+      cos <- cos_mat[pcs_chemid, as.character(pcs)]
+      pcs_chemid <- pcs_chemid[order(cos, decreasing = TRUE)]
+      cos <- round(cos[order(cos, decreasing = TRUE)], digits = 3)
+      res <- data.frame(
+        pcs = pcs,
+        chemid = pcs_chemid,
+        dbid = db$dbid[match(pcs_chemid, db$chemid)],
+        dbname = db$dbname[match(pcs_chemid, db$chemid)],
+        cos = cos,
+        row.names = NULL,
+        stringsAsFactors = FALSE
+      )
+      message(
+        "PCS matches ", length(pcs_chemid), " chemical compounds with cos > cutoff: \n",
+        paste0(pcs_chemid, collapse = ", ")
+      )
+      return(res)
+    }
+  }
+)
+
+# checkANNOTATION ---------------------------------------------------------
+#' @aliases checkANNOTATION
+#'
+#' @title Check annotation results between selected database chemical compound and dataset pseudo chemical spectra.
+#'
+#' @description Method returns summary plots of annotation between the selected chemical compound and pseudo chemical spectra in the dataset.
+#' If out_dir is provided, generated plots are written as png files. Otherwise, plots are plotted on current graphical device.
+#' \code{massFlowAnno} class object must be annotated using \code{\link{annotateDS}} method first.
+#'
+#' @param object \code{massFlowAnno} class object.
+#' @param chemid \code{numeric} specifying one chemical compound id to look at.
+#' @param pcs \code{numeric} specifying one pseudo chemical spectra to look at.
+#' @param out_dir \code{character} specifying desired directory for output.
+#'
+#' @return Method returns two plots and write a csv file: (1) spectra of the selected chemical compound and pseudo chemical spectra from the dataset;
+#' (2) retention time of the selected chemical compound and pseudo chemical spectra from the dataset; (3) table with the selected compound and pseudo chemical spectra.
+#'
+#' @export
+#'
+setMethod("checkANNOTATION",
+  signature = "massFlowAnno",
+  function(object,
+             chemid = NULL,
+             pcs = NULL,
+             out_dir = NULL) {
+    if (is.null(chemid)) {
+      stop("'chemid' is required")
+    }
+    if (length(chemid) > 1) {
+      stop("only one 'chemid' is permitted")
+    }
+    if (is.null(pcs)) {
+      stop("'pcs' is required")
+    }
+    if (length(pcs) > 1) {
+      stop("only one 'pcs' is permitted")
+    }
+    ## extract features for PCS and CHEMID
+    ds <- object@ds
+    data_mat <- object@data
+    samples_ind <- match(object@samples$filename, colnames(data_mat))
+    data_mat <- data_mat[, samples_ind]
+    db <- object@db
+  
+    ## extract features for PCS:
+    ## (1) extract intensity values in the most abundant sample
+    ## (2) correlate intensities with the main adduct
+    pcs_ds <- lapply(pcs, ds = ds, data_mat = data_mat, FUN = prepPCS)
+    pcs_ds <- do.call(rbind, pcs_ds)
+    
+    ## extract features from CHEMID
+    chemid_db <- db[db$chemid == chemid, ]
+    chemid_db$into_scaled <- chemid_db$into / (sqrt(sum(chemid_db$into * chemid_db$into)))
+    
+    dat <- base::merge(pcs_ds,
+      chemid_db,
+      by = intersect(names(pcs_ds), names(chemid_db)),
+      all = TRUE
+    )
+
+    ## extract cosine value
+    cos_mat <- object@mat
+    cos <- cos_mat[match(chemid, rownames(cos_mat)), match(pcs, colnames(cos_mat))]
+    cos <- round(cos, digits = 3)
+
+    ## make summary annotation table (rows - unique DB features)
+    anno <- object@anno
+    anno_mat <- anno[which(anno$ds_peakid %in% pcs_ds$peakid &
+      anno$db_peakid %in% chemid_db$peakid), ]
+
+    if (nrow(anno_mat) == 0) {
+      warning("chemid and pcs have no matching features.")
+      ans <- 0
+      while (ans < 1) {
+        ans <- readline(
+          paste0(
+            "Do you wish to proceed with plot generation? Enter Y/N "
+          )
+        )
+        ## catch if input is N/n
+        ans <- ifelse((grepl("N", ans) | grepl("n", ans)),
+          2, 1
+        )
+        if (ans == 2) {
+          stop("method was stopped.")
+        }
       }
     }
+    message("pcs intensity values are taken from: ", unique(pcs_ds$filename))
+    anno_sum <- base::merge(
+      chemid_db[, c("peakid", "mz", "rt", "into_scaled")],
+      anno_mat,
+      by.x = c("peakid"), by.y = "db_peakid", all = TRUE
+    )
+    anno_sum <- base::merge(
+      setNames(anno_sum, nm = c("DB_peakid", "DB_mz", "DB_rt", "DB_into", "peakid")),
+      setNames(pcs_ds[, c("peakid", "mz", "rt", "into_scaled")], nm = c("peakid", "mz", "rt", "into")),
+      by.x = c("peakid"), by.y = c("peakid"), all = TRUE
+    )
+    anno_sum <- anno_sum[, c("DB_mz", "DB_rt", "DB_into", "DB_peakid", "mz", "rt", "into", "peakid")]
+    anno_sum <- anno_sum[order(anno_sum$DB_into, decreasing = TRUE), ] ## order by DB features intensity
 
-    #### ---- Spectral comparison
-    ## plot how the most intense samples match up to this chemical
-    ds <- object@ds
-    pcs_ds <- ds[ds$pcs %in% chemid_pcs, ]
-    db <- object@db
-    chemid_db <- db[db$chemid == chemid, ]
-
-    dat <- base::merge(pcs_ds, chemid_db, by = intersect(names(pcs_ds), names(chemid_db)), all = TRUE)
-
-    ## order matching pcs by their cosines
-    cos <- cos_mat[as.character(chemid), chemid_pcs]
-    chemid_pcs <- chemid_pcs[order(cos, decreasing = TRUE)]
-    cos <- round(cos[order(cos, decreasing = TRUE)], digits = 3)
+    ## make spectra mirror plot
+    gg_title <- paste0(
+      "chemid: ", chemid, " (dbname: ", unique(chemid_db$dbname), ", dbid: ", unique(chemid_db$dbid), ")\n",
+      "pcs: ", pcs, " (", unique(pcs_ds$filename), ")\n",
+      "cos:", cos
+    )
+    gg_spectra <- mirrorSPECTRAanno(dat = dat, gg_title = gg_title)
 
     ## make color_by column
-    dat$color_by <- match(dat$pcs, chemid_pcs)
-    dat$color_by[is.na(dat$color_by)] <- 0
+    dat$color_by <- 1
+    dat$color_by[is.na(dat$chemid)] <- 2
+    gg_labels <- setNames(c(paste("chemid", chemid), paste("PCS", pcs)), nm = c(1:2))
+    gg_cols <- c("Black", "#FDE725FF")
 
-    ## make summary annotation table
-    pcs_sum <- pcs_ds[match(chemid_pcs, pcs_ds$pcs), c("pcs", "filename")]
-    pcs_sum$"spectral similarity" <- cos
-    gg_tb <- gridExtra::tableGrob(pcs_sum, rows = NULL, theme = gridExtra::ttheme_default(base_size = 8))
-
-    ## set column for colors: Database chemid is 0, Dataset PCS are numbered from 1 by their cosine
-    gg_labels <- setNames(c("chemid", paste0("PCS ", chemid_pcs)), nm = seq(0, length(cos)))
-    gg_cols <- c("Black", viridis::viridis(n = length(chemid_pcs), begin = 0.2, end = 0.95))
-    gg_title <- paste0("chemid: ", chemid, ", dbname: ", unique(chemid_db$dbname))
-
-    gg <- plotSPECTRA(dat, gg_cols, gg_labels, gg_title)
-    gg <- gridExtra::arrangeGrob(gg, gridExtra::arrangeGrob(gg_tb), ncol = 1, heights = c(4, 1))
+    ## make rt deviation plot
+    gg_rt <- compareRT(dat = dat, gg_cols = gg_cols, gg_labels = gg_labels, gg_title = gg_title)
 
     if (!is.null(out_dir)) {
       ## save plot
       ggplot2::ggsave(
-        file = paste0("/plotCHEMID-", chemid, ".png"),
-        gg,
+        file = paste0("chemid-", chemid, "_pcs-", pcs, "_SPECTRA.png"),
+        gg_spectra,
         device = "png",
         path = out_dir,
         dpi = 300,
-        width = 25, height = 25, units = "cm",
+        width = 22, height = 16, units = "cm",
         limitsize = FALSE
       )
+      ggplot2::ggsave(
+        file = paste0("chemid-", chemid, "_pcs-", pcs, "_RT.png"),
+        gg_rt,
+        device = "png",
+        path = out_dir,
+        dpi = 300,
+        width = 22, height = 16, units = "cm",
+        limitsize = FALSE
+      )
+      write.csv(anno_sum,
+        file = paste0(out_dir, "/chemid-", chemid, "_pcs-", pcs, "_summary.csv"),
+        row.names = FALSE
+      )
     } else {
-      gridExtra::grid.arrange(gg)
+      gridExtra::grid.arrange(gg_spectra)
+      gridExtra::grid.arrange(gg_rt)
     }
+    return(anno_sum)
   }
 )
 
 # comparePCS --------------------------------------------------------------
 #' @aliases comparePCS
-#' 
-#' @title Plot selected pseudo chemical spectra intensities over acquisition order.
-#' 
-#' @description Method returns a plot with the selected single pseudo chemical spectra intensities in all samples.
-#' If anno set to TRUE, spectra of top five annotated database compounds are also plotted.
-#' If out_dir is provided, generated plot is written as a png file. Otherwise, spectra is plotted on current graphical device.
-#' \code{massFlowAnno} class object must be annotated using \code{\link{annotateDS}} method first.
-#' 
-#' @param object \code{massFlowAnno} class object.
-#' @param pcs \code{numeric} specifying one or more pseudo chemical spectra to look at.
-#' @param out_dir \code{character} specifying desired directory for generated figure. Default set to NULL and figure is plotted to graphical device. 
 #'
-#' @return Method returns a plot with the intensities of single pseudo chemical spectra.
-#' 
+#' @title Compare selected pseudo chemical spectra.
+#'
+#' @description Method looks into selected pseudo chemical spectra and returns multiple plots:
+#' (1) spectra in the most intense samples; (2) retention time differences; (3) intensity drift during acquisition time.
+#' If out_dir is provided, generated plots are written as png files. Otherwise, plots are plotted on current graphical device.
+#' \code{massFlowAnno} class object must be annotated using \code{\link{annotateDS}} method first.
+#'
+#' @param object \code{massFlowAnno} class object.
+#' @param pcs \code{numeric} specifying two or more pseudo chemical spectra to look at.
+#' @param out_dir \code{character} specifying desired directory for generated figure. Default set to NULL and figure is plotted to graphical device.
+#'
+#' @return Method returns three plots comparing selected pseudo chemical spectra.
+#'
 #' @export
-#' 
+#'
 setMethod("comparePCS",
   signature = "massFlowAnno",
   function(object,
@@ -364,62 +441,85 @@ setMethod("comparePCS",
     if (length(pcs) == 1) {
       warning("only one pcs was supplied")
     }
-    cos_mat <- object@mat
-    int_dat <- object@data
-    samples <- object@samples
-    ds_dat_cnames <- c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax", "npeaks", "peakid", "pcs", "into")
-
-    #### ---- Intensity over time
-    pcs_int <- int_dat[int_dat$pcs %in% pcs, ]
-
-    pcs_dat <- lapply(samples$filename, function(sname) {
-      data.frame(
-        into = pcs_int[, match(sname, colnames(pcs_int))],
-        filename = sname,
-        run_order = samples$run_order[match(sname, samples$filename)],
-        stringsAsFactors = FALSE
-      )
-    })
-    pcs_dat <- do.call("rbind", pcs_dat)
-    pcs_dat$peakid <- pcs_int$peakid
-    pcs_dat$pcs <- pcs_int$pcs
-    ## replace 0s with NAs
-    pcs_dat[pcs_dat == 0] <- NA
-
-    gg_cols <- viridis::viridis(n = length(pcs), begin = 0.2, end = 0.95)
-    gg_labels <- setNames(paste0("PCS ", pcs), nm = pcs)
-    gg_title <- "selected pseudo chemical spectra"
-
-    gg <- ggplot2::ggplot(pcs_dat) +
-      ggplot2::geom_line(ggplot2::aes(x = run_order, y = log(into), color = as.factor(pcs), group = peakid)) +
-      ggplot2::scale_color_manual(
-        name = "",
-        values = gg_cols, labels = gg_labels
-      ) +
-      ggplot2::ggtitle(gg_title) +
-      ggplot2::scale_x_continuous(name = "Run order") +
-      ggplot2::scale_y_continuous(name = "Intensity, log") +
-      ggplot2::theme_bw() +
-      ggplot2::theme(
-        legend.position = "bottom",
-        panel.grid.major = ggplot2::element_blank(),
-        panel.grid.minor = ggplot2::element_blank(),
-        axis.line = ggplot2::element_line(size = 0.1)
-      )
-
+    if (length(pcs) > 3) {
+      warning("only the first three pcs will be plotted")
+      pcs <- pcs[1:3]
+    }
+    ds <- object@ds
+    data_mat <- object@data
+    samples_ind <- match(object@samples$filename, colnames(data_mat))
+    data_mat <- data_mat[, samples_ind]
+    gg_title <- paste0(
+      "pcs: ", paste0(pcs, collapse = ", ")
+    )
+    
+    ## for every PCS:
+    ## (1) extract intensity values in the most abundant sample
+    ## (2) correlate intensities with the main adduct
+    pcs_ds <- lapply(pcs, ds = ds, data_mat = data_mat, FUN = prepPCS)
+    pcs_ds <- do.call(rbind, pcs_ds)
+    
+    ## extract intensity matrix by sample run order (samples are already ordered)
+    pcs_mat <- lapply(pcs, samples = object@samples, ds = ds, data_mat = data_mat, FUN = extractPCS)
+    pcs_mat <- do.call(rbind, pcs_mat)
+    pcs_mat$into[pcs_mat$into == 0] <- NA
+    
+    ## spectra comparison plot
+    if (length(pcs) == 2) {
+      ## compare one-to-one in a mirror spectra
+      gg_spectra <- mirrorSPECTRApcs(dat = pcs_ds, gg_title = gg_title)
+    } else {
+      ## lsit spectra in separate facets
+      gg_spectra <- multipleSPECTRA(dat = pcs_ds, gg_title = gg_title)
+    }
+    if (length(pcs) == 1) {
+      ## color by peakids rather than pcs
+      pcs_ds$color_by <- match(pcs_ds$peakid, pcs_ds$peakid)
+      gg_labels <- setNames(c(paste("peakid", pcs_ds$peakid)), nm = seq(length(pcs_ds$peakid)))
+      gg_cols <- viridis::viridis(length(pcs_ds$peakid))
+      pcs_mat$color_by <- match(pcs_mat$peakid, pcs_ds$peakid)
+    } else {
+      pcs_ds$color_by <- match(pcs_ds$pcs, pcs)
+      gg_labels <- setNames(c(paste("PCS", pcs)), nm = seq(length(pcs)))
+      gg_cols <- viridis::viridis(length(pcs))
+      pcs_mat$color_by <- match(pcs_mat$pcs, pcs)
+    }
+    gg_rt <- compareRT(dat = pcs_ds, gg_cols = gg_cols, gg_labels = gg_labels, gg_title = gg_title)    
+    gg_into <- compareINTENSITY(dat = pcs_mat, gg_cols = gg_cols, gg_labels = gg_labels, gg_title = gg_title)
+   
     if (!is.null(out_dir)) {
       ## save plot
       ggplot2::ggsave(
-        file = paste0("/comparePCS-", paste0(pcs, collapse = "_"), ".png"),
-        gg,
+        file = paste0("pcs-", paste0(pcs, collapse = "_"), "_SPECTRA.png"),
+        gg_spectra,
         device = "png",
         path = out_dir,
         dpi = 300,
-        width = 25, height = 20, units = "cm",
+        width = 22, height = 16, units = "cm",
+        limitsize = FALSE
+      )
+      ggplot2::ggsave(
+        file = paste0("pcs-", paste0(pcs, collapse = "_"), "_RT.png"),
+        gg_rt,
+        device = "png",
+        path = out_dir,
+        dpi = 300,
+        width = 22, height = 16, units = "cm",
+        limitsize = FALSE
+      )
+      ggplot2::ggsave(
+        file = paste0("pcs-", paste0(pcs, collapse = "_"), "_INTO.png"),
+        gg_into,
+        device = "png",
+        path = out_dir,
+        dpi = 300,
+        width = 22, height = 16, units = "cm",
         limitsize = FALSE
       )
     } else {
-      gridExtra::grid.arrange(gg)
+      gridExtra::grid.arrange(gg_spectra)
+      gridExtra::grid.arrange(gg_rt)
+      gridExtra::grid.arrange(gg_into)
     }
   }
 )

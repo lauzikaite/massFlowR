@@ -119,9 +119,14 @@ do_alignPEAKS <- function(ds,
       cos_mat_bin[match(x_vars_bin, rownames(cos_mat_bin), nomatch = 0),
                   match(y_vars_bin, colnames(cos_mat_bin), nomatch = 0)]
   }
-  ####---- for annotation, return all found matches for every ds peakgroup
+  ####---- for annotation, return all found matches for every feature
   if (anno == TRUE) {
-    return(cos_mat)
+    peakids_mat <- lapply(seq(length(cos_matches)), function(bin) {
+      bin_matches <- do.call(rbind, cos_matches[[bin]][[2]])
+      data.frame(db_peakid = bin_matches$peakid, ds_peakid = bin_matches$target_peakid)
+    })
+    peakids_mat <- do.call(rbind, peakids_mat)
+    return(list("cos_mat" = cos_mat, "peakids_mat" = peakids_mat))
   } else {
     ####---- assign ds peakgroups to tmp according to cosines
     cos_assigned <- assignCOS(cos = cos_mat)
@@ -284,7 +289,7 @@ addERRS <- function(dt, mz_err, rt_err) {
 #' @param tmp_var \code{character} indicating the column name for peak grouping information in the template.
 #' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension.
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. 
-#' @param bins \code{numeric} defying step size used in peak-group spectra binning and vector generation.#' 
+#' @param bins \code{numeric} defying step size used in peak-group spectra binning and vector generation.
 #'
 #' @return Function returns a list with two entries:
 #' \itemize{
@@ -437,14 +442,14 @@ buildVECTOR <- function(spec, peaks) {
 #' Currently, scaling according to method in Stein & Scott, 1994 is supported.
 #'
 #' @param spec \code{data.frame} with columns 'into' and 'mz'.
-#' @param m \code{numeric}, set to 0.6 by default.
-#' @param n \code{numeric}, set to 3 by default.
+#' @param m \code{numeric}, mass power set to 3 by default.
+#' @param n \code{numeric}, intensity power set to 0.6 by default.
 #'
 #' @return Function returns a \code{numeric} vector with scaled intensity values.
 #' 
 #' @seealso \code{\link{getCOSmat}}
 #' 
-scaleSPEC <- function(spec,  m = 0.6, n = 3) {
+scaleSPEC <- function(spec,  m = 3, n = 0.6) {
   ## Version A - scale to unit length (emphasises most intense peak)
   # spec$into / (sqrt(sum(spec$into * spec$into)))
   
@@ -452,7 +457,7 @@ scaleSPEC <- function(spec,  m = 0.6, n = 3) {
   # scale the intensity of every mz ion separately
   # use m and n weighting factors taken from Stein & Scott, 1994
   apply(spec, 1, function(x) {
-    x[["into"]] ^ m * x[["mz"]] ^ n
+    x[["into"]] ^ n * x[["mz"]] ^ m
   })
 }
 

@@ -19,7 +19,7 @@ getCOSmat(ds_bin, ds_var, tmp_bin, tmp_var, mz_err, rt_err, bins)
 
 \item{rt_err}{\code{numeric} specifying the window for peak matching in the RT dimension.}
 
-\item{bins}{\code{numeric} defying step size used in peak-group spectra binning and vector generation.#'}
+\item{bins}{\code{numeric} defying step size used in peak-group spectra binning and vector generation.}
 }
 \value{
 Function returns a list with two entries:

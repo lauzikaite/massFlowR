@@ -334,10 +334,10 @@ test_that("scaleSPEC() ", {
   # expect_identical(spec_length, 1)
   
   ## Version B
-  m <- 0.6
-  n <- 3
+  m <- 3
+  n <- 0.6
   expect_identical(spec_scaled, apply(spec, 1, function(x) {
-    x[["into"]] ^ m * x[["mz"]] ^ n
+    x[["into"]] ^ n * x[["mz"]] ^ m
   }))
   
 })

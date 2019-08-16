@@ -27,7 +27,7 @@
 #' @slot peaks \code{list} containing peak intergration values for every peak (NA if peak was not detected), listead peak-wise.
 #' @slot values \code{list} containing peak intergration values for every sample  (NA if peak was not detected), listed sample-wise.
 #' @slot history \code{list} containg names of methods that have already been applied to the object.
-#' 
+#'
 #' @seealso \code{\link{buildTMP}}, \code{\link{alignPEAKS}}, \code{\link{validPEAKS}}
 #'
 #' @rdname massFlowTemplate-class
@@ -58,7 +58,7 @@ setClass(
 #'
 #' @slot filepath \code{character} specifying the absolute path to \code{csv} file with peak intensity table.
 #' @slot samples \code{data.frame} storing study sample names and their acquisition order.
-#' @slot data \code{data.frame} with peak intensity values for each sample. 
+#' @slot data \code{data.frame} with peak intensity values for each sample.
 #' @slot ds \code{data.frame} with pseudo-chemical-spectra intensity values of samples with the highest intensity for that PCS.
 #' @slot db \code{data.frame} storing chemical standards database table, obtained with \code{\link{buildDB}}.
 #' @slot anno \code{data.frame} storing peak table with database annotations (if any).
@@ -82,5 +82,5 @@ setClass(
     anno = "data.frame",
     mat = "matrix",
     params = "list"
-    )
+  )
 )
