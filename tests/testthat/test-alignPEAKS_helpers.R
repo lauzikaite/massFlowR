@@ -31,6 +31,15 @@ test_that("Checking grouped peaks csv tables via checkFILE is correct", {
   unlink(x = wrong_file_filepath)
 })
 
+# do_alignPEAKS -----------------------------------------------------------
+test_that("do_alignPEAKS() returns correct output ", {
+  do_alignPEAKS_out <- do_alignPEAKS(ds = single_table, tmp = single_table, ds_var_name = "peakgr", tmp_var_name = "peakgr", mz_err = mz_err, rt_err = rt_err, bins = bins, ncores = 2)
+  expect_equal(length(do_alignPEAKS_out), length(unique(single_table$peakgr)))
+  expect_true(all(sapply(lapply(do_alignPEAKS_out, names), function(m) all(m == c("ds", "tmp", "mat","cos")))))
+  expect_true(all(unlist(lapply(do_alignPEAKS_out, "[[", "cos")) == 1))
+})
+
+
 # getRTbins ---------------------------------------------------------------------------------------------------------
 test_that("getRTbins() correctly splits two dataframes to rt bins", {
   ## make dummy table:

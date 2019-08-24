@@ -121,9 +121,6 @@ test_that("validPEAKS", {
   expect_true(all(sapply(validPEAKS_out@peaks, nrow) == nrow(tmp@samples))) # a row for every peak for every sample
   # were files written?
   expect_true(length(grep("intensity_data.csv", list.files(data_dir))) > 0)
-  expect_true(length(grep("peaks_data.csv", list.files(data_dir))) > 0)
-  expect_true(length(grep("sample_data.csv", list.files(data_dir))) > 0)
-  expect_true(length(grep("object.RDS", list.files(data_dir))) > 0)
 })
 
 # fillPEAKS---------------------------------------------------------------------------------------------------
@@ -142,8 +139,4 @@ test_that("fillPEAKS", {
   expect_true("into"  %in% colnames(fillPEAKS_out@valid)) # new column added with median into values
   # were files written?
   expect_true(length(grep("filled_intensity_data.csv", list.files(data_dir))) > 0)
-  expect_true(length(grep("final_peaks_data.csv", list.files(data_dir))) > 0)
-  expect_true(length(grep("sample_data.csv", list.files(data_dir))) > 0)
-  expect_true(length(grep("object.RDS", list.files(data_dir))) > 0)
-  
 })

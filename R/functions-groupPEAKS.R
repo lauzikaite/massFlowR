@@ -27,7 +27,7 @@
 #'
 groupPEAKS <- function(file = NULL,
                        out_dir = NULL,
-                       cwt,
+                       cwt = NULL,
                        ncores = 2,
                        thr = 0.95) {
   if (is.null(file)) {
@@ -42,7 +42,7 @@ groupPEAKS <- function(file = NULL,
   if (!dir.exists(out_dir)) {
     stop("incorrect filepath for 'out_dir' provided")
   }
-  if (missing(cwt) | class(cwt) != "CentWaveParam") {
+  if (is.null(cwt) | class(cwt) != "CentWaveParam") {
     stop("'cwt' has to be a 'CentWaveParam' object")
   } 
   if (ncores < 1 | !is.numeric(ncores)) {
@@ -56,7 +56,7 @@ groupPEAKS <- function(file = NULL,
     foreach::registerDoSEQ()
   }
   ## check provided metadata
-  samples <- read.csv(file, header = T, stringsAsFactors = F)
+  samples <- read.csv(file, header = TRUE, stringsAsFactors = FALSE)
   req_cnames <- c("filename",
                   "run_order",
                   "raw_filepath")
@@ -67,7 +67,7 @@ groupPEAKS <- function(file = NULL,
   cwt@verboseColumns <- TRUE
   ## mzdiff was >= 0 to avoid duplicate peaks in peak-groups
   if (cwt@mzdiff < 0) {
-    message("mzdiff of ", cwt@mzdiff, " was selected. Switching mzdiff to 0 ..." )
+    warning("mzdiff of ", cwt@mzdiff, " was selected. Switching mzdiff to 0 ..." )
     cwt@mzdiff <- 0
   }
   ## list raw files to be processed (only list files that have not been peak-grouped in the out_dir yet)
