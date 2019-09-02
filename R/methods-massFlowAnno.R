@@ -412,6 +412,126 @@ setMethod("checkANNOTATION",
   }
 )
 
+
+# checkADDUCTS ------------------------------------------------------------
+## data.frame must contain columns 'mz', 'mzMin', 'mzMax', 'rt', 'rtMin', 'rtMax'
+setMethod("checkADDUCTS",
+          signature = "massFlowAnno",
+          function(object,
+                   chemid = NULL,
+                   adducts = NULL,
+                   pcs = NULL,
+                   out_dir = NULL) {
+            if (is.null(chemid)) {
+              stop("'chemid' is required")
+            }
+            if (length(chemid) > 1) {
+              stop("only one 'chemid' is permitted")
+            }
+            if (is.null(pcs)) {
+              stop("'pcs' is required")
+            }
+            if (length(pcs) > 1) {
+              stop("only one 'pcs' is permitted")
+            }
+            ## extract features for PCS and CHEMID
+            ds <- object@ds
+            data_mat <- object@data
+            samples_ind <- match(object@samples$filename, colnames(data_mat))
+            data_mat <- data_mat[, samples_ind]
+            db <- object@db
+            
+            ## extract features from CHEMID:
+            chemid_db <- db[db$chemid == chemid, ]
+            chemid_db$into_scaled <- chemid_db$into / (sqrt(sum(chemid_db$into * chemid_db$into)))
+            ## find which CHEMID features correspond to validated adducts
+            chemid_db$adduct <- findADDUCTS(feats = chemid_db[ , c("mz", "rt")], ## take only numerical columns, otherwise as.matrix() converts to character
+                                            adducts = adducts[ , c("mzMin", "mzMax", "rtMin", "rtMax")])
+            if (!any(chemid_db$adduct > 0)) {
+              return("chemical standards doesn't match any of the provided adducts")
+            }
+            
+            ## extract features for PCS:
+            pcs_ds <- ds[ds$pcs == pcs, ]
+            pcs_ds$into_scaled <- pcs_ds$into / (sqrt(sum(pcs_ds$into * pcs_ds$into)))
+            ## correlate all PCS features with all features
+            pcs_cor <- corPCS(pcs_ds = pcs_ds, data_mat = data_mat)
+            ## find which PCS features correspond to validated adducts
+            pcs_ds$adduct <- findADDUCTS(feats = pcs_ds[ , c("mz", "rt")],
+                                         adducts[ , c("mzMin", "mzMax", "rtMin", "rtMax")])
+            if (!any(pcs_ds$adduct > 0)) {
+              return("pcs doesn't match any of the provided adducts")
+            }
+            
+            ## make summary annotation table (rows - unique DB features)
+            anno <- object@anno
+            anno_mat <- anno[which(anno$ds_peakid %in% pcs_ds$peakid &
+                                     anno$db_peakid %in% chemid_db$peakid), ]
+          
+            ## extract cosine value
+            cos_mat <- object@mat
+            cos <- cos_mat[match(chemid, rownames(cos_mat)), match(pcs, colnames(cos_mat))]
+            cos <- round(cos, digits = 3)
+            
+            if (nrow(anno_mat) == 0) {
+              return("chemid and pcs have no matching features.")
+            }
+            message("pcs intensity values are taken from: ", unique(pcs_ds$filename))
+            anno_sum <- base::merge(
+              chemid_db[, c("peakid", "mz", "rt", "into_scaled", "adduct")],
+              anno_mat[ , c("db_peakid", "ds_peakid")],
+              by.x = c("peakid"), by.y = "db_peakid", all = TRUE
+            )
+            anno_sum <- base::merge(
+              setNames(anno_sum, nm = c("DB_peakid", "DB_mz", "DB_rt", "DB_into", "adduct", "peakid")),
+              setNames(pcs_ds[, c("peakid", "mz", "rt", "into_scaled")], nm = c("peakid", "mz", "rt", "into")),
+              by.x = c("peakid"), by.y = c("peakid"), all = TRUE
+            )
+            anno_sum <- anno_sum[, c("adduct", "DB_mz", "DB_rt", "DB_into", "DB_peakid", "mz", "rt", "into", "peakid")]
+            anno_sum <- anno_sum[order(anno_sum$DB_into, decreasing = TRUE), ] ## order by DB features intensity
+           
+            ## make plots for every adduct
+            adduct_inds <- which(pcs_ds$adduct > 0)
+            for (ind in adduct_inds) {
+              adduct_no <- pcs_ds$adduct[ind]
+              if (!adduct_no %in% chemid_db$adduct) {
+                next()
+              }
+              pcs_ds$correlation <- unlist(pcs_cor[[ind]])
+              dat <- base::merge(pcs_ds,
+                                 chemid_db,
+                                 by = intersect(names(pcs_ds), names(chemid_db)),
+                                 all = TRUE
+              )
+              gg_title <- paste0(
+                "chemid: ", chemid, " (dbname: ", unique(chemid_db$dbname), ", dbid: ", unique(chemid_db$dbid), ")\n",
+                "pcs: ", pcs, " (", unique(pcs_ds$filename), ")\n",
+                "cos:", cos, ")\n",
+                "adduct: ", adducts$mz[adduct_no]
+              )
+              gg_spectra <- mirrorSPECTRAtarget(dat = dat, adduct_ind = adduct_no, gg_title = gg_title)
+
+              if (!is.null(out_dir)) {
+                ## save plot
+                ggplot2::ggsave(
+                  file = paste0("chemid-", chemid, "_pcs-", pcs, "_adduct-", adduct_no, "_SPECTRA.png"),
+                  gg_spectra,
+                  device = "png",
+                  path = out_dir,
+                  height = 150, width = 200, units = "mm", dpi = "print")
+                } else {
+                  gridExtra::grid.arrange(gg_spectra)
+                }
+            }
+            write.csv(anno_sum,
+                      file = paste0(out_dir, "/chemid-", chemid, "_pcs-", pcs, "_summary.csv"),
+                      row.names = FALSE
+            )
+            return(anno_sum)
+          }
+)
+
+
 # comparePCS --------------------------------------------------------------
 #' @aliases comparePCS
 #'

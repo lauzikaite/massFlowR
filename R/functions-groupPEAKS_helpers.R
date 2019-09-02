@@ -223,7 +223,7 @@ corEIC <- function(pair, eic) {
       as.numeric(MSnbase::intensity(eic[[x]])[which(rx %in% common_scan)])
     iy <-
       as.numeric(MSnbase::intensity(eic[[y]])[which(ry %in% common_scan)])
-    cc <- cor(ix, iy, method = "pearson")
+    cc <- cor(ix, iy, method = "pearson", use = "pairwise.complete.obs")
   } else {
     cc <- 0
   }

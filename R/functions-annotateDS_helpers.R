@@ -30,6 +30,34 @@ mirrorSPECTRAanno <- function(dat, gg_title) {
   )
 }
 
+mirrorSPECTRAtarget <- function(dat, adduct_ind, gg_title) {
+  ggplotTHEME(
+    gg =
+      mirrorSPECTRA(gg = ggplot2::ggplot() +
+                      ## make top spectra: DB chemid
+                      ggplot2::geom_segment(
+                        data = subset(dat, !is.na(chemid) & adduct != adduct_ind),
+                        ggplot2::aes(x = mz, xend = mz, y = 0, yend = into_scaled),
+                        color = "black",
+                        size = 1, na.rm = TRUE
+                      ) +
+                      ggplot2::geom_segment(
+                        data = subset(dat, !is.na(chemid) & adduct == adduct_ind),
+                        ggplot2::aes(x = mz, xend = mz, y = 0, yend = into_scaled),
+                        color = "red",
+                        size = 1, na.rm = TRUE
+                      ) +
+                      ## make the bottom spectra: matching PCS
+                      ggplot2::geom_segment(
+                        data = subset(dat, is.na(chemid)),
+                        ggplot2::aes(x = mz, xend = mz, y = 0, yend = -into_scaled, color = correlation),
+                        size = 1, na.rm = TRUE
+                      )),
+    gg_title = gg_title
+  )
+  
+}
+
 mirrorSPECTRApcs <- function(dat, gg_title) {
   ggplotTHEME(
     gg =
@@ -158,4 +186,43 @@ extractPCS <- function(pc, samples, ds, data_mat) {
     )
   })
   do.call(rbind, dat)
+}
+
+# findADDUCT <- function(adduct, ds) {
+#   inds <- which(ds$mz >= adduct["mzMin"] &
+#           ds$mz <= adduct["mzMax"] &
+#           ds$rt >= adduct["rtMin"] &
+#           ds$rt <= adduct["rtMax"])
+#   ds$peakid[inds]
+# }
+
+findADDUCTS <- function(feats, adducts) {
+  apply(feats, 1, function(feat) {
+    matches <- apply(adducts, 1, function(adduct) {
+      all(feat["mz"]  >= adduct["mzMin"] &
+            feat["mz"]  <= adduct["mzMax"] &
+            feat["rt"] >= adduct["rtMin"] &
+            feat["rt"] <= adduct["rtMax"])
+    })
+    if (any(matches)) {
+      which(matches)
+    } else {
+      0
+    }
+  })
+}
+
+corPCS <- function(pcs_ds, data_mat) {
+  peakids <- pcs_ds$peakid
+  # correlate all features with all features
+  lapply(peakids, function(main) {
+    main_ind <- which(ds$peakid == main)
+    lapply(peakids, function(other) {
+      other_ind <- which(ds$peakid == other)
+      cor(as.numeric(data_mat[main_ind, ]),
+          as.numeric(data_mat[other_ind, ]),
+          use = "pairwise.complete.obs"
+      )
+    })
+  })
 }

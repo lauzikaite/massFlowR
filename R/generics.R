@@ -13,5 +13,6 @@ setGeneric("findANNOchemid", function(object, chemid, cutoff = 0, ...) standardG
 setGeneric("findANNOpcs", function(object, pcs, cutoff = 0, ...) standardGeneric("findANNOpcs"))
 setGeneric("checkANNOTATION", function(object, chemid, pcs, out_dir = NULL, ...) standardGeneric("checkANNOTATION"))
 setGeneric("comparePCS", function(object, pcs, out_dir = NULL,...) standardGeneric("comparePCS"))
+setGeneric("checkADDUCTS", function(object, chemid, adducts, pcs, out_dir = NULL,...) standardGeneric("checkADDUCTS"))
 
 
