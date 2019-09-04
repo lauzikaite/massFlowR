@@ -52,6 +52,7 @@ checkFILE <- function(file = NULL) {
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension.
 #' @param bins \code{numeric} defying step size used in peak-group spectra binning and vector generation. Step size represents MZ dimension.
 #' @param ncores \code{numeric} for number of parallel workers to be used.
+#' @param cutoff \code{numeric} for spectra similarity score threshold, set to 0.5 by default.
 #' @param anno \code{logical} whether function is used to align samples or to annotate final features with a database. Set to FALSE by default.
 #'
 #' @seealso For details on cosine estimation, refer to \code{\link{alignPEAKS}} method.
@@ -67,6 +68,7 @@ do_alignPEAKS <- function(ds,
                           rt_err,
                           bins,
                           ncores,
+                          cutoff,
                           anno = FALSE) {
   
   ####---- split dataset and template into rt regions for parallelisation
@@ -129,7 +131,7 @@ do_alignPEAKS <- function(ds,
     return(list("cos_mat" = cos_mat, "peakids_mat" = peakids_mat))
   } else {
     ####---- assign ds peakgroups to tmp according to cosines
-    cos_assigned <- assignCOS(cos = cos_mat)
+    cos_assigned <- assignCOS(cos = cos_mat, cutoff = cutoff)
     ds_true <- apply(cos_assigned, 2, function(x) which(x))
     ds_assigned <- which(sapply(ds_true, length) > 0)
     ds_vars_assigned <- ds_vars[ds_assigned]
@@ -471,12 +473,16 @@ scaleSPEC <- function(spec,  m = 3, n = 0.6) {
 #' @param cos \code{matrix} with cosine angles.
 #' Rows correspond to template variables (i.e. peak-group).
 #' Columns correspond to dataset-of-interest variables (i.e. peak-group).
-#' @param cutoff \code{numeric} for spectra similarity score threshold, set to 0 by default.
+#' @param cutoff \code{numeric} for spectra similarity score threshold.
 #'
 #' @return Function returns a \code{matrix} of the same dimensions.
 #' Peak-groups which should be grouped/aligned into one are marked with TRUE in the output matrix.
 #' 
-assignCOS <- function(cos, cutoff = 0) {
+assignCOS <- function(cos, cutoff) {
+  
+  if (missing(cutoff)) {
+    cutoff <- 0 # temporal, for devel when running functions at lower level than alignPEAKS and unit tests
+  }
   
   ## if a similarity threshold should be applied used for assignment
   if (cutoff > 0){

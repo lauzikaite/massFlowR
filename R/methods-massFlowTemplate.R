@@ -115,6 +115,7 @@ setMethod("checkNEXT",
 #' @param object \code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.
 #' @param out_dir \code{character} specifying desired directory for output.
 #' @param ncores \code{numeric} for number of parallel workers to be used. Set 1 for serial implementation. Default set to 2.
+#' @param cutoff \code{numeric} for spectra similarity score threshold, set to 0 by default.
 #' @param write_int \code{logical} specifying whether a peak table with alignment results should be saved for every sample.
 #' If TRUE, csv files will be written in the out_dir directory.
 #' Default set to FALSE
@@ -133,6 +134,7 @@ setMethod("alignPEAKS",
   function(object,
              out_dir = NULL,
              ncores = 2,
+             cutoff,
              write_int = FALSE) {
     if (!validObject(object)) {
       stop(validObject(object))
@@ -183,7 +185,8 @@ setMethod("alignPEAKS",
         mz_err = params$mz_err,
         rt_err = params$rt_err,
         bins = params$bins,
-        ncores = ncores
+        ncores = ncores,
+        cutoff = cutoff
       )
 
       #### ---- update template with aligned doi peak-groups

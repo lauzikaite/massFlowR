@@ -5,7 +5,7 @@
 \title{Align dataset's and template peaks using dot-product estimation}
 \usage{
 do_alignPEAKS(ds, tmp, ds_var_name, tmp_var_name, mz_err, rt_err, bins,
-  ncores, anno = FALSE)
+  ncores, cutoff, anno = FALSE)
 }
 \arguments{
 \item{ds}{\code{data.frame} containing peaks which have to be compared and aligned with the template.}
@@ -26,6 +26,8 @@ If function is used within \code{annotatePEAKS}, then 'chemid' should be selecte
 \item{bins}{\code{numeric} defying step size used in peak-group spectra binning and vector generation. Step size represents MZ dimension.}
 
 \item{ncores}{\code{numeric} for number of parallel workers to be used.}
+
+\item{cutoff}{\code{numeric} for spectra similarity score threshold, set to 0.5 by default.}
 
 \item{anno}{\code{logical} whether function is used to align samples or to annotate final features with a database. Set to FALSE by default.}
 }

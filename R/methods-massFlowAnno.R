@@ -99,6 +99,7 @@ setMethod("annotateDS",
       rt_err = rt_err,
       bins = 0.1,
       ncores = ncores,
+      cutoff = 0,
       anno = TRUE
     )
     feats_mat <- ds_to_db_anno[[2]]

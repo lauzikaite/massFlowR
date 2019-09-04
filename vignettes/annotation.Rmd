@@ -115,22 +115,6 @@ anno <- annotateDS(object = anno, db_file = db_file, out_dir = out_directory, mz
 ```
 
 
-Obtained annotations can be checked through plots. Pseudo chemical spectra can be plotted with `plotPCS`. In this case, pseudo chemical spectra did not have a match in the database and therefore no chemicals are listed in the table.
-
-
-```{r plotPCS}
-plotPCS(object = anno, pcs = 2)
-```
-
-
-Annotations can also be plotted for chemicals in the databe with `plotCHEMID` function. In this case, chemid no2 has 0 matching PCS in the dataset.
-
-
-```{r plotCHEMID, error=TRUE}
-plotCHEMID(object = anno, chemid = 2)
-```
-
-
 # See also
 
 

@@ -4,14 +4,14 @@
 \alias{assignCOS}
 \title{Assign dataset's peak-groups to template peak-groups based on estimated cosine angles}
 \usage{
-assignCOS(cos, cutoff = 0)
+assignCOS(cos, cutoff)
 }
 \arguments{
 \item{cos}{\code{matrix} with cosine angles.
 Rows correspond to template variables (i.e. peak-group).
 Columns correspond to dataset-of-interest variables (i.e. peak-group).}
 
-\item{cutoff}{\code{numeric} for spectra similarity score threshold, set to 0 by default.}
+\item{cutoff}{\code{numeric} for spectra similarity score threshold.}
 }
 \value{
 Function returns a \code{matrix} of the same dimensions.

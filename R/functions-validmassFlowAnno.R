@@ -49,9 +49,9 @@ validmassFlowAnno <- function(object) {
     if (length(object@params) == 0) {
       msg <- c(msg, paste0("Slot 'params' doesn't contain parameters"))
     }
-    ## (3) correct annotation table
-    if (nrow(object@anno) == 0) {
-      msg <- c(msg, paste0("Slot 'anno' was not correctly initiated or modified"))
+    ## (3) correct annotation results data.frame
+    if (class(object@anno) != "data.frame") {
+      msg <- c(msg, paste0("Slot 'mat' was not correctly initiated or modified"))
     }
     ## (4) correct annotation results matrix
     if (nrow(object@mat) == 0) {
