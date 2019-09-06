@@ -453,14 +453,14 @@ buildVECTOR <- function(spec, peaks) {
 #' 
 scaleSPEC <- function(spec,  m = 3, n = 0.6) {
   ## Version A - scale to unit length (emphasises most intense peak)
-  # spec$into / (sqrt(sum(spec$into * spec$into)))
+  spec$into / (sqrt(sum(spec$into * spec$into)))
   
   ## Version B - according to Stein & Scott, 1994
   # scale the intensity of every mz ion separately
   # use m and n weighting factors taken from Stein & Scott, 1994
-  apply(spec, 1, function(x) {
-    x[["into"]] ^ n * x[["mz"]] ^ m
-  })
+  # apply(spec, 1, function(x) {
+  #   x[["into"]] ^ n * x[["mz"]] ^ m
+  # })
 }
 
 # assignCOS ---------------------------------------------------------------------------------------------------------

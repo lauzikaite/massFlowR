@@ -367,7 +367,7 @@ setMethod("validPEAKS",
     if (min_samples_n > samples_n) {
       stop(
         "object has ", samples_n, " samples",
-        "\n minimum 3 samples are required for validation."
+        "\n minimum number of samples requested is ", min_samples_n
       )
     }
     peakgrs_split <- foreach::foreach(
