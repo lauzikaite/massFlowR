@@ -134,7 +134,7 @@ setMethod("alignPEAKS",
   function(object,
              out_dir = NULL,
              ncores = 2,
-             cutoff,
+             cutoff = 0,
              write_int = FALSE) {
     if (!validObject(object)) {
       stop(validObject(object))
@@ -303,9 +303,9 @@ setMethod("alignPEAKS",
 #'
 #' @param object \code{massFlowTemplate} class object.
 #' @param out_dir \code{character} specifying desired directory for output.
-#' @param min_samples_n \code{numeric} specifying the minimum percentage of samples in which peak has to be detected in order to be considered (default set to 10 percent).
+#' @param min_samples_prop \code{numeric} specifying the minimum percentage of samples in which peak has to be detected in order to be considered.
 #' @param cor_thr \code{numeric} defining Pearson correlation coefficient threshold for inter-sample correlation between peaks (default set to 0.75).
-#' @param ncores \code{numeric} defining number of cores to use for parallelisation. Default set to 1 for serial implementation.
+#' @param ncores \code{numeric} defining number of cores to use for parallelisation. 
 #'
 #' @return Method returns validated peak-groups.
 #'
@@ -317,7 +317,7 @@ setMethod("validPEAKS",
   signature = "massFlowTemplate",
   function(object,
              out_dir = NULL,
-             min_samples_n = 3,
+             min_samples_prop = NULL,
              cor_thr = 0.75,
              ncores = 2) {
     if (!validObject(object)) {
@@ -338,7 +338,7 @@ setMethod("validPEAKS",
     } else {
       foreach::registerDoSEQ()
     }
-
+  
     ## extract intensities for every peak-group from every sample
     peakgrs <- unique(object@tmp$peakgr)
     peakgrs <- peakgrs[order(peakgrs)]
@@ -358,8 +358,11 @@ setMethod("validPEAKS",
     samples <-
       object@samples[which(object@samples$aligned == TRUE), ]
     samples_n <- nrow(samples)
-    if (min_samples_n < 3) {
+    if (is.null(min_samples_prop)) { # for unit tests and development with small studies
+      message("value for 'min_samples_prop' not provided. Setting the minimum number of samples to 3!")
       min_samples_n <- 3
+    } else {
+      min_samples_n <- floor(samples_n * min_samples_prop)
     }
     if (min_samples_n > samples_n) {
       stop(

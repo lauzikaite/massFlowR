@@ -130,7 +130,7 @@ corPEAKS <- function(pair, pkg_ints, min_samples_n) {
     iy <- sapply(common_samples,
                  FUN = getINT,
                  peak = pkg_ints_y)
-    cc <- cor(ix, iy, method = "pearson")
+    cc <- cor(ix, iy, method = "pearson", use = "pairwise.complete.obs")
     ## negative coeficients would break graph generation
     cc <- ifelse(cc < 0, 0, cc)
   } else {
