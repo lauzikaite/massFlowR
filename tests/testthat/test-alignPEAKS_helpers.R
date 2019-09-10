@@ -321,11 +321,18 @@ test_that("buildVECTOR()", {
   sample_vec <- buildVECTOR(spec = spec, peaks = peaks)
   expect_true(all(which(sample_vec > 0) == c(101, 14101, 14201)))
   sum(sample_vec[which(sample_vec > 0)])
+  
+  ## check for correct scaling and normalisation
+  spec_magn <- sqrt(sum(sqrt(peaks$into) * sqrt(peaks$into)))
+  expect_equal(c((sample_vec[which(sample_vec > 0)] * spec_magn) ^2),
+               peaks$into[order(peaks$mz)])
 })
 
-# scaleSPEC ---------------------------------------------------------------------------------------------------------
-test_that("scaleSPEC() ", {
-  
+
+# normSPEC ----------------------------------------------------------------
+test_that("normSPEC() ", {
+  ## (A) create vector of unit length
+  ## all intensities sum up to 1, thus normalisation doesn't affect
   spec <- data.frame(into = c(
     rep(0, 10),
     0.0128555075994933,
@@ -334,22 +341,27 @@ test_that("scaleSPEC() ", {
     rep(0, 10),
     0.9624626283266
   ), mz = 1:33)
-  spec_scaled <- scaleSPEC(spec)
-  expect_identical(length(spec_scaled), nrow(spec))
-  expect_identical(length(which(spec_scaled > 0)), length(which(spec$into > 0)))
+  spec_norm <- normSPEC(into = spec$into)
+  expect_identical(length(spec_norm), nrow(spec))
+  expect_equal(spec_norm, spec$into)
   
-  ## Version A - scale to unit length
-  # spec_length <- sum(spec_scaled * spec_scaled)
-  # expect_identical(spec_length, 1)
-  
-  ## Version B
-  m <- 3
-  n <- 0.6
-  expect_identical(spec_scaled, apply(spec, 1, function(x) {
-    x[["into"]] ^ n * x[["mz"]] ^ m
-  }))
-  
+  ## (B) create vector with intensities that sum to > 1
+  ## one peak is very dominant
+  spec <- data.frame(into = c(
+    rep(0, 10),
+    1,
+    rep(0, 10),
+    2,
+    rep(0, 10),
+    10
+  ), mz = 1:33)
+  spec_norm <- normSPEC(into = spec$into)
+  expect_identical(length(spec_norm), nrow(spec))
+  expect_true(sum(spec_norm) > 1)
+  spec_magn <- sqrt(sum(spec$into * spec$into))
+  expect_equal(c(spec_norm * spec_magn), spec$into)
 })
+
 
 # assignCOS -------------------------------------------------------------------------------------------------
 test_that("assignCOS() correctly assigns pairs to maximise top-top matching", {

@@ -428,40 +428,38 @@ getMATCHES <- function(n, target, tmp, tmp_var, target_var) {
 #' @return Function returns a \code{numeric} vector representing peaks of a single peak-group.
 #' 
 buildVECTOR <- function(spec, peaks) {
+  ## scale intensities by taking sqrt of raw values
+  peaks$into <- sqrt(peaks$into)
+  
+  ## assign mz values to bins
   peaks$bin <- findInterval(x = peaks$mz, spec$mz)
+  
   ## remove duplicating duplicating bins and any bins that are not representing a peak
   peaks <- peaks[which(!duplicated(peaks$bin)), c("bin", "into")]
   spec$into <- 0
   spec[match(peaks$bin, spec$bin), "into"] <- peaks$into
-  vector <- scaleSPEC(spec = spec)
+  
+  ## normalise to total magnitude of the spectral vector
+  vector <- normSPEC(into = spec$into)
+  
   return(vector)
 }
 
-# scaleSPEC ---------------------------------------------------------------------------------------------------------
-#' @title Scale a vector representing peaks' intensity values
+
+# normSPEC ----------------------------------------------------------------
+#' @title Normalise a vector representing peaks' intensity values to the total magnitude of the vector
 #' 
-#' @description Function scales a vector representing peaks' intensity values before dot-product estimation of two vectors.
-#' Currently, scaling according to method in Stein & Scott, 1994 is supported.
+#' @description Function normalises peaks' intensity values to the total magnitude of the vector,
+#' as decribed in Lam, Henry, et al. 2007
 #'
-#' @param spec \code{data.frame} with columns 'into' and 'mz'.
-#' @param m \code{numeric}, mass power set to 3 by default.
-#' @param n \code{numeric}, intensity power set to 0.6 by default.
+#' @param into \code{numeric} vector with intensity values.
 #'
-#' @return Function returns a \code{numeric} vector with scaled intensity values.
+#' @return Function returns a \code{numeric} vector with normalised intensity values.
 #' 
-#' @seealso \code{\link{getCOSmat}}
-#' 
-scaleSPEC <- function(spec,  m = 3, n = 0.6) {
-  ## Version A - scale to unit length (emphasises most intense peak)
-  spec$into / (sqrt(sum(spec$into * spec$into)))
-  
-  ## Version B - according to Stein & Scott, 1994
-  # scale the intensity of every mz ion separately
-  # use m and n weighting factors taken from Stein & Scott, 1994
-  # apply(spec, 1, function(x) {
-  #   x[["into"]] ^ n * x[["mz"]] ^ m
-  # })
+normSPEC <- function(into) {
+  into / (sqrt(sum(into * into)))
 }
+
 
 # assignCOS ---------------------------------------------------------------------------------------------------------
 #' @title Assign dataset's peak-groups to template peak-groups based on estimated cosine angles

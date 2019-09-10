@@ -152,7 +152,6 @@ ggplotTHEME <- function(gg, gg_title) {
 
 prepPCS <- function(pc, ds, data_mat) {
   pc_ds <- ds[ds$pcs == pc, ]
-  # pc_ds$into_scaled <- scaleSPEC(pc_ds[ , c("mz", "into")])
   pc_ds$into_scaled <- pc_ds$into / (sqrt(sum(pc_ds$into * pc_ds$into)))
 
   ## correlate main adduct with all features
