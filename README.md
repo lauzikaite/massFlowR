@@ -59,7 +59,7 @@ Installation
 ``` r
 # To install dependencies
 install_dependencies <- function () {
-  dependencies <- c("xcms",  "MSnbase", "faahKO", "igraph", "doParallel",  "foreach")
+  dependencies <- c("xcms",  "MSnbase", "faahKO", "igraph", "doParallel",  "foreach", "ggplot2", "viridis", "gridExtra")
   installed <- installed.packages()
   to_install <- subset(dependencies, !(dependencies %in% installed[, "Package"]))
   if (length(to_install) != 0) {
@@ -67,7 +67,7 @@ install_dependencies <- function () {
       install.packages("BiocManager")
     }
     message("Installing packages: ", to_install, " ...")
-    BiocManager::install(to_install, version = "3.8")
+    BiocManager::install(to_install)
   } else {
     message("All dependencies are already installed.")
   }
