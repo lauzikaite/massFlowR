@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
 
 <head>
 
 <meta charset="utf-8" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
 
-<meta name="date" content="2019-07-11" />
+<meta name="date" content="2020-01-10" />
 
 <title>Annotation using chemical reference database</title>
 
@@ -84,7 +84,6 @@ h6 {
 
 img {
   max-width:100%;
-  height: auto;
 }
 .tabbed-pane {
   padding-top: 12px;
@@ -146,6 +145,7 @@ summary {
   border: none;
   display: inline-block;
   border-radius: 4px;
+  background-color: transparent;
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li {
@@ -158,48 +158,9 @@ summary {
 }
 </style>
 
-<script>
-$(document).ready(function () {
-  window.buildTabsets("TOC");
-});
-
-$(document).ready(function () {
-  $('.tabset-dropdown > .nav-tabs > li').click(function () {
-    $(this).parent().toggleClass('nav-tabs-open')
-  });
-});
-</script>
-
 <!-- code folding -->
 
 
-
-<script>
-$(document).ready(function ()  {
-
-    // move toc-ignore selectors from section div to header
-    $('div.section.toc-ignore')
-        .removeClass('toc-ignore')
-        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
-
-    // establish options
-    var options = {
-      selectors: "h1,h2,h3",
-      theme: "bootstrap3",
-      context: '.toc-content',
-      hashGenerator: function (text) {
-        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
-      },
-      ignoreSelector: ".toc-ignore",
-      scrollTo: 0
-    };
-    options.showAndHide = true;
-    options.smoothScroll = true;
-
-    // tocify
-    var toc = $("#TOC").tocify(options).data("toc-tocify");
-});
-</script>
 
 <style type="text/css">
 
@@ -213,8 +174,14 @@ $(document).ready(function ()  {
 }
 }
 
+@media print {
 
+}
 
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
 
 div.main-container {
   max-width: 1200px;
@@ -281,12 +248,20 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">Annotation using chemical reference database</h1>
-<h4 class="date">11 July 2019</h4>
+<h4 class="date">10 January 2020</h4>
 
 </div>
 
 
-<p><strong>Package</strong>: <a href="https://github.com/lauzikaite/massFlowR">massFlowR</a><br /> <strong>Authors</strong>: Elzbieta Lauzikaite<br /> <strong>Modified</strong>: 2019-04-01 17:35:53<br /> <strong>Compiled</strong>: Thu Jul 11 15:29:54 2019</p>
+<style>
+pre code, pre, code {
+  white-space: pre !important;
+  overflow-x: scroll !important;
+  word-break: keep-all !important;
+  word-wrap: initial !important;
+}
+</style>
+<p><strong>Package</strong>: <a href="https://github.com/lauzikaite/massFlowR">massFlowR</a><br /> <strong>Authors</strong>: Elzbieta Lauzikaite<br /> <strong>Date</strong>: Fri Jan 10 14:28:53 2020</p>
 <script type="text/javascript">
 document.addEventListener("DOMContentLoaded", function() {
   document.querySelector("h1").className = "title";
@@ -300,36 +275,31 @@ document.addEventListener("DOMContentLoaded", function() {
       links[i].target = '_blank';
 });
 </script>
-<p><code>massFlowR</code> performs automatic annotation during peak alignment if LC-MS files for chemical reference compounds are available. To enable annotation, provide a database table in a csv format when initiating peak alignment (see section <a href="https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/massFlowR.html">peak annotation</a>).</p>
-<p>Database table can be obtained from raw LC-MS files in two steps:</p>
+<p><code>massFlowR</code> performs automatic annotation of final feature table if LC-MS files for chemical reference compounds are available. Database table can be obtained from raw LC-MS files in two steps:</p>
 <ul>
-<li>Build pseudo chemical spectra (PCS) for each compound using the raw LC-MS file (in mzML/NetCDF format)</li>
-<li>Build database table</li>
+<li>Build pseudo chemical spectra (PCS) for each compound using the raw LC-MS file (in mzML/NetCDF format);</li>
+<li>Build database table.</li>
 </ul>
-<div id="chemical-spectra-extraction" class="section level1">
-<h1><span class="header-section-number">1</span> Chemical spectra extraction</h1>
-<p><em>(code under development)</em></p>
-<p>Raw LC-MS files had been processed by M.Lewis. Code for corresponding functionality will be added to <code>massFlowR</code> package for those that have acquired LC-MS data independently.</p>
-</div>
-<div id="database-table" class="section level1">
-<h1><span class="header-section-number">2</span> Database table</h1>
-<div id="building-database-from-rda-files" class="section level2">
-<h2><span class="header-section-number">2.1</span> Building database from rda files</h2>
-<p>Previously processed LC-MS files were recorded in rda files. Function <code>getDB</code> can be used to build a database table using these rda files. The generated table will have the following columns:</p>
+<div id="building-database" class="section level1">
+<h1><span class="header-section-number">1</span> Building database</h1>
+<p>Raw LC-MS files acquired for each chemical standards were processed by the National Phenome Centre. Each chemical standard was written as an rda file. Code for corresponding functionality will be added to <code>massFlowR</code> package for those that have acquired LC-MS data independently.</p>
+<div id="building-database-table" class="section level2">
+<h2><span class="header-section-number">1.1</span> Building database table</h2>
+<p>Function <code>buildDB</code> can be used to build a database table from rda files. The generated table will have the following columns:</p>
 <ul>
 <li><code>peakid</code> (unique peak number)</li>
 <li><code>mz</code> (peak m/z)</li>
 <li><code>rt</code> (peak retention time, sec)</li>
 <li><code>into</code> (peak intensity)</li>
-<li><code>peakgr</code> (unique peak-group, PCS, number)</li>
+<li><code>peakgr</code> (unique peak-group number)</li>
 <li><code>chemid</code> (unique database chemical number)</li>
 <li><code>dbid</code> (compound identifier)</li>
 <li><code>dbname</code> (compound chemical name)</li>
 </ul>
-<pre class="r"><code># rda_dir &lt;- &quot;absolute_path_to_rda_files&quot;
-# out_dir &lt;- &quot;absolute_path_to_output_directory&quot;
+<pre class="r"><code># rda_dir &lt;- &quot;path to rda files&quot;
+# out_directory &lt;- &quot;path to output directory&quot;
 buildDB(rda_dir = rda_dir, out_dir = out_directory)
-db_table &lt;- read.csv(file.path(out_directory, &quot;DBtemplate.csv&quot;))</code></pre>
+db_table &lt;- read.csv(file.path(out_directory, &quot;database.csv&quot;))</code></pre>
 <table class="table table-striped" style>
 <thead>
 <tr>
@@ -495,14 +465,562 @@ IROA_P01W01
 NAD
 </td>
 </tr>
+<tr>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:right;">
+123.0552
+</td>
+<td style="text-align:right;">
+74.913
+</td>
+<td style="text-align:right;">
+47608.35
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+IROA_P01W01
+</td>
+<td style="text-align:left;">
+NAD
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+8
+</td>
+<td style="text-align:right;">
+524.0586
+</td>
+<td style="text-align:right;">
+74.913
+</td>
+<td style="text-align:right;">
+43952.75
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+IROA_P01W01
+</td>
+<td style="text-align:left;">
+NAD
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+9
+</td>
+<td style="text-align:right;">
+564.0509
+</td>
+<td style="text-align:right;">
+74.913
+</td>
+<td style="text-align:right;">
+33665.41
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+IROA_P01W01
+</td>
+<td style="text-align:left;">
+NAD
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:right;">
+580.0154
+</td>
+<td style="text-align:right;">
+74.913
+</td>
+<td style="text-align:right;">
+28148.40
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+IROA_P01W01
+</td>
+<td style="text-align:left;">
+NAD
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+11
+</td>
+<td style="text-align:right;">
+428.0368
+</td>
+<td style="text-align:right;">
+74.913
+</td>
+<td style="text-align:right;">
+27833.21
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+IROA_P01W01
+</td>
+<td style="text-align:left;">
+NAD
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+12
+</td>
+<td style="text-align:right;">
+666.1227
+</td>
+<td style="text-align:right;">
+74.913
+</td>
+<td style="text-align:right;">
+16549.82
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+IROA_P01W01
+</td>
+<td style="text-align:left;">
+NAD
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+13
+</td>
+<td style="text-align:right;">
+626.0221
+</td>
+<td style="text-align:right;">
+74.913
+</td>
+<td style="text-align:right;">
+16058.00
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+IROA_P01W01
+</td>
+<td style="text-align:left;">
+NAD
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+14
+</td>
+<td style="text-align:right;">
+543.0715
+</td>
+<td style="text-align:right;">
+74.913
+</td>
+<td style="text-align:right;">
+14569.47
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+IROA_P01W01
+</td>
+<td style="text-align:left;">
+NAD
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+15
+</td>
+<td style="text-align:right;">
+135.0664
+</td>
+<td style="text-align:right;">
+31.095
+</td>
+<td style="text-align:right;">
+202712.16
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+IROA_P01W02
+</td>
+<td style="text-align:left;">
+L-GLUTAMINE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+16
+</td>
+<td style="text-align:right;">
+130.0495
+</td>
+<td style="text-align:right;">
+31.095
+</td>
+<td style="text-align:right;">
+101983.22
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+IROA_P01W02
+</td>
+<td style="text-align:left;">
+L-GLUTAMINE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+17
+</td>
+<td style="text-align:right;">
+152.0924
+</td>
+<td style="text-align:right;">
+31.095
+</td>
+<td style="text-align:right;">
+61172.92
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+IROA_P01W02
+</td>
+<td style="text-align:left;">
+L-GLUTAMINE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+18
+</td>
+<td style="text-align:right;">
+147.0759
+</td>
+<td style="text-align:right;">
+31.095
+</td>
+<td style="text-align:right;">
+40568.49
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+IROA_P01W02
+</td>
+<td style="text-align:left;">
+L-GLUTAMINE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+19
+</td>
+<td style="text-align:right;">
+174.0744
+</td>
+<td style="text-align:right;">
+31.095
+</td>
+<td style="text-align:right;">
+22007.72
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+IROA_P01W02
+</td>
+<td style="text-align:left;">
+L-GLUTAMINE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+20
+</td>
+<td style="text-align:right;">
+169.0575
+</td>
+<td style="text-align:right;">
+31.095
+</td>
+<td style="text-align:right;">
+17936.97
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+IROA_P01W02
+</td>
+<td style="text-align:left;">
+L-GLUTAMINE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+21
+</td>
+<td style="text-align:right;">
+349.0541
+</td>
+<td style="text-align:right;">
+60.951
+</td>
+<td style="text-align:right;">
+168396.59
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+IROA_P01W04
+</td>
+<td style="text-align:left;">
+INOSINE 5’-PHOSPHATE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+22
+</td>
+<td style="text-align:right;">
+371.0361
+</td>
+<td style="text-align:right;">
+60.951
+</td>
+<td style="text-align:right;">
+118149.89
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+IROA_P01W04
+</td>
+<td style="text-align:left;">
+INOSINE 5’-PHOSPHATE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+23
+</td>
+<td style="text-align:right;">
+137.0455
+</td>
+<td style="text-align:right;">
+60.951
+</td>
+<td style="text-align:right;">
+113153.09
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+IROA_P01W04
+</td>
+<td style="text-align:left;">
+INOSINE 5’-PHOSPHATE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+24
+</td>
+<td style="text-align:right;">
+697.1015
+</td>
+<td style="text-align:right;">
+60.951
+</td>
+<td style="text-align:right;">
+77696.85
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+IROA_P01W04
+</td>
+<td style="text-align:left;">
+INOSINE 5’-PHOSPHATE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+25
+</td>
+<td style="text-align:right;">
+735.0478
+</td>
+<td style="text-align:right;">
+60.951
+</td>
+<td style="text-align:right;">
+21372.32
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+IROA_P01W04
+</td>
+<td style="text-align:left;">
+INOSINE 5’-PHOSPHATE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+26
+</td>
+<td style="text-align:right;">
+350.0562
+</td>
+<td style="text-align:right;">
+60.951
+</td>
+<td style="text-align:right;">
+20850.84
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+IROA_P01W04
+</td>
+<td style="text-align:left;">
+INOSINE 5’-PHOSPHATE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+27
+</td>
+<td style="text-align:right;">
+393.0174
+</td>
+<td style="text-align:right;">
+60.951
+</td>
+<td style="text-align:right;">
+15408.79
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+IROA_P01W04
+</td>
+<td style="text-align:left;">
+INOSINE 5’-PHOSPHATE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+28
+</td>
+<td style="text-align:right;">
+387.0024
+</td>
+<td style="text-align:right;">
+60.951
+</td>
+<td style="text-align:right;">
+15040.19
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+IROA_P01W04
+</td>
+<td style="text-align:left;">
+INOSINE 5’-PHOSPHATE
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+29
+</td>
+<td style="text-align:right;">
+433.0062
+</td>
+<td style="text-align:right;">
+60.951
+</td>
+<td style="text-align:right;">
+13116.59
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+IROA_P01W04
+</td>
+<td style="text-align:left;">
+INOSINE 5’-PHOSPHATE
+</td>
+</tr>
 </tbody>
 </table>
 </div>
+</div>
+<div id="automatic-annotation" class="section level1">
+<h1><span class="header-section-number">2</span> Automatic annotation</h1>
+<p>To annotate a features table, you will need:</p>
+<ul>
+<li>path to the metadata file with columns ‘filename’ and ‘run_order’.</li>
+<li>path to the intensity table generated by <code>fillPEAKS</code> function. Sample names in this table must correspond to ‘filename’ column in metadata.</li>
+</ul>
+<p>First, <code>massFlowAnno</code> class object is created by <code>buildANNO</code> function.</p>
+<pre class="r"><code># meta_file &lt;- &quot;path to metadata csv file&quot;
+# ds_file &lt;-  &quot;path to filled intensity data csv file&quot;
+# out_directory &lt;- &quot;path to output directory&quot;
+anno &lt;- buildANNO(ds_file = ds_file, meta_file = meta_file, out_dir = out_directory)
+#&gt; A 'massFlowAnno' object was succesfully built with 6 samples.</code></pre>
+<p><code>massFlowAnno</code> class object can be annotated with different databases tables using function <code>annotateDS</code>.</p>
+<pre class="r"><code>anno &lt;- annotateDS(object = anno, db_file = db_file, out_dir = out_directory, mz_err = 0.01, rt_err = 10, ncores = 2)
+#&gt; Annotating dataset...
+#&gt; Dataset was annotated succesfully.</code></pre>
 </div>
 <div id="see-also" class="section level1">
 <h1><span class="header-section-number">3</span> See also</h1>
 <ul>
 <li><a href="https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/massFlowR.html">Introduction to massFlowR</a></li>
+<li><a href="https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/processing.html">Data processing with massFlowR</a></li>
 </ul>
 </div>
 
@@ -524,6 +1042,49 @@ $(document).ready(function () {
 });
 
 
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
 </script>
 
 <script type="text/x-mathjax-config">

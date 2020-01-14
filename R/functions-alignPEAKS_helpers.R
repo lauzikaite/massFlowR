@@ -131,7 +131,7 @@ do_alignPEAKS <- function(ds,
     return(list("cos_mat" = cos_mat, "peakids_mat" = peakids_mat))
   } else {
     ####---- assign ds peakgroups to tmp according to cosines
-    cos_assigned <- assignCOS(cos = cos_mat, cutoff = cutoff)
+    cos_assigned <- assignCOSall(cos = cos_mat, cutoff = cutoff)
     ds_true <- apply(cos_assigned, 2, function(x) which(x))
     ds_assigned <- which(sapply(ds_true, length) > 0)
     ds_vars_assigned <- ds_vars[ds_assigned]
@@ -143,6 +143,7 @@ do_alignPEAKS <- function(ds,
     
     for (var in 1:length(ds_vars)) {
       ds_var <- ds_vars[var]
+      ## if this ds peakgroups was assigned to tmp peakgroup with cos > cutoff
       if (ds_var %in% ds_vars_assigned) {
         ## get the corresponding assigned tmp peagroup
         tmp_var <- tmp_vars_assigned[which(ds_vars_assigned == ds_var)]
@@ -566,6 +567,26 @@ assignCOS <- function(cos, cutoff) {
   }
   return(assigned)
 }
+
+assignCOSall <- function(cos, cutoff) {
+  
+  if (missing(cutoff)) {
+    cutoff <- 0.5 # temporal, for devel when running functions at lower level than alignPEAKS and unit tests
+  }
+  
+  ## if a similarity threshold should be applied used for assignment
+  if (cutoff > 0){
+    cos[which(cos < cutoff)] <- 0
+  }
+  ## rank by column, i.e. the ds vars
+  ds_rank <- apply(cos, 2, FUN = rankCOS)
+  
+  ## assign ds peakgroup to the highest ranking tmp peakgroup
+  assigned <- matrix(NA, nrow = nrow(cos), ncol = ncol(cos))
+  assigned[which(ds_rank == 1)] <- TRUE
+  return(assigned)
+}
+
 
 # rankCOS ---------------------------------------------------------------------------------------------------------
 #' @title Rank cosines, assigning 1 to the highest cosine and 0s to cosine of 0.

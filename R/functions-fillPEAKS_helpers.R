@@ -69,6 +69,9 @@ extractMISS <- function(s, values, peaks_mod, valid) {
   ## for each missing peak, take the modelled mz/rt values and return in a new df
   sample <- values[[s]]
   peaks_miss <- which(is.na(sample$mz))
+  if (length(peaks_miss) == 0) {
+    return(data.frame())
+  }
   peaks_mod_miss <- lapply(peaks_mod[peaks_miss], function(p) {
     p[s, ]
   })
@@ -89,49 +92,50 @@ extractMISS <- function(s, values, peaks_mod, valid) {
 #'
 fillSAMPLE <- function(s, sname, sdata, values) {
   if (validFILE(sname) == TRUE) {
-    raw <- readDATA(sname)
-    ## extract intensity of scans corresponding to mz&rt regions for every peak
-    peaks_int <- extractINT(raw,
-      mz = values[, c("mzmin", "mzmax")],
-      rt = values[, c("rtmin", "rtmax")]
-    )
-
-    ## get into and maxo values for each peak
-    values_filled <- as.data.frame(setNames(replicate(n = ncol(values) + 2, numeric(), simplify = FALSE), nm = c(names(values), "maxo", "into")))
-
-    for (p in 1:length(peaks_int)) {
-      peak <- peaks_int[[p]]
-      values_filled[p, names(values)] <- values[p, ]
-
-      ## if scans were found for this peak
-      if (nrow(peak) > 0) {
-        ## get rt width
-        rts <- unique(peak$rt)
-        rt_range <- range(peak$rt)
-        rt_width <- (rt_range[2] - rt_range[1]) / length(rts)
-
-        ## get max int for each scan
-        rt_max <- sapply(rts, function(rt) {
-          max(peak[peak$rt == rt, "int"])
-        })
-        maxo <- max(rt_max)
-
-        ## get into integration
-        mz_max <- sapply(unique(peak$mz), function(mz) {
-          max(peak[peak$mz == mz, "int"])
-        })
-        into <- sum(mz_max) * rt_width
-        values_filled[p, c("maxo", "into")] <- c(maxo, into)
-      } else {
-        ## return default values - 0s
-        values_filled[p, c("maxo", "into")] <- 0
+    ## if missing peaks are present for this sample
+    if (nrow(values) > 0) {
+      raw <- readDATA(sname)
+      ## extract intensity of scans corresponding to mz&rt regions for every peak
+      peaks_int <- extractINT(raw,
+        mz = values[, c("mzmin", "mzmax")],
+        rt = values[, c("rtmin", "rtmax")]
+      )
+  
+      ## get into and maxo values for each peak
+      values_filled <- as.data.frame(setNames(replicate(n = ncol(values) + 2, numeric(), simplify = FALSE), nm = c(names(values), "maxo", "into")))
+  
+      for (p in 1:length(peaks_int)) {
+        peak <- peaks_int[[p]]
+        values_filled[p, names(values)] <- values[p, ]
+  
+        ## if scans were found for this peak
+        if (nrow(peak) > 0) {
+          ## get rt width
+          rts <- unique(peak$rt)
+          rt_range <- range(peak$rt)
+          rt_width <- (rt_range[2] - rt_range[1]) / length(rts)
+  
+          ## get max int for each scan
+          rt_max <- sapply(rts, function(rt) {
+            max(peak[peak$rt == rt, "int"])
+          })
+          maxo <- max(rt_max)
+  
+          ## get into integration
+          mz_max <- sapply(unique(peak$mz), function(mz) {
+            max(peak[peak$mz == mz, "int"])
+          })
+          into <- sum(mz_max) * rt_width
+          values_filled[p, c("maxo", "into")] <- c(maxo, into)
+        } else {
+          ## return default values - 0s
+          values_filled[p, c("maxo", "into")] <- 0
+        }
       }
-    }
-
-    ## bind with centWave results
-    ## retain original peakid order in sdata
-    sdata[match(values_filled$peakid, sdata$peakid), colnames(values_filled)] <- values_filled
-
+      ## bind with centWave results
+      ## retain original peakid order in sdata
+      sdata[match(values_filled$peakid, sdata$peakid), colnames(values_filled)] <- values_filled
+  }
     ## cleanup garbage
     gc(verbose = FALSE)
     return(sdata)

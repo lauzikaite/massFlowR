@@ -44,6 +44,7 @@ test_eic_rd <- lapply(1:nrow(test_eic_rd), function(ch) {
 
 ## prepare metadata
 metadata <- data.frame(filename = test_basenames,
+                       is_sr = c(TRUE, TRUE),
                        run_order = 1:2,
                        raw_filepath = test_fnames,
                        proc_filepath = paste0(file.path(data_dir, test_basenames), "_peakgrs.csv"),
@@ -64,6 +65,7 @@ dup_fnames <- paste0(file.path(data_dir, dup_basenames), "_peakgrs.csv")
 write.csv(single_table, dup_fnames[1], quote = F, row.names = FALSE)
 write.csv(single_table, dup_fnames[2], quote = F, row.names = FALSE)
 metadata_dup <- data.frame(filename = dup_basenames,
+                           is_sr = c(TRUE, TRUE),
                            run_order = 1:2, 
                            raw_filepath = rep(test_fnames[1], 2),
                            proc_filepath = dup_fnames
@@ -113,6 +115,7 @@ write.csv(noisy, noisy_fnames[2], quote = F, row.names = FALSE)
 noisy_metadata <-
   data.frame(
     filename = noisy_basenames,
+    is_sr = c(TRUE, TRUE),
     run_order = 1:2,
     raw_filepath = rep(test_fnames[1], 2),
     proc_filepath = noisy_fnames
@@ -129,10 +132,11 @@ large_basenames <- sapply(large_fnames, function(fname) {
 }, USE.NAMES = F)
 ## prepare metadata
 large_metadata <- data.frame(filename = large_basenames,
-                       run_order = 1:length(large_basenames),
-                       raw_filepath = large_fnames,
-                       proc_filepath = paste0(file.path(data_dir, large_basenames), "_peakgrs.csv"),
-                       stringsAsFactors = F)
+                             is_sr = c(TRUE, TRUE),
+                             run_order = 1:length(large_basenames),
+                             raw_filepath = large_fnames,
+                             proc_filepath = paste0(file.path(data_dir, large_basenames), "_peakgrs.csv"),
+                             stringsAsFactors = F)
 write.csv(large_metadata, file.path(data_dir, "metadata_large.csv"), quote = F, row.names = FALSE)
 large_meta_fname <- file.path(data_dir, "metadata_large.csv")
 groupPEAKS(file = large_meta_fname, out_dir = data_dir, cwt = cwt)
@@ -146,3 +150,9 @@ db_fname <- file.path(data_dir, "DBtemplate.csv")
 rt_err <- 10
 mz_err <- 0.01
 bins <- 0.01
+cutoff <- 0.5
+min_samples_prop <- 0.3
+
+## prep for the default 2-core implementation for low-level un-exported functions
+ncores <- 2
+doParallel::registerDoParallel(cores = ncores)

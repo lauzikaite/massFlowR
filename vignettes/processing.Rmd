@@ -21,6 +21,15 @@ references:
     given: noname
 ---
 
+<style>
+pre code, pre, code {
+  white-space: pre !important;
+  overflow-x: scroll !important;
+  word-break: keep-all !important;
+  word-wrap: initial !important;
+}
+</style>
+
 **Package**: [massFlowR](https://github.com/lauzikaite/massFlowR)<br />
 **Authors**: Elzbieta Lauzikaite<br />
 **Date**: `r date()`
@@ -132,11 +141,12 @@ Function `groupPEAKS` processes every LC-MS datafile independently and thus can 
 ## define where processed datafiles should be written
 # out_directory <- "absolute_path_to_output_directory"
 
-## create metadata table with required columns 'filename', 'run_order' and 'raw_filepath'
+## create metadata table with required columns 'filename', 'is_sr', 'run_order' and 'raw_filepath'
 metadata <-
   data.frame(
   filename = gsub(".CDF", "", basename(faahKO_files)),
-  run_order = 1:length(faahKO_files),
+  is_sr = rep(TRUE, length(faahKO_files)), # here we will assume that every file is SR
+  run_order = seq(length(faahKO_files)),
   raw_filepath = faahKO_files,
   stringsAsFactors = FALSE
   )

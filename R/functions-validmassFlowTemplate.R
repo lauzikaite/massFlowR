@@ -16,6 +16,7 @@ validmassFlowTemplate <- function(object) {
   }
   if (nrow(object@samples) > 0) {
     req_cnames <- c("filename",
+                    "is_sr",
                     "run_order",
                     "raw_filepath",
                     "proc_filepath",

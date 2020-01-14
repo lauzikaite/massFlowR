@@ -166,6 +166,8 @@ setMethod("alignPEAKS",
       doi_fname_out <- paste0(file.path(out_dir, doi_name), "_aligned.csv")
       ## check if next peak-group table contains correct columns, if so, read csv
       doi <- checkFILE(file = doi_fname)
+      ## check if next table is SR sample
+      is_sr <- object@samples$is_sr[object@samples$proc_filepath == doi_fname]
       ## status messages
       message(paste(
         length(which(object@samples$aligned == F)),
@@ -200,8 +202,13 @@ setMethod("alignPEAKS",
         doi_var <- doi_to_tmp[[var]]$ds
         doi_var_peaks <- doi[doi$peakgr == doi_var, ]
         tmp_var <- doi_to_tmp[[var]]$tmp
-
+        
+        ## if peak-group was not assigned to tmp
         if (is.null(tmp_var)) {
+          ## if doi is not SR sample, do not add new peak-group
+          if (!is_sr) {
+            next()
+          }
           ## use all peaks in the peak-group
           doi_peakids <- doi_var_peaks$peakid
           ## update tmp: add new peaks under new peakgr, set cos to NA
@@ -213,6 +220,7 @@ setMethod("alignPEAKS",
           utmp$peakgr <- tmp_var
           tmp <- rbind(tmp, utmp)
         } else {
+          ## if peak-group was assigned to tmp
           doi_peakids <- doi_to_tmp[[var]]$mat$target_peakid
           tmp_peakids <- doi_to_tmp[[var]]$mat$peakid
           cos <- doi_to_tmp[[var]]$cos
@@ -563,6 +571,7 @@ setMethod("fillPEAKS",
 
       ## update nsamples
       nsamples <- length(samples_to_fill)
+      samples_left <- nsamples
 
       ## get number of processes across which samples will be divided
       nproc <- ceiling(nsamples / ncores)
@@ -578,7 +587,7 @@ setMethod("fillPEAKS",
         samples_proc_last <- ncores + (iproc * ncores)
         samples_proc_last <- ifelse(samples_proc_last <= nsamples, samples_proc_last, nsamples)
         samples_proc <- samples_to_fill[samples_proc_first:samples_proc_last]
-        message(length(samples_to_fill), " samples left to fill.")
+        message(samples_left, " samples left to fill.")
         message(
           "Filling next ", length(samples_proc), " samples: \n",
           paste0(object@samples$filename[samples_proc], collapse = "\n"),
@@ -603,6 +612,8 @@ setMethod("fillPEAKS",
             error = err$message
           ))
         }))
+        ## update remaining number of samples
+        samples_left <- nsamples - samples_proc_last
       }
 
       ## process results

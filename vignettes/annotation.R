@@ -39,3 +39,10 @@ kableExtra::kable_styling(
 # out_directory <- "path to output directory"
 anno <- buildANNO(ds_file = ds_file, meta_file = meta_file, out_dir = out_directory)
 
+## ----annotateDS------------------------------------------------------------
+anno <- annotateDS(object = anno, db_file = db_file, out_dir = out_directory, mz_err = 0.01, rt_err = 10, ncores = 2)
+
+## ----teardown, message = FALSE, echo = FALSE-------------------------------
+unlink(list.files(path = out_directory, pattern = ".csv", full.names = TRUE))
+unlink(list.files(path = out_directory, pattern = ".RDS", full.names = TRUE))
+
