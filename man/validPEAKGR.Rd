@@ -4,8 +4,7 @@
 \alias{validPEAKGR}
 \title{Validate a peak-group-of-interest by performing a cross-sample Pearson correlation.}
 \usage{
-validPEAKGR(pkg, pkg_ints, out_dir, cor_thr, min_samples_n,
-  save_plot = FALSE)
+validPEAKGR(pkg, pkg_ints, out_dir, cor_thr, min_samples_n, save_plot = FALSE)
 }
 \arguments{
 \item{pkg}{\code{numeric} specifying a peak-group-of-interest.}
