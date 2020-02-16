@@ -16,6 +16,10 @@ test_that("validFILE", {
 test_that("readDATA", {
   raw <- readDATA(test_fname)
   expect_true(class(raw) ==  "OnDiskMSnExp")
+  # suppressMessages({
+  #   raw <- readDATA("not a file")
+  # })
+  # expect_true(is.null(raw))
 })
 
 # cleanPEAKS ------------------------------------------------------------------------------------------------------

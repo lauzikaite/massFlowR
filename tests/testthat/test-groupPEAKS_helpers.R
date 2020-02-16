@@ -1,5 +1,19 @@
 context("helper functions used by groupPEAKS function")
 
+# groupPEAKS_paral --------------------------------------------------------
+test_that("groupPEAKS_paral()", {
+  out <- groupPEAKS_paral(f = meta_fname)
+  expect_true(is.list(out))
+  expect_identical(out$status, "FAILED")
+  
+  ## dummy mzML
+  file.create(paste0(data_dir, "/test.mzML"))
+  out <- groupPEAKS_paral(f = paste0(data_dir, "/test.mzML"))
+  expect_true(is.list(out))
+  expect_identical(out$status, "FAILED")
+  expect_identical(out$error, "readDATA failure")
+})
+
 # pickPEAKS --------------------------------------------------------------------------------------------------------
 test_that("pickPEAKS()", {
   ## are correct peaks returned in the table?
