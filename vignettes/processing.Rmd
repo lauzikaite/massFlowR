@@ -5,7 +5,7 @@ output:
     toc_float: true
     collapsed: false
 vignette: >
-  %\VignetteIndexEntry{Introduction to massFlowR package}
+  %\VignetteIndexEntry{User-guide to massFlowR package}
   %\VignetteEncoding{UTF-8}
   %\VignettePackage{massFlowR}
   %\VignetteKeywords{mass spectrometry, metabolomics}

@@ -6,3 +6,5 @@
 ^NEWS\.md$          # A news file written in Markdown
 ^\.travis\.yml$     # Used for continuous integration testing with travis
 ^.gitignore         # git
+^doc$
+^Meta$

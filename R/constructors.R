@@ -8,6 +8,7 @@
 #' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).
+#' @param realtime \code{logical} whether real-time implementation is required. If set to TRUE, alignment will wait for intermediate peakgroups files to be written.
 #'
 #' @return A \code{massFlowTemplate} class object.
 #'
@@ -17,7 +18,8 @@ buildTMP <-
            out_dir = NULL,
            mz_err = 0.01,
            rt_err = 2,
-           bins = 0.05
+           bins = 0.05,
+           realtime = FALSE
            ) {
     if (is.null(file)) {
       stop("'file' is required")
@@ -41,7 +43,8 @@ buildTMP <-
       params = list(
         mz_err = mz_err,
         rt_err = rt_err,
-        bins = bins
+        bins = bins,
+        realtime = realtime
       )
     )
     if (validmassFlowTemplate(object) != TRUE) {
@@ -97,7 +100,7 @@ buildTMP <-
 #' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).
-#'
+#' @param realtime \code{logical} whether real-time implementation is required. If set to TRUE, alignment will wait for intermediate peakgroups files to be written.
 #' @return A \code{massFlowTemplate} class object.
 #'
 #' @seealso \code{\link{massFlowTemplate}} class.
@@ -109,7 +112,8 @@ loadALIGNED <-
            template = NULL,
            mz_err = 0.01,
            rt_err = 2,
-           bins = 0.05) {
+           bins = 0.05,
+           realtime = FALSE) {
   
     if (is.null(file)) {
       stop("Input 'file' is required")
@@ -165,7 +169,8 @@ loadALIGNED <-
       list(
         mz_err = mz_err,
         rt_err = rt_err,
-        bins = bins
+        bins = bins,
+        realtime = realtime
       )
     object@tmp <- tmp
     

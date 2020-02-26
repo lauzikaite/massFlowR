@@ -132,10 +132,10 @@ setMethod("checkNEXT",
 setMethod("alignPEAKS",
   signature = "massFlowTemplate",
   function(object,
-             out_dir = NULL,
-             ncores = 2,
-             cutoff = 0,
-             write_int = FALSE) {
+           out_dir = NULL,
+           ncores = 2,
+           cutoff = 0,
+           write_int = FALSE) {
     if (!validObject(object)) {
       stop(validObject(object))
     }

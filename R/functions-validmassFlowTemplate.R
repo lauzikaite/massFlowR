@@ -4,7 +4,7 @@
 #' 
 #' @title Validate massFlowTemplate class object
 #' 
-validmassFlowTemplate <- function(object) {
+validmassFlowTemplate <- function(object, realtime = FALSE) {
   msg <- character()
   ####---- basic validity
   if (class(object) != "massFlowTemplate") {
@@ -24,9 +24,15 @@ validmassFlowTemplate <- function(object) {
     if (any(!req_cnames %in% names(object@samples))) {
       msg <- c(msg, paste0("'files' table must contain columns: ", paste0(req_cnames, collapse = ", ")))
     } else {
-    if (any(!file.exists(object@samples$proc_filepath))) {
-      msg <- c(msg, paste0("Column 'proc_filepath' contain incorrect file paths"))
-    }
+      if (object@params$realtime == FALSE) {
+        if (any(!file.exists(object@samples$proc_filepath))) {
+          msg <- c(msg, paste0("Column 'proc_filepath' contains incorrect file paths"))
+        }
+      } else {
+          if (!file.exists(object@samples$proc_filepath[1])) {
+            msg <- c(msg, paste0("Real-time implemenation: column 'proc_filepath' must contain correct file path for the first sample in the study"))
+        }
+      }
     }
   }
   if (nrow(object@tmp) > 0) {

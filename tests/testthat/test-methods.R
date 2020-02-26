@@ -4,9 +4,25 @@ context("methods for massFlowTemplate")
 test_that("basic methods for massFlowTemplate", {
   tmp <- buildTMP(file = meta_fname, out_dir = data_dir)
   expect_true(validmassFlowTemplate(tmp))
+  ## with real-time implementation
+  # temporaly move one of the files away
+  dir.create(file.path(data_dir, "temp"), showWarnings = FALSE)
+  file.rename(from =   metadata$proc_filepath[2],
+              to = file.path(data_dir, "temp", basename(metadata$proc_filepath[2])))
+  # will not fail if realtime set to TRUE
+  tmp <- buildTMP(file = meta_fname, out_dir = data_dir, realtime = TRUE)
+  validmassFlowTemplate(tmp)
   expect_true(filepath(tmp) == meta_fname)
   expect_false(peaksVALIDATED(tmp))
-})
+  
+  # will fail with realtime not set
+  expect_error(buildTMP(file = meta_fname, out_dir = data_dir),
+               regexp = "Column 'proc_filepath' contains incorrect file paths")
+
+  # move the file back
+  file.rename(from =file.path(data_dir, "temp", basename(metadata$proc_filepath[2])),
+              to = metadata$proc_filepath[2])
+  })
 
 
 # checkNEXT ---------------------------------------------------------------------------------------------------
