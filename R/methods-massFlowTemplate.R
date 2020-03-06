@@ -287,15 +287,15 @@ setMethod("alignPEAKS",
         quote = TRUE,
         row.names = FALSE
       )
+      ## (4) overwrite updated meta file with filepaths to aligned samples
+      write.csv(object@samples,
+                aligned_fname,
+                quote = TRUE,
+                row.names = FALSE
+                )
     }
     object@history[length(object@history) + 1] <- "alignPEAKS"
-    ## write updated meta file with filepaths to aligned samples
-    write.csv(object@samples,
-      aligned_fname,
-      quote = TRUE,
-      row.names = FALSE
-    )
-
+    ## stop parallel backend
     if (ncores > 1) {
       foreach::registerDoSEQ()
     }
