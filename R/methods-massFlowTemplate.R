@@ -115,7 +115,6 @@ setMethod("checkNEXT",
 #' @param object \code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.
 #' @param out_dir \code{character} specifying desired directory for output.
 #' @param ncores \code{numeric} for number of parallel workers to be used. Set 1 for serial implementation. Default set to 2.
-#' @param cutoff \code{numeric} for spectra similarity score threshold, set to 0 by default.
 #' @param write_int \code{logical} specifying whether a peak table with alignment results should be saved for every sample.
 #' If TRUE, csv files will be written in the out_dir directory.
 #' Default set to FALSE
@@ -134,7 +133,6 @@ setMethod("alignPEAKS",
   function(object,
            out_dir = NULL,
            ncores = 2,
-           cutoff = 0,
            write_int = FALSE) {
     if (!validObject(object)) {
       stop(validObject(object))
@@ -177,8 +175,18 @@ setMethod("alignPEAKS",
       ))
       message("Aligning to sample: ", doi_name, " ... ")
       ## get most up-to-date template
-      tmp <- object@tmp
-
+      tmp_full <- object@tmp
+      ## retain only those PCS that have been matched in pc_distance samples
+      peakgrs_to_remove <- unique(subset(tmp_full, n_samples > params$qc_distance)$peakgr)
+      tmp_removed <- subset(tmp_full, peakgr %in% peakgrs_to_remove)
+      tmp <- subset(tmp_full, !(peakgr %in% peakgrs_to_remove))
+      max_peakgr <- max(tmp_full$peakgr)
+      max_peakid <- max(tmp_full$peakid)
+      ## update the number of samples in which the PCS have not been detected
+      ## this will be reset for PCS that are matched during the aligment with DOI
+      tmp$n_samples <- tmp$n_samples + 1
+      
+      #### ---- dataset to tmp alignment
       doi_to_tmp <- do_alignPEAKS(
         ds = doi,
         tmp = tmp,
@@ -188,7 +196,7 @@ setMethod("alignPEAKS",
         rt_err = params$rt_err,
         bins = params$bins,
         ncores = ncores,
-        cutoff = cutoff
+        cutoff = params$cutoff
       )
 
       #### ---- update template with aligned doi peak-groups
@@ -205,26 +213,30 @@ setMethod("alignPEAKS",
         
         ## if peak-group was not assigned to tmp
         if (is.null(tmp_var)) {
-          ## if doi is not SR sample, do not add new peak-group
+          ## if doi is not SR sample, do not add a new peak-group
           if (!is_sr) {
             next()
           }
           ## use all peaks in the peak-group
           doi_peakids <- doi_var_peaks$peakid
           ## update tmp: add new peaks under new peakgr, set cos to NA
-          tmp_peakids <- (max(tmp$peakid) + 1):(max(tmp$peakid) + nrow(doi_var_peaks))
-          tmp_var <- max(tmp$peakgr) + 1
+          new_max_peakid <- max_peakid + nrow(doi_var_peaks)
+          tmp_peakids <- (max_peakid + 1):(new_max_peakid)
+          max_peakid <- new_max_peakid
+          tmp_var <- max_peakgr + 1
+          max_peakgr <- tmp_var
           cos <- NA
           utmp <- doi_var_peaks[, c("mz", "rt", "into")]
           utmp$peakid <- tmp_peakids
           utmp$peakgr <- tmp_var
+          utmp$n_samples <- 0
           tmp <- rbind(tmp, utmp)
         } else {
           ## if peak-group was assigned to tmp
           doi_peakids <- doi_to_tmp[[var]]$mat$target_peakid
           tmp_peakids <- doi_to_tmp[[var]]$mat$peakid
           cos <- doi_to_tmp[[var]]$cos
-          ## get mean mz/rt across doi & tmp. Get into values from doi
+          ## get mean mz/rt across doi & tmp (weighted average). Get into values from doi
           new_values <- lapply(1:length(tmp_peakids), function(x) {
             tmp_p <- tmp_peakids[x]
             doi_p <- doi_peakids[x]
@@ -240,14 +252,19 @@ setMethod("alignPEAKS",
           doi_var_peaks <- doi[which(doi$peakgr == doi_var), ]
           doi_var_peaks_un <- doi_var_peaks[!doi_var_peaks$peakid %in% doi_peakids, ]
           if (nrow(doi_var_peaks_un) > 0) {
-            tmp_peakids_new <- (max(tmp$peakid) + 1):(max(tmp$peakid) + nrow(doi_var_peaks_un))
+            new_max_peakid <- max_peakid + nrow(doi_var_peaks_un)
+            tmp_peakids_new <- (max_peakid + 1):(new_max_peakid)
+            max_peakid <- new_max_peakid
             utmp <- doi_var_peaks_un[, c("mz", "rt", "into")]
             utmp$peakid <- tmp_peakids_new
             utmp$peakgr <- tmp_var
+            utmp$n_samples <- 0
             tmp <- rbind(tmp, utmp)
             tmp_peakids <- c(tmp_peakids, tmp_peakids_new)
             doi_peakids <- c(doi_peakids, doi_var_peaks_un$peakid)
           }
+          ## reset the counter of the number of sample in which the PCS was not detected
+          tmp[match(tmp_peakids, tmp$peakid), c("n_samples")] <- 0
         }
         ## update doi-to-tmp matching info
         doi_to_tmp_peakids[unlist(doi_peakids)] <- tmp_peakids
@@ -257,8 +274,13 @@ setMethod("alignPEAKS",
       doi$tmp_peakid <- unlist(doi_to_tmp_peakids)
       doi$tmp_peakgr <- unlist(doi_to_tmp_peakgr)
       doi$cos <- unlist(doi_to_tmp_cos)
-
-      object@tmp <- tmp
+      
+      ## update tmp
+      object@tmp <- rbind(tmp, tmp_removed)
+      if (any(table(object@tmp$peakid) > 1) ) {
+        stop()
+      }
+      
       object@samples[object@samples$proc_filepath == doi_fname, "aligned"] <-
         TRUE
       object@samples[object@samples$proc_filepath == doi_fname, "aligned_filepath"] <-
@@ -299,6 +321,11 @@ setMethod("alignPEAKS",
     if (ncores > 1) {
       foreach::registerDoSEQ()
     }
+    write.csv(object@tmp_full,
+              file = file.path(out_dir, "template_full.csv"),
+              quote = TRUE,
+              row.names = FALSE
+    )
     message("Peaks were aligned across all samples.")
     return(object)
   }

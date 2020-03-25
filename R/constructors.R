@@ -8,6 +8,8 @@
 #' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).
+#' @param cutoff \code{numeric} for spectra similarity score threshold, set to 0 by default.
+#' @param qc_distance \code{numeric} specifying the number of samples in between two QC samples in the experiment (default set to 10).
 #' @param realtime \code{logical} whether real-time implementation is required. If set to TRUE, alignment will wait for intermediate peakgroups files to be written.
 #'
 #' @return A \code{massFlowTemplate} class object.
@@ -19,6 +21,8 @@ buildTMP <-
            mz_err = 0.01,
            rt_err = 2,
            bins = 0.05,
+           cutoff = 0,
+           qc_distance = 10,
            realtime = FALSE
            ) {
     if (is.null(file)) {
@@ -33,7 +37,7 @@ buildTMP <-
     if (!dir.exists(out_dir)) {
       stop("incorrect filepath for 'out_dir' provided")
     }
-    samples <- read.csv(file, header = T, stringsAsFactors = F)
+    samples <- read.csv(file, header = TRUE, stringsAsFactors = FALSE)
     samples[, "aligned"] <- FALSE
     samples[, "aligned_filepath"] <- NA
     object <- new(
@@ -44,6 +48,8 @@ buildTMP <-
         mz_err = mz_err,
         rt_err = rt_err,
         bins = bins,
+        cutoff = cutoff,
+        qc_distance = qc_distance,
         realtime = realtime
       )
     )
@@ -59,13 +65,14 @@ buildTMP <-
     message(paste("Building template using sample:", doi_name, " ..."))
     ## write 1st sample in the standard output format
     doi <- checkFILE(file = doi_fname)
-    doi[, c("tmp_peakid", "tmp_peakgr")] <- doi[, c("peakid", "peakgr")]
-    doi[,c("cos")] <- NA
+    doi[ , c("tmp_peakid", "tmp_peakgr")] <- doi[, c("peakid", "peakgr")]
+    doi[ , "cos"] <- NA
+    doi[ , "n_samples"] <- 0
     write.csv(
       doi,
       file = doi_fname_out,
-      quote = T,
-      row.names = F
+      quote = TRUE,
+      row.names = FALSE
     ) 
     ## build template from 1st sample
     tmp <-
@@ -73,7 +80,8 @@ buildTMP <-
               "mz",
               "rt",
               "into",
-              "peakgr")]
+              "peakgr",
+              "n_samples")]
 
     object@tmp <- tmp
     object@samples[object@samples$run_order == doi_first, "aligned"] <-
@@ -97,10 +105,13 @@ buildTMP <-
 #'
 #' @param file A \code{character} with path to the csv file, specifying samples filenames and their acquisition order.
 #' @param template A \code{character} with path to the csv file with the latest template obtained by \code{alignPEAKS} function.
-#' @param mz_err A \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
-#' @param rt_err A \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
-#' @param bins A \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).
+#' @param mz_err \code{numeric} specifying the window for peak matching in the MZ dimension. Default set to 0.01.
+#' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
+#' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).
+#' @param cutoff \code{numeric} for spectra similarity score threshold, set to 0 by default.
+#' @param qc_distance \code{numeric} specifying the number of samples in between two QC samples in the experiment (default set to 10).
 #' @param realtime \code{logical} whether real-time implementation is required. If set to TRUE, alignment will wait for intermediate peakgroups files to be written.
+#' 
 #' @return A \code{massFlowTemplate} class object.
 #'
 #' @seealso \code{\link{massFlowTemplate}} class.
@@ -113,6 +124,8 @@ loadALIGNED <-
            mz_err = 0.01,
            rt_err = 2,
            bins = 0.05,
+           cutoff = 0,
+           qc_distance = 10,
            realtime = FALSE) {
   
     if (is.null(file)) {
@@ -126,7 +139,7 @@ loadALIGNED <-
                     "raw_filepath",
                     "proc_filepath",
                     "aligned_filepath")
-    samples <- read.csv(file, header = T, stringsAsFactors = F)
+    samples <- read.csv(file, header = TRUE, stringsAsFactors = FALSE)
     if (any(!req_cnames %in% names(samples))) {
       stop("'files' table must contain columns: ", paste0(req_cnames, collapse = ", "))
     }
@@ -136,9 +149,8 @@ loadALIGNED <-
     }
     if (any(!file.exists(samples$aligned_filepath))) {
       warning(
-        "Column 'aligned_filepath' contain incorrect file paths: ",
-        samples$aligned_filepath[!file.exists(samples$aligned_filepath)],
-        "\n ",
+        "Column 'aligned_filepath' contains incorrect file paths: ",
+        paste0(samples$aligned_filepath[!file.exists(samples$aligned_filepath)], sep = "\n"),
         "Only correct 'aligned_filepath' will be loaded."
       )
       ans <- 0
@@ -170,6 +182,8 @@ loadALIGNED <-
         mz_err = mz_err,
         rt_err = rt_err,
         bins = bins,
+        cutoff = cutoff,
+        qc_distance = qc_distance,
         realtime = realtime
       )
     object@tmp <- tmp

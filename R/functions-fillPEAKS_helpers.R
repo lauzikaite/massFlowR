@@ -40,6 +40,10 @@ modelPEAKS <- function(p, vars, object) {
 smoothVALUE <- function(var, x, peak, lambda = 10) {
   y <- peak[, match(var, names(peak))]
   present <- which(!is.na(y))
+  if (length(x[present]) < 4 ) {
+    ## spline will fail with an error message otherwise
+    return(y)
+  }
   mod <- stats::smooth.spline(
     x = x[present],
     y = y[present],
