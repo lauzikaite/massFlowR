@@ -10,6 +10,7 @@ buildTMP(
   mz_err = 0.01,
   rt_err = 2,
   bins = 0.05,
+  cutoff = 0,
   qc_distance = 10,
   realtime = FALSE
 )
@@ -24,6 +25,8 @@ buildTMP(
 \item{rt_err}{\code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).}
 
 \item{bins}{\code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).}
+
+\item{cutoff}{\code{numeric} for spectra similarity score threshold, set to 0 by default.}
 
 \item{qc_distance}{\code{numeric} specifying the number of samples in between two QC samples in the experiment (default set to 10).}
 

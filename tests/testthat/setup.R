@@ -45,6 +45,7 @@ test_eic_rd <- lapply(1:nrow(test_eic_rd), function(ch) {
 ## prepare metadata
 metadata <- data.frame(filename = test_basenames,
                        run_order = 1:2,
+                       is_sr = TRUE,
                        raw_filepath = test_fnames,
                        proc_filepath = paste0(file.path(data_dir, test_basenames), "_peakgrs.csv"),
                        stringsAsFactors = F
@@ -65,6 +66,7 @@ write.csv(single_table, dup_fnames[1], quote = F, row.names = FALSE)
 write.csv(single_table, dup_fnames[2], quote = F, row.names = FALSE)
 metadata_dup <- data.frame(filename = dup_basenames,
                            run_order = 1:2, 
+                           is_sr = TRUE,
                            raw_filepath = rep(test_fnames[1], 2),
                            proc_filepath = dup_fnames
                            )
@@ -114,6 +116,7 @@ noisy_metadata <-
   data.frame(
     filename = noisy_basenames,
     run_order = 1:2,
+    is_sr = TRUE,
     raw_filepath = rep(test_fnames[1], 2),
     proc_filepath = noisy_fnames
   )
@@ -130,6 +133,7 @@ large_basenames <- sapply(large_fnames, function(fname) {
 ## prepare metadata
 large_metadata <- data.frame(filename = large_basenames,
                              run_order = 1:length(large_basenames),
+                             is_sr = TRUE,
                              raw_filepath = large_fnames,
                              proc_filepath = paste0(file.path(data_dir, large_basenames), "_peakgrs.csv"),
                              stringsAsFactors = F)

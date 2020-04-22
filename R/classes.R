@@ -21,7 +21,6 @@
 #' @slot filepath \code{character} specifying the absolute path to a \code{csv} file with study sample names and their acquisition (run) order.
 #' @slot samples \code{data.frame} storing study sample names and their acquisition order.
 #' @slot tmp \code{data.frame} storing sample alignment and annotation template.
-#' @slot tmp_full \code{data.frame} storing full sample alignment and annotation template.
 #' @slot data \code{list} containg annotated and aligned peak tables for the already processed samples.
 #' @slot params \code{list} containg alignment and annotation parameters.
 #' @slot valid \code{data.frame} storing validated sample alignment template with peakids and corresponding Pseudo Chemical Spectra id.
@@ -41,7 +40,6 @@ setClass(
     filepath = "character",
     samples = "data.frame",
     tmp = "data.frame",
-    tmp_full = "data.frame",
     data = "list",
     params = "list",
     valid = "data.frame",

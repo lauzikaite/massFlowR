@@ -4,8 +4,8 @@ setGeneric("peaksVALIDATED", function(object) standardGeneric("peaksVALIDATED"))
 setGeneric("alignPEAKS", function(object, ...) standardGeneric("alignPEAKS"))
 setGeneric("checkNEXT", function(object) standardGeneric("checkNEXT"))
 setGeneric("validPEAKS", function(object, ...) standardGeneric("validPEAKS"))
+setGeneric("joinPEAKS", function(object, ...) standardGeneric("joinPEAKS"))
 setGeneric("fillPEAKS", function(object, ...) standardGeneric("fillPEAKS"))
-setGeneric("adjustBATCH", function(object, ...) standardGeneric("adjustBATCH"))
 
 # massFlowAnno ------------------------------------------------------------
 setGeneric("annotateDS", function(object, db_file, out_dir, ...) standardGeneric("annotateDS"))

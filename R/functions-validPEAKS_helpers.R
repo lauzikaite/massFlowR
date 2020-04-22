@@ -54,10 +54,12 @@ validPEAKGR <-
            min_samples_n,
            save_plot = FALSE
            ) {
+    message(pkg)
     ####---- build correlation network between all peaks in the peak-group ----
-    pkg_cor <- t(utils::combn(unique(pkg_ints$peakid),
-                              2,
-                              simplify = T))
+    # pkg_cor <- t(utils::combn(unique(pkg_ints$peakid),
+    #                           2,
+    #                           simplify = T))
+    pkg_cor <- t(gRbase::combnPrim(x = unique(pkg_ints$peakid), m = 2, simplify = TRUE))
     
     ## weight is the correlation coefficient
     weight <- apply(
@@ -85,7 +87,7 @@ validPEAKGR <-
     ## split peaks into new peak-groups according to communities
     pkg_ints$new_peakgr <-
       sapply(pkg_ints$peakid, function(peakid) {
-        pkg_coms[[match(peakid, names(pkg_coms))]]
+        pkg_coms[[match(peakid, as.numeric(names(pkg_coms)))]]
       })
 
     ####---- extract intensity data for each detected community and return as a list of data frames ----

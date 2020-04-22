@@ -48,8 +48,6 @@ Alignment results are stored in slot @data for each sample separately.
 
 \item{\code{tmp}}{\code{data.frame} storing sample alignment and annotation template.}
 
-\item{\code{tmp_full}}{\code{data.frame} storing full sample alignment and annotation template.}
-
 \item{\code{data}}{\code{list} containg annotated and aligned peak tables for the already processed samples.}
 
 \item{\code{params}}{\code{list} containg alignment and annotation parameters.}

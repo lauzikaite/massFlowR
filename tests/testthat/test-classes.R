@@ -22,7 +22,7 @@ test_that("initialise massFlowTemplate class object using default parameters", {
 # loadALIGNED------------------------------------------------------------------------------------------------------
 test_that("create massFlowTemplate class object and fill it with aligned samples", {
   tmp <- buildTMP(file = meta_fname, out_dir = data_dir, rt_err = rt_err)
-  tmp <- alignPEAKS(tmp, out_dir = data_dir, write_int = F)
+  tmp <- alignPEAKS(tmp, out_dir = data_dir)
   tmp <- loadALIGNED(file = file.path(data_dir, "aligned.csv"),
                      template = file.path(data_dir, "template.csv"),
                      rt_err = rt_err)
