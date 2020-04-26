@@ -1,6 +1,4 @@
 Meta/
-doc/*.Rmd
-doc/*.R
 *~
 *.pdf
 *.Rproj
@@ -8,3 +6,4 @@ doc/*.R
 .Rhistory
 .RData
 Meta
+inst/doc

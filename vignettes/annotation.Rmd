@@ -43,8 +43,8 @@ db_file <- "../inst/testdata/database.csv"
 ds_file <- "../inst/testdata/filled_intensity_data.csv"
 meta_file <- "../inst/testdata/metadata.csv"
 out_directory <- getwd()
-massFlowR_url <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/massFlowR.html"
-processing_url <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/processing.html"
+massFlowR_url <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/vignettes/massFlowR.html"
+processing_url <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/vignettes/processing.html"
 ```
 
 

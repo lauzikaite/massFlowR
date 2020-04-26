@@ -14,8 +14,8 @@ options(kpb.suppress_noninteractive = TRUE)
 ## load libraries quietly to avoid printing messages in the vignette
 suppressWarnings(library(massFlowR))
 out_directory <- getwd()
-url_p <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/processing.html"
-url_a <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/doc/annotation.html"
+url_p <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/vignettes/processing.html"
+url_a <- "https://htmlpreview.github.io/?https://github.com/lauzikaite/massFlowR/blob/master/vignettes/annotation.html"
 
 ## ---- out.width = "700px", echo = FALSE---------------------------------------
 knitr::include_graphics("../man/figures/scheme.png")
