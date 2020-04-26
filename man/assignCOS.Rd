@@ -18,7 +18,7 @@ Function returns a \code{matrix} of the same dimensions.
 Peak-groups which should be grouped/aligned into one are marked with TRUE in the output matrix.
 }
 \description{
-Maximise peak-groups assignment by selecting highest-scoring match for each peak-group in the template.
+Each peak-group in the dataset is assigned to the highest-scoring template peak-groups.
 }
 \details{
 Function is used for peak-group alignment by \code{\link{alignPEAKS}} method and for automatic annotation on \code{\link{massFlowAnno-class}} object.

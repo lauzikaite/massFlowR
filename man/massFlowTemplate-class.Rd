@@ -18,6 +18,8 @@ validmassFlowTemplate(object, realtime = FALSE)
 }
 \arguments{
 \item{object}{\code{massFlowTemplate} class object}
+
+\item{realtime}{\code{logical}}
 }
 \value{
 Method returns filename to be processed next.
@@ -47,8 +49,6 @@ Alignment results are stored in slot @data for each sample separately.
 \item{\code{samples}}{\code{data.frame} storing study sample names and their acquisition order.}
 
 \item{\code{tmp}}{\code{data.frame} storing sample alignment and annotation template.}
-
-\item{\code{tmp_full}}{\code{data.frame} storing full sample alignment and annotation template.}
 
 \item{\code{data}}{\code{list} containg annotated and aligned peak tables for the already processed samples.}
 

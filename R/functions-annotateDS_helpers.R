@@ -16,7 +16,7 @@ mirrorSPECTRAanno <- function(dat, gg_title) {
         ## make top spectra: DB chemid is the same in every facet
         ggplot2::geom_segment(
           data = subset(dat, !is.na(chemid)),
-          ggplot2::aes(x = mz, xend = mz, y = 0, yend = into_scaled),
+          ggplot2::aes_string(x = "mz", xend = "mz", y = 0, yend = "into_scaled"),
           color = "black",
           size = 1, na.rm = TRUE
         ) +

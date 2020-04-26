@@ -5,7 +5,7 @@
 \alias{alignPEAKS}
 \title{Align peaks detected in LC-MS samples using spectral similarity comparison}
 \usage{
-\S4method{alignPEAKS}{massFlowTemplate}(object, out_dir = NULL, ncores = 2, cutoff = 0, write_int = FALSE)
+\S4method{alignPEAKS}{massFlowTemplate}(object, out_dir = NULL, ncores = 2, write_int = FALSE)
 }
 \arguments{
 \item{object}{\code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.}
@@ -13,8 +13,6 @@
 \item{out_dir}{\code{character} specifying desired directory for output.}
 
 \item{ncores}{\code{numeric} for number of parallel workers to be used. Set 1 for serial implementation. Default set to 2.}
-
-\item{cutoff}{\code{numeric} for spectra similarity score threshold, set to 0 by default.}
 
 \item{write_int}{\code{logical} specifying whether a peak table with alignment results should be saved for every sample.
 If TRUE, csv files will be written in the out_dir directory.

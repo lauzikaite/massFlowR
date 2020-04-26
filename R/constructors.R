@@ -9,7 +9,6 @@
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).
 #' @param cutoff \code{numeric} for spectra similarity score threshold, set to 0 by default.
-#' @param qc_distance \code{numeric} specifying the number of samples in between two QC samples in the experiment (default set to 10).
 #' @param realtime \code{logical} whether real-time implementation is required. If set to TRUE, alignment will wait for intermediate peakgroups files to be written.
 #'
 #' @return A \code{massFlowTemplate} class object.
@@ -22,7 +21,6 @@ buildTMP <-
            rt_err = 2,
            bins = 0.05,
            cutoff = 0,
-           qc_distance = 10,
            realtime = FALSE
            ) {
     if (is.null(file)) {
@@ -49,7 +47,6 @@ buildTMP <-
         rt_err = rt_err,
         bins = bins,
         cutoff = cutoff,
-        qc_distance = qc_distance,
         realtime = realtime
       )
     )
@@ -67,7 +64,6 @@ buildTMP <-
     doi <- checkFILE(file = doi_fname)
     doi[ , c("tmp_peakid", "tmp_peakgr")] <- doi[, c("peakid", "peakgr")]
     doi[ , "cos"] <- NA
-    doi[ , "n_samples"] <- 0
     write.csv(
       doi,
       file = doi_fname_out,
@@ -80,8 +76,7 @@ buildTMP <-
               "mz",
               "rt",
               "into",
-              "peakgr",
-              "n_samples")]
+              "peakgr")]
 
     object@tmp <- tmp
     object@samples[object@samples$run_order == doi_first, "aligned"] <-
@@ -109,7 +104,6 @@ buildTMP <-
 #' @param rt_err \code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).
 #' @param bins \code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).
 #' @param cutoff \code{numeric} for spectra similarity score threshold, set to 0 by default.
-#' @param qc_distance \code{numeric} specifying the number of samples in between two QC samples in the experiment (default set to 10).
 #' @param realtime \code{logical} whether real-time implementation is required. If set to TRUE, alignment will wait for intermediate peakgroups files to be written.
 #' 
 #' @return A \code{massFlowTemplate} class object.
@@ -125,7 +119,6 @@ loadALIGNED <-
            rt_err = 2,
            bins = 0.05,
            cutoff = 0,
-           qc_distance = 10,
            realtime = FALSE) {
   
     if (is.null(file)) {
@@ -170,7 +163,7 @@ loadALIGNED <-
     }
     ## extract only already aligned samples from the provided file list
     samples_aligned <- which(file.exists(samples$aligned_filepath))
-    tmp <- read.csv(template, header = T, stringsAsFactors = F)
+    tmp <- read.csv(template, header = TRUE, stringsAsFactors = FALSE)
     
     object <- new("massFlowTemplate")
     object@filepath <- file
@@ -183,7 +176,6 @@ loadALIGNED <-
         rt_err = rt_err,
         bins = bins,
         cutoff = cutoff,
-        qc_distance = qc_distance,
         realtime = realtime
       )
     object@tmp <- tmp

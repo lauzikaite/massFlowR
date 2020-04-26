@@ -4,6 +4,8 @@
 #' 
 #' @title Validate massFlowTemplate class object
 #' 
+#' @param realtime \code{logical}
+#' 
 validmassFlowTemplate <- function(object, realtime = FALSE) {
   msg <- character()
   ####---- basic validity

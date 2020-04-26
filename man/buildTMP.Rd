@@ -10,7 +10,7 @@ buildTMP(
   mz_err = 0.01,
   rt_err = 2,
   bins = 0.05,
-  qc_distance = 10,
+  cutoff = 0,
   realtime = FALSE
 )
 }
@@ -25,7 +25,7 @@ buildTMP(
 
 \item{bins}{\code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).}
 
-\item{qc_distance}{\code{numeric} specifying the number of samples in between two QC samples in the experiment (default set to 10).}
+\item{cutoff}{\code{numeric} for spectra similarity score threshold, set to 0 by default.}
 
 \item{realtime}{\code{logical} whether real-time implementation is required. If set to TRUE, alignment will wait for intermediate peakgroups files to be written.}
 }

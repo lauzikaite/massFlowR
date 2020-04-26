@@ -164,8 +164,6 @@ setMethod("alignPEAKS",
       doi_fname_out <- paste0(file.path(out_dir, doi_name), "_aligned.csv")
       ## check if next peak-group table contains correct columns, if so, read csv
       doi <- checkFILE(file = doi_fname)
-      ## check if next table is SR sample
-      is_sr <- object@samples$is_sr[object@samples$proc_filepath == doi_fname]
       ## status messages
       message(paste(
         length(which(object@samples$aligned == F)),
@@ -175,16 +173,7 @@ setMethod("alignPEAKS",
       ))
       message("Aligning to sample: ", doi_name, " ... ")
       ## get most up-to-date template
-      tmp_full <- object@tmp
-      ## retain only those PCS that have been matched in pc_distance samples
-      peakgrs_to_remove <- unique(subset(tmp_full, n_samples > params$qc_distance)$peakgr)
-      tmp_removed <- subset(tmp_full, peakgr %in% peakgrs_to_remove)
-      tmp <- subset(tmp_full, !(peakgr %in% peakgrs_to_remove))
-      max_peakgr <- max(tmp_full$peakgr)
-      max_peakid <- max(tmp_full$peakid)
-      ## update the number of samples in which the PCS have not been detected
-      ## this will be reset for PCS that are matched during the aligment with DOI
-      tmp$n_samples <- tmp$n_samples + 1
+      tmp <- object@tmp
       
       #### ---- dataset to tmp alignment
       doi_to_tmp <- do_alignPEAKS(
@@ -213,30 +202,21 @@ setMethod("alignPEAKS",
         
         ## if peak-group was not assigned to tmp
         if (is.null(tmp_var)) {
-          ## if doi is not SR sample, do not add a new peak-group
-          if (!is_sr) {
-            next()
-          }
           ## use all peaks in the peak-group
           doi_peakids <- doi_var_peaks$peakid
           ## update tmp: add new peaks under new peakgr, set cos to NA
-          new_max_peakid <- max_peakid + nrow(doi_var_peaks)
-          tmp_peakids <- (max_peakid + 1):(new_max_peakid)
-          max_peakid <- new_max_peakid
-          tmp_var <- max_peakgr + 1
-          max_peakgr <- tmp_var
+          tmp_peakids <- (max(tmp$peakid) + 1):(max(tmp$peakid) + nrow(doi_var_peaks))
+          tmp_var <- max(tmp$peakgr) + 1
           cos <- NA
           utmp <- doi_var_peaks[, c("mz", "rt", "into")]
           utmp$peakid <- tmp_peakids
           utmp$peakgr <- tmp_var
-          utmp$n_samples <- 0
           tmp <- rbind(tmp, utmp)
         } else {
-          ## if peak-group was assigned to tmp
           doi_peakids <- doi_to_tmp[[var]]$mat$target_peakid
           tmp_peakids <- doi_to_tmp[[var]]$mat$peakid
           cos <- doi_to_tmp[[var]]$cos
-          ## get mean mz/rt across doi & tmp (weighted average). Get into values from doi
+          ## get mean mz/rt across doi & tmp. Get into values from doi
           new_values <- lapply(1:length(tmp_peakids), function(x) {
             tmp_p <- tmp_peakids[x]
             doi_p <- doi_peakids[x]
@@ -252,19 +232,14 @@ setMethod("alignPEAKS",
           doi_var_peaks <- doi[which(doi$peakgr == doi_var), ]
           doi_var_peaks_un <- doi_var_peaks[!doi_var_peaks$peakid %in% doi_peakids, ]
           if (nrow(doi_var_peaks_un) > 0) {
-            new_max_peakid <- max_peakid + nrow(doi_var_peaks_un)
-            tmp_peakids_new <- (max_peakid + 1):(new_max_peakid)
-            max_peakid <- new_max_peakid
+            tmp_peakids_new <- (max(tmp$peakid) + 1):(max(tmp$peakid) + nrow(doi_var_peaks_un))
             utmp <- doi_var_peaks_un[, c("mz", "rt", "into")]
             utmp$peakid <- tmp_peakids_new
             utmp$peakgr <- tmp_var
-            utmp$n_samples <- 0
             tmp <- rbind(tmp, utmp)
             tmp_peakids <- c(tmp_peakids, tmp_peakids_new)
             doi_peakids <- c(doi_peakids, doi_var_peaks_un$peakid)
           }
-          ## reset the counter of the number of sample in which the PCS was not detected
-          tmp[match(tmp_peakids, tmp$peakid), c("n_samples")] <- 0
         }
         ## update doi-to-tmp matching info
         doi_to_tmp_peakids[unlist(doi_peakids)] <- tmp_peakids
@@ -275,18 +250,13 @@ setMethod("alignPEAKS",
       doi$tmp_peakgr <- unlist(doi_to_tmp_peakgr)
       doi$cos <- unlist(doi_to_tmp_cos)
       
-      ## update tmp
-      object@tmp <- rbind(tmp, tmp_removed)
-      if (any(table(object@tmp$peakid) > 1) ) {
-        stop()
-      }
-      
+      object@tmp <- tmp
       object@samples[object@samples$proc_filepath == doi_fname, "aligned"] <-
         TRUE
       object@samples[object@samples$proc_filepath == doi_fname, "aligned_filepath"] <-
         doi_fname_out
       object@data[[doi_name]] <- doi
-
+      
       ## (1) write aligned doi table
       write.csv(
         doi,
@@ -321,11 +291,6 @@ setMethod("alignPEAKS",
     if (ncores > 1) {
       foreach::registerDoSEQ()
     }
-    write.csv(object@tmp_full,
-              file = file.path(out_dir, "template_full.csv"),
-              quote = TRUE,
-              row.names = FALSE
-    )
     message("Peaks were aligned across all samples.")
     return(object)
   }
@@ -385,9 +350,6 @@ setMethod("validPEAKS",
       pkg = pkg,
       object = object
     ))
-    # saveRDS(peakgrs_ints, file = paste0(out_dir, "/peakgrs_ints.RDS"))
-    # saveRDS(object, file = paste0(out_dir, "/object.RDS"))
-
     ## validate peak-groups by sample intensity correlation network
     ## in case validation is run before full alignment of the study, adjust sample n
     samples <-
@@ -418,8 +380,6 @@ setMethod("validPEAKS",
         cor_thr = cor_thr
       )
     )
-    # saveRDS(peakgrs_split, file = paste0(out_dir, "/peakgrs_split.RDS"))
-
     ## retain only communities with > 1 peak
     final_tmp <-
       extractCOMMUNITIES(peakgrs_split = peakgrs_split)
@@ -691,147 +651,5 @@ setMethod("fillPEAKS",
       message("All peak-groups were succesfully filled")
       return(object)
     }
-  }
-)
-
-# adjustBATCH -------------------------------------------------------------
-#' @aliases adjustBATCH
-#'
-#' @title adjustBATCH
-#'
-#' @description Development mode.
-#' Method adjusts retention time between two analytical batches using a set of features for which regions of integration (ROI) in \emph{mz}, \emph{rt} and \emph{into} domains are specified by the user.
-#'
-#' @param object \code{massFlowTemplate} class object.
-#' @param out_dir \code{character} specifying desired directory for output.
-#' @param batch_end \code{character} with filename of the last sample in batch No 1.
-#' @param batch_start \code{character} with filename of the first sample in batch No 2.
-#' @param batch_next_metadata \code{character} with path to metadata file for batch No 2.
-#' @param batch_end_roi \code{character} with path to csv file with regions of integrations for the last sample in batch No 1.
-#' @param batch_start_roi \code{character} with path to csv file with regions of integrations for the first sample in batch No 2.
-#'
-#' @return Method returns \code{massFlowTemplate} class object with updated template, such that \emph{rt} of the features are adjusted according to the observed batch-change effect.
-#'
-#' @export
-#'
-setMethod("adjustBATCH",
-  signature = "massFlowTemplate",
-  function(object,
-             out_dir = NULL,
-             batch_end = NULL,
-             batch_start = NULL,
-             batch_next_metadata = NULL,
-             batch_end_roi = NULL,
-             batch_start_roi = NULL) {
-    if (!validObject(object)) {
-      stop(validObject(object))
-    }
-    # if (!peaksVALIDATED(object)) {
-    #   stop("object must be validated first")
-    # }
-    if (any(is.null(out_dir) |
-      is.null(batch_end) |
-      is.null(batch_start) |
-      is.null(batch_next_metadata) |
-      is.null(batch_end_roi) |
-      is.null(batch_start_roi))) {
-      stop("check your arguments")
-    }
-    if (!dir.exists(out_dir)) {
-      stop("incorrect filepath for 'out_dir' provided")
-    }
-    params <- object@params
-    ## load and check provided reference compounds tables
-    roi_end <-
-      read.csv(batch_end_roi,
-        header = TRUE,
-        stringsAsFactors = FALSE
-      )
-    roi_start <-
-      read.csv(batch_start_roi,
-        header = TRUE,
-        stringsAsFactors = FALSE
-      )
-    if (nrow(roi_end) != nrow(roi_start)) {
-      stop("provided reference compounds integration tables are inconsistent")
-    }
-    ## load metadata of the next batch
-    next_samples <- read.csv(batch_next_metadata, header = TRUE, stringsAsFactors = FALSE)
-
-    ## final template with all valid peaks
-    # val_pks <- object@valid # validated peaks
-    val_pks <- object@tmp # fix for simulated data
-
-    ## load peak tables for the end of the current batch and start of the next batch samples
-    data_end <-
-      object@data[[which(object@samples$filename == batch_end)]] # batch end sample - user selected file
-    # data_end <- object@data[[94]] # lazy fix for devset
-    data_start <-
-      read.csv(next_samples$proc_filepath[which(next_samples$filename == batch_start)],
-        header = TRUE,
-        stringsAsFactors = FALSE
-      ) # starting sample of the next batch
-    rt_difs <- lapply(
-      1:nrow(roi_end),
-      FUN = checkCOMPOUND,
-      val_pks = val_pks,
-      roi_end = roi_end,
-      roi_start = roi_start,
-      data_end = data_end,
-      data_start = data_start
-    )
-    if (length(unlist(rt_difs)) <= 3) {
-      ans <- 0
-      while (ans < 1) {
-        ans <- readline(
-          paste0(
-            "Peaks corresponding to provided reference compounds: ",
-            length(unlist(rt_difs)),
-            "\n",
-            "Do you wish to proceed with batch adjustion? Enter Y/N "
-          )
-        )
-        ## catch if input is N/n
-        ans <- ifelse((grepl("N", ans) | grepl("n", ans)),
-          2, 1
-        )
-        if (ans == 2) {
-          stop("method was stopped.")
-        }
-      }
-    }
-    ## prepare template for next batch:
-    ## (1) extract validated peaks
-    ## (2) adjust their rt values
-    tmp <- object@tmp
-    tmp <- tmp[match(val_pks$peakid, tmp$peakid), ]
-    ## version A - median of rt differences
-    rt_dif <- median(unlist(rt_difs))
-
-    ## version B - model rt change
-    graphics::plot(roi_end$rt, unlist(lapply(rt_difs, function(x) {
-      ifelse(is.null(x), NA, x)
-    })))
-
-    tmp$rt <- tmp$rt + rt_dif
-
-    ## create new object for the next batch, which will replace current object
-    next_samples[, "aligned"] <- FALSE
-    next_samples[, "aligned_filepath"] <- NA
-    next_object <- new(
-      "massFlowTemplate",
-      filepath = batch_next_metadata,
-      samples = next_samples,
-      tmp = tmp,
-      params = list(
-        mz_err = params$mz_err,
-        rt_err = params$rt_err,
-        bins = params$bins
-      )
-    )
-    if (validmassFlowTemplate(next_object) != TRUE) {
-      stop(validmassFlowTemplate(next_object))
-    }
-    return(next_object)
   }
 )

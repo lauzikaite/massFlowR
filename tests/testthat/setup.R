@@ -137,9 +137,6 @@ write.csv(large_metadata, file.path(data_dir, "metadata_large.csv"), quote = F, 
 large_meta_fname <- file.path(data_dir, "metadata_large.csv")
 groupPEAKS(file = large_meta_fname, out_dir = data_dir, cwt = cwt)
 
-# Real-time implementation ------------------------------------------------
-
-
 # other vars -----------------------------------------------------------------------------------------------------
 ## list db template
 ## template includes three first peak-groups of sample wt15
@@ -155,3 +152,9 @@ min_samples_prop <- 0.3
 ## prep for the default 2-core implementation for low-level un-exported functions
 ncores <- 2
 doParallel::registerDoParallel(cores = ncores)
+
+# massFlowAnno ------------------------------------------------------------
+# anno_dir <- file.path(system.file(package = "massFlowR"), "testdata/")
+# db_file <- file.path(anno_dir, "database.csv")
+# ds_file <- file.path(anno_dir, "devset_filled_intensity_data.csv")
+# meta_file <- file.path(anno_dir, "metadata.csv")

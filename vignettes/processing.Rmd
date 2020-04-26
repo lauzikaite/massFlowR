@@ -141,11 +141,10 @@ Function `groupPEAKS` processes every LC-MS datafile independently and thus can 
 ## define where processed datafiles should be written
 # out_directory <- "absolute_path_to_output_directory"
 
-## create metadata table with required columns 'filename', 'is_sr', 'run_order' and 'raw_filepath'
+## create metadata table with required columns 'filename', 'run_order' and 'raw_filepath'
 metadata <-
   data.frame(
   filename = gsub(".CDF", "", basename(faahKO_files)),
-  is_sr = rep(TRUE, length(faahKO_files)), # here we will assume that every file is SR
   run_order = seq(length(faahKO_files)),
   raw_filepath = faahKO_files,
   stringsAsFactors = FALSE
@@ -217,10 +216,12 @@ kableExtra::kable_styling(
 
 To initiate peak alignment, use function `buildTMP`, which constructs a `massFlowTemplate`class object. `massFlowTemplate` object stores sample alignment and annotation data and is updated with every sample. Define the desired error window for *m/z* and *rt* (seconds) values, which will be used for the whole experiment. `mz_err = 0.01` and `rt_err = 2` are recommended for high-resolution UPLC-MS data. `mz_err = 0.01` and `rt_err = 10` are suitable for the `faahKO`package data.
 
+Desired spectral similarity threshold can be selected with *cutoff* parameter (0-1, with 1 being perfectly identical). `cutoff = 0.5` is recommended for high-resolution UPLC-MS data
+
 
 ```{r buildTMP}
 ## initiate template
-template <- buildTMP(file = file.path(out_directory, "metadata_grouped.csv"), out_dir = out_directory, mz_err = 0.01, rt_err = 10)
+template <- buildTMP(file = file.path(out_directory, "metadata_grouped.csv"), out_dir = out_directory, mz_err = 0.01, rt_err = 10, cutoff = 0.5)
 ```
 
 
@@ -266,7 +267,7 @@ kableExtra::kable_styling(
 
 To align peaks across all samples in the study, apply method `alignPEAKS`. `alignPEAKS` updates the `massFlowTemplate` object:
 
-1. Selects next sample to be aligned and checks whether it was already peak-picked and grouped (waits until the corresponding csv file is written).
+1. Selects next sample to be aligned and checks whether it was already peak-picked and grouped (waits until the corresponding csv file is written, [see](#realtime-implementation)).
 2. Matches every peak in the sample against the template.
 3. Selects best matches using spectral similarity comparison.
 3. Updates template with sample's peaks: adds new and averages matching peaks.
@@ -300,6 +301,45 @@ kableExtra::kable_styling(
 ```
 
 
+## Alignment re-initiation
+
+
+If alignment was stopped before all samples in the experiment could be aligned (for example, because of a computer issue), alignmment can be re-initiated by loading the samples that had already been processed. Function `loadALIGNED` requires the absolute paths to the updated metadata file and the final template writen by `alignPEAKS`. Note that same parameters must be provided as for the `buildTMP` function. 
+
+
+```{r loadALIGNED1}
+## get the absolute paths to the updated metadata file and the final template writen by "alignPEAKS" 
+m_file <- file.path(out_directory, "aligned.csv")
+tmp_file <- file.path(out_directory, "template.csv")
+
+## load already aligned samples into a massFlowTemplate object
+template <- loadALIGNED(file = m_file, template = tmp_file, mz_err = 0.01, rt_err = 10, cutoff = 0.5)
+```
+
+
+```{r loadALIGNED2}
+## if some of the samples in the experiment have not been aligned yet, re-start alignment
+template@samples$aligned
+```
+
+
+```{r loadALIGNED3}
+if (any(template@samples$aligned == FALSE)) {
+  template <- alignPEAKS(template, out_dir = out_directory, ncores = 2)
+}
+```
+
+## Realtime implementation
+
+Sample alignment can be performed in real-time during data acquisition by setting the `buildTMP` function parameter to `realtime = TRUE`. The function will wait for the intermediate peak-groups csv files to be written instead of stopping when a file that does not exist is encountered. Make sure, however, that correct filepaths are provided in the metadata csv file's column `proc_filepath`. 
+
+
+```{r realtime, eval = FALSE}
+template <- buildTMP(file = file.path(out_directory, "metadata_grouped.csv"), out_dir = out_directory, mz_err = 0.01, rt_err = 10, cutoff = 0.5, realtime = TRUE)
+template <- alignPEAKS(template, out_dir = out_directory, ncores = 2)
+```
+
+
 # Alignment validation
 
 
@@ -307,8 +347,7 @@ Once peaks are aligned across all samples, the obtained peak-groups are validate
 
 Each peak-group is a *pseudo chemical spectra* (PCS), which comprised peaks exhibiting consistent behaviour across samples. 
 
-To enable alignment validation, a metadata table and final template file that both were written by the `alignPEAKS` function in the selected directory, must be used. A `massFlowTemplate`class object is first created. 
-
+To enable alignment validation, a metadata table and final template file that both were written by the `alignPEAKS` function in the selected directory, must be used. A `massFlowTemplate`class object, returned by the `alignPEAKS` function will be needed. If alignment validation will be performed in a new R session, re-initiate the `massFlowTemplate`class objec using `loadALIGNED` function as before. 
 
 ```{r loadALIGNED}
 ## get the absolute paths to the updated metadata file and the final template writen by "alignPEAKS" 
@@ -316,7 +355,7 @@ m_file <- file.path(out_directory, "aligned.csv")
 tmp_file <- file.path(out_directory, "template.csv")
 
 ## initiate validation by first loading aligned samples into a massFlowTemplate object
-template <- loadALIGNED(file = m_file, template = tmp_file, rt_err = 10)
+template <- loadALIGNED(file = m_file, template = tmp_file)
 ```
 
 
