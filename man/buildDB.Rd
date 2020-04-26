@@ -4,8 +4,7 @@
 \alias{buildDB}
 \title{Build a chemical reference database table using rda files}
 \usage{
-buildDB(rda_dir = NULL, out_dir = NULL, peakgr_thr = 0,
-  compound_thr = 0)
+buildDB(rda_dir = NULL, out_dir = NULL, peakgr_thr = 0, compound_thr = 0)
 }
 \arguments{
 \item{rda_dir}{\code{character} with absolute path to the directory with rda files.}

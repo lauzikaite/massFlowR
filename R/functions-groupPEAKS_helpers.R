@@ -13,20 +13,27 @@
 #'
 #' @return Function returns a list with filename, status and error message (deafult is NULL, gets overwritten by tryCatch is function fails).
 #' 
+#' @export
+#' 
 groupPEAKS_paral <- function(f, out_dir, cwt, thr) {
   fname <- strsplit(basename(f), split = "[.]")[[1]][1]
   
-  if (validFILE(f) == TRUE) {
-    raw <- readDATA(f = f)
-    pks <- pickPEAKS(raw = raw, cwt = cwt, fname = fname)
-    eic <- extractEIC(raw = raw, pks = pks)
-    do_groupPEAKS(pks = pks, eic = eic, out_dir = out_dir, fname = fname, thr = thr)
-    result <- list(fname = fname, status = "DONE", error = NULL)
+  ## check is raw file is valid
+  if (validFILE(f = f) != TRUE) {
+    return(list(fname = fname, status = "FAILED", error = validFILE(f)))
   } else {
-    result <- list(fname = fname, status = "FAILED", error = validFILE(f))
-  }
-  gc(verbose = FALSE)
-  return(result)
+    ## check is raw file can be loaded
+    raw <- readDATA(f = f)
+    if (is.null(raw)) {
+      return(list(fname = fname, status = "FAILED", error = "readDATA failure"))
+    } else {
+      pks <- pickPEAKS(raw = raw, cwt = cwt, fname = fname)
+      eic <- extractEIC(raw = raw, pks = pks)
+      do_groupPEAKS(pks = pks, eic = eic, out_dir = out_dir, fname = fname, thr = thr)
+      gc(verbose = FALSE)
+      return(list(fname = fname, status = "DONE", error = NULL))
+    }
+  } 
 }
 
 

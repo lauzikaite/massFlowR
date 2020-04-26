@@ -10,7 +10,7 @@
 \alias{checkNEXT,massFlowTemplate-method}
 \title{massFlowTemplate, a class for sample alignment and annotation}
 \usage{
-validmassFlowTemplate(object)
+validmassFlowTemplate(object, realtime = FALSE)
 
 \S4method{show}{massFlowTemplate}(object)
 
@@ -18,6 +18,8 @@ validmassFlowTemplate(object)
 }
 \arguments{
 \item{object}{\code{massFlowTemplate} class object}
+
+\item{realtime}{\code{logical}}
 }
 \value{
 Method returns filename to be processed next.

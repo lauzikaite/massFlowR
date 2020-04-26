@@ -58,8 +58,8 @@ test_that("corPEAKS correlates peaks' intensities across samples", {
   peak_1to3_ints <- single_table[single_table$peakgr == 1, "into"]
   samples <- data.frame(peakid = 1:3,
                         into = c(peak_1to3_ints,
-                                 peak_1to3_ints - rnorm(3, mean = 100, sd = 20),
-                                 peak_1to3_ints - rnorm(3, mean = 100, sd = 20)),
+                                 peak_1to3_ints - rnorm(1, mean = 100, sd = 20),
+                                 peak_1to3_ints + rnorm(1, mean = 100, sd = 20)),
                         run_order = rep(1:3, each = 3))
   samples_cor <- t(utils::combn(unique(samples$peakid), 2, simplify = T))
   weight <- apply(
@@ -70,7 +70,7 @@ test_that("corPEAKS correlates peaks' intensities across samples", {
     min_samples_n = 0
   )
   expect_true(length(weight) == 3) # 3 peak-peak combinations are posible between 3 peaks
-  expect_true(all(weight > 0.8))
+  expect_true(all(weight == 1))
   expect_true(class(weight) == "numeric")
   
   ## create dummy table with intensities for 3 peaks across 10 samples:
@@ -80,7 +80,7 @@ test_that("corPEAKS correlates peaks' intensities across samples", {
   samples <- rbind(samples,
                    data.frame(
                      peakid = 4,
-                     into = c(200, 250, 300),
+                     into = peak_1to3_ints,
                      run_order = 1:3)
                    )
   samples_cor <- t(utils::combn(unique(samples$peakid), 2, simplify = T))

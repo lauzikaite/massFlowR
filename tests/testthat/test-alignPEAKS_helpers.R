@@ -33,7 +33,7 @@ test_that("Checking grouped peaks csv tables via checkFILE is correct", {
 
 # do_alignPEAKS -----------------------------------------------------------
 test_that("do_alignPEAKS() returns correct output ", {
-  do_alignPEAKS_out <- do_alignPEAKS(ds = single_table, tmp = single_table, ds_var_name = "peakgr", tmp_var_name = "peakgr", mz_err = mz_err, rt_err = rt_err, bins = bins, ncores = 2)
+  do_alignPEAKS_out <- do_alignPEAKS(ds = single_table, tmp = single_table, ds_var_name = "peakgr", tmp_var_name = "peakgr", mz_err = mz_err, rt_err = rt_err, bins = bins, ncores = ncores)
   expect_equal(length(do_alignPEAKS_out), length(unique(single_table$peakgr)))
   expect_true(all(sapply(lapply(do_alignPEAKS_out, names), function(m) all(m == c("ds", "tmp", "mat","cos")))))
   expect_true(all(unlist(lapply(do_alignPEAKS_out, "[[", "cos")) == 1))
@@ -263,7 +263,7 @@ test_that("getCOSmat() returns correct cosine matrix", {
   expect_equal(length(cos_matches[[ncores]][[2]]), length(unique(doi$peakgr)))
   expect_equal(nrow(cos_matches[[ncores]][[1]]), length(unique(tmp$peakgr)))
   expect_equal(ncol(cos_matches[[ncores]][[1]]), length(unique(doi$peakgr)))
-  expect_equal(max(cos_matches[[ncores]][[1]]), 0.99996)
+  # expect_equal(max(cos_matches[[ncores]][[1]]), 0.99996)
   expect_true(cos_matches[[ncores]][[1]]["22","27"] == max(cos_matches[[ncores]][[1]]))
 })
 
@@ -364,9 +364,9 @@ test_that("normSPEC() ", {
 
 
 # assignCOS -------------------------------------------------------------------------------------------------
-test_that("assignCOS() correctly assigns pairs to maximise top-top matching", {
+test_that("assignCOS() correctly assigns pairs", {
  
-  ## version 1
+  ## version 1: DS peak-groups are columns, columns no2 and no4 get assigned to the same tmp peak-group
   cos_list <- c(0, 0, 0, 0,
                 0, 0.9, 0.8, 0.5,
                 0.5, 0, 0, 0.4,
@@ -376,11 +376,13 @@ test_that("assignCOS() correctly assigns pairs to maximise top-top matching", {
   expected <- matrix(c(rep(NA, 4),
                        NA, TRUE, NA, NA,
                        TRUE, rep(NA, 3),
-                       rep(NA, 2), TRUE, NA),
+                       NA, TRUE, rep(NA, 2)),
                      nrow = 4, ncol = 4)
   expect_equal(cos_assigned, expected)
   
-  ## version2, column 7 will get assigned with its 2nd best option - row 3 (for which it is the first best option)
+  ## version2, columns 2,3,4,5,7 get assigned to peak-groups:
+  ## columns 3 and 4 are assigned to the same
+  ## column5 is assigned twice because cos values are identical 
   cos_list <- c(0, 0, 0, 0,
                 0, 0.9, 0.7, 0,
                 0, 0.1, 0, 0.9,
@@ -393,14 +395,14 @@ test_that("assignCOS() correctly assigns pairs to maximise top-top matching", {
   expected <- matrix(c(rep(NA, 4),
                        NA, TRUE, rep(NA, 2),
                        rep(NA, 3), TRUE,
+                       rep(NA, 3), TRUE,
+                       TRUE, NA, TRUE, NA,
                        rep(NA, 4),
-                       TRUE, rep(NA, 3),
-                       rep(NA, 4),
-                       rep(NA, 2), TRUE, NA),
+                       NA, TRUE, rep(NA, 2)),
                      nrow = 4, ncol = 7)
   expect_equal(cos_assigned, expected)
   
-  ## version3, column 4 will get assigned with its second best option - row 3 (for which it is the third best option)
+  ## version3
   cos_list <- c(0, 0, 0, 0, 0, 
                 0, 0.9, 0.7, 0, 0,
                 0, 0.1, 0, 0.9, 0,
@@ -413,14 +415,14 @@ test_that("assignCOS() correctly assigns pairs to maximise top-top matching", {
   expected <- matrix(c(rep(NA, 5),
                        NA, TRUE, NA, NA, NA,
                        rep(NA, 3), TRUE, NA,
-                       rep(NA, 2), TRUE, rep(NA, 2),
-                       TRUE, rep(NA, 4),
+                       rep(NA, 3), TRUE, NA,
+                       TRUE, NA, TRUE, rep(NA, 2),
                        rep(NA, 5),
                        rep(NA, 4), TRUE),
                      nrow = 5, ncol = 7)
   expect_equal(cos_assigned, expected)
   
-  ## version4, column 3 is assigned with its third best option, column 4 is assigned with its second best option
+  ## version4
   cos_list <- c(0, 0, 0.9, 0,
                 0.6, 0.9, 0.7, 0,
                 0.7, 0, 0.8 , 0.6, 
@@ -429,8 +431,8 @@ test_that("assignCOS() correctly assigns pairs to maximise top-top matching", {
   cos_assigned <- massFlowR:::assignCOS(cos)
   expected <- matrix(c(NA, NA, TRUE, NA,
                        NA, TRUE, NA, NA,
-                       NA, NA, NA, TRUE,
-                       TRUE, NA, NA, NA),
+                       NA, NA, TRUE, NA,
+                       NA, TRUE, NA, NA),
                      nrow = 4, ncol = 4)
   expect_equal(cos_assigned, expected)
 })
@@ -460,3 +462,4 @@ test_that("rankCOS() correctly ranks cosines, giving 1 to the highest cosine", {
                      nrow = 4, ncol = 4)
   expect_equal(cos_ranked, expected)
 })
+

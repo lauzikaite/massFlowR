@@ -115,7 +115,6 @@ setMethod("checkNEXT",
 #' @param object \code{massFlowTemplate} class object, created by \code{buildTMP} constructor function.
 #' @param out_dir \code{character} specifying desired directory for output.
 #' @param ncores \code{numeric} for number of parallel workers to be used. Set 1 for serial implementation. Default set to 2.
-#' @param cutoff \code{numeric} for spectra similarity score threshold, set to 0 by default.
 #' @param write_int \code{logical} specifying whether a peak table with alignment results should be saved for every sample.
 #' If TRUE, csv files will be written in the out_dir directory.
 #' Default set to FALSE
@@ -132,10 +131,9 @@ setMethod("checkNEXT",
 setMethod("alignPEAKS",
   signature = "massFlowTemplate",
   function(object,
-             out_dir = NULL,
-             ncores = 2,
-             cutoff = 0,
-             write_int = FALSE) {
+           out_dir = NULL,
+           ncores = 2,
+           write_int = FALSE) {
     if (!validObject(object)) {
       stop(validObject(object))
     }
@@ -176,7 +174,8 @@ setMethod("alignPEAKS",
       message("Aligning to sample: ", doi_name, " ... ")
       ## get most up-to-date template
       tmp <- object@tmp
-
+      
+      #### ---- dataset to tmp alignment
       doi_to_tmp <- do_alignPEAKS(
         ds = doi,
         tmp = tmp,
@@ -186,7 +185,7 @@ setMethod("alignPEAKS",
         rt_err = params$rt_err,
         bins = params$bins,
         ncores = ncores,
-        cutoff = cutoff
+        cutoff = params$cutoff
       )
 
       #### ---- update template with aligned doi peak-groups
@@ -200,7 +199,8 @@ setMethod("alignPEAKS",
         doi_var <- doi_to_tmp[[var]]$ds
         doi_var_peaks <- doi[doi$peakgr == doi_var, ]
         tmp_var <- doi_to_tmp[[var]]$tmp
-
+        
+        ## if peak-group was not assigned to tmp
         if (is.null(tmp_var)) {
           ## use all peaks in the peak-group
           doi_peakids <- doi_var_peaks$peakid
@@ -249,14 +249,14 @@ setMethod("alignPEAKS",
       doi$tmp_peakid <- unlist(doi_to_tmp_peakids)
       doi$tmp_peakgr <- unlist(doi_to_tmp_peakgr)
       doi$cos <- unlist(doi_to_tmp_cos)
-
+      
       object@tmp <- tmp
       object@samples[object@samples$proc_filepath == doi_fname, "aligned"] <-
         TRUE
       object@samples[object@samples$proc_filepath == doi_fname, "aligned_filepath"] <-
         doi_fname_out
       object@data[[doi_name]] <- doi
-
+      
       ## (1) write aligned doi table
       write.csv(
         doi,
@@ -279,15 +279,15 @@ setMethod("alignPEAKS",
         quote = TRUE,
         row.names = FALSE
       )
+      ## (4) overwrite updated meta file with filepaths to aligned samples
+      write.csv(object@samples,
+                aligned_fname,
+                quote = TRUE,
+                row.names = FALSE
+                )
     }
     object@history[length(object@history) + 1] <- "alignPEAKS"
-    ## write updated meta file with filepaths to aligned samples
-    write.csv(object@samples,
-      aligned_fname,
-      quote = TRUE,
-      row.names = FALSE
-    )
-
+    ## stop parallel backend
     if (ncores > 1) {
       foreach::registerDoSEQ()
     }
@@ -350,9 +350,6 @@ setMethod("validPEAKS",
       pkg = pkg,
       object = object
     ))
-    # saveRDS(peakgrs_ints, file = paste0(out_dir, "/peakgrs_ints.RDS"))
-    # saveRDS(object, file = paste0(out_dir, "/object.RDS"))
-
     ## validate peak-groups by sample intensity correlation network
     ## in case validation is run before full alignment of the study, adjust sample n
     samples <-
@@ -383,8 +380,6 @@ setMethod("validPEAKS",
         cor_thr = cor_thr
       )
     )
-    # saveRDS(peakgrs_split, file = paste0(out_dir, "/peakgrs_split.RDS"))
-
     ## retain only communities with > 1 peak
     final_tmp <-
       extractCOMMUNITIES(peakgrs_split = peakgrs_split)
@@ -563,6 +558,7 @@ setMethod("fillPEAKS",
 
       ## update nsamples
       nsamples <- length(samples_to_fill)
+      samples_left <- nsamples
 
       ## get number of processes across which samples will be divided
       nproc <- ceiling(nsamples / ncores)
@@ -578,7 +574,7 @@ setMethod("fillPEAKS",
         samples_proc_last <- ncores + (iproc * ncores)
         samples_proc_last <- ifelse(samples_proc_last <= nsamples, samples_proc_last, nsamples)
         samples_proc <- samples_to_fill[samples_proc_first:samples_proc_last]
-        message(length(samples_to_fill), " samples left to fill.")
+        message(samples_left, " samples left to fill.")
         message(
           "Filling next ", length(samples_proc), " samples: \n",
           paste0(object@samples$filename[samples_proc], collapse = "\n"),
@@ -603,6 +599,8 @@ setMethod("fillPEAKS",
             error = err$message
           ))
         }))
+        ## update remaining number of samples
+        samples_left <- nsamples - samples_proc_last
       }
 
       ## process results
@@ -653,147 +651,5 @@ setMethod("fillPEAKS",
       message("All peak-groups were succesfully filled")
       return(object)
     }
-  }
-)
-
-# adjustBATCH -------------------------------------------------------------
-#' @aliases adjustBATCH
-#'
-#' @title adjustBATCH
-#'
-#' @description Development mode.
-#' Method adjusts retention time between two analytical batches using a set of features for which regions of integration (ROI) in \emph{mz}, \emph{rt} and \emph{into} domains are specified by the user.
-#'
-#' @param object \code{massFlowTemplate} class object.
-#' @param out_dir \code{character} specifying desired directory for output.
-#' @param batch_end \code{character} with filename of the last sample in batch No 1.
-#' @param batch_start \code{character} with filename of the first sample in batch No 2.
-#' @param batch_next_metadata \code{character} with path to metadata file for batch No 2.
-#' @param batch_end_roi \code{character} with path to csv file with regions of integrations for the last sample in batch No 1.
-#' @param batch_start_roi \code{character} with path to csv file with regions of integrations for the first sample in batch No 2.
-#'
-#' @return Method returns \code{massFlowTemplate} class object with updated template, such that \emph{rt} of the features are adjusted according to the observed batch-change effect.
-#'
-#' @export
-#'
-setMethod("adjustBATCH",
-  signature = "massFlowTemplate",
-  function(object,
-             out_dir = NULL,
-             batch_end = NULL,
-             batch_start = NULL,
-             batch_next_metadata = NULL,
-             batch_end_roi = NULL,
-             batch_start_roi = NULL) {
-    if (!validObject(object)) {
-      stop(validObject(object))
-    }
-    # if (!peaksVALIDATED(object)) {
-    #   stop("object must be validated first")
-    # }
-    if (any(is.null(out_dir) |
-      is.null(batch_end) |
-      is.null(batch_start) |
-      is.null(batch_next_metadata) |
-      is.null(batch_end_roi) |
-      is.null(batch_start_roi))) {
-      stop("check your arguments")
-    }
-    if (!dir.exists(out_dir)) {
-      stop("incorrect filepath for 'out_dir' provided")
-    }
-    params <- object@params
-    ## load and check provided reference compounds tables
-    roi_end <-
-      read.csv(batch_end_roi,
-        header = TRUE,
-        stringsAsFactors = FALSE
-      )
-    roi_start <-
-      read.csv(batch_start_roi,
-        header = TRUE,
-        stringsAsFactors = FALSE
-      )
-    if (nrow(roi_end) != nrow(roi_start)) {
-      stop("provided reference compounds integration tables are inconsistent")
-    }
-    ## load metadata of the next batch
-    next_samples <- read.csv(batch_next_metadata, header = TRUE, stringsAsFactors = FALSE)
-
-    ## final template with all valid peaks
-    # val_pks <- object@valid # validated peaks
-    val_pks <- object@tmp # fix for simulated data
-
-    ## load peak tables for the end of the current batch and start of the next batch samples
-    data_end <-
-      object@data[[which(object@samples$filename == batch_end)]] # batch end sample - user selected file
-    # data_end <- object@data[[94]] # lazy fix for devset
-    data_start <-
-      read.csv(next_samples$proc_filepath[which(next_samples$filename == batch_start)],
-        header = TRUE,
-        stringsAsFactors = FALSE
-      ) # starting sample of the next batch
-    rt_difs <- lapply(
-      1:nrow(roi_end),
-      FUN = checkCOMPOUND,
-      val_pks = val_pks,
-      roi_end = roi_end,
-      roi_start = roi_start,
-      data_end = data_end,
-      data_start = data_start
-    )
-    if (length(unlist(rt_difs)) <= 3) {
-      ans <- 0
-      while (ans < 1) {
-        ans <- readline(
-          paste0(
-            "Peaks corresponding to provided reference compounds: ",
-            length(unlist(rt_difs)),
-            "\n",
-            "Do you wish to proceed with batch adjustion? Enter Y/N "
-          )
-        )
-        ## catch if input is N/n
-        ans <- ifelse((grepl("N", ans) | grepl("n", ans)),
-          2, 1
-        )
-        if (ans == 2) {
-          stop("method was stopped.")
-        }
-      }
-    }
-    ## prepare template for next batch:
-    ## (1) extract validated peaks
-    ## (2) adjust their rt values
-    tmp <- object@tmp
-    tmp <- tmp[match(val_pks$peakid, tmp$peakid), ]
-    ## version A - median of rt differences
-    rt_dif <- median(unlist(rt_difs))
-
-    ## version B - model rt change
-    graphics::plot(roi_end$rt, unlist(lapply(rt_difs, function(x) {
-      ifelse(is.null(x), NA, x)
-    })))
-
-    tmp$rt <- tmp$rt + rt_dif
-
-    ## create new object for the next batch, which will replace current object
-    next_samples[, "aligned"] <- FALSE
-    next_samples[, "aligned_filepath"] <- NA
-    next_object <- new(
-      "massFlowTemplate",
-      filepath = batch_next_metadata,
-      samples = next_samples,
-      tmp = tmp,
-      params = list(
-        mz_err = params$mz_err,
-        rt_err = params$rt_err,
-        bins = params$bins
-      )
-    )
-    if (validmassFlowTemplate(next_object) != TRUE) {
-      stop(validmassFlowTemplate(next_object))
-    }
-    return(next_object)
   }
 )

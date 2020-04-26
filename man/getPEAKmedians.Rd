@@ -4,8 +4,10 @@
 \alias{getPEAKmedians}
 \title{Get median centWave measures for a peak-of-interest across all samples in which it was detected.}
 \usage{
-getPEAKmedians(peak_n, values = c("mz", "mzmin", "mzmax", "rt", "rtmin",
-  "rtmax"))
+getPEAKmedians(
+  peak_n,
+  values = c("mz", "mzmin", "mzmax", "rt", "rtmin", "rtmax")
+)
 }
 \arguments{
 \item{peak_n}{\code{data.frame} with centWave measures for a peak-of-interest in every sample}

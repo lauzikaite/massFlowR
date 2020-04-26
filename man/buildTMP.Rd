@@ -4,8 +4,15 @@
 \alias{buildTMP}
 \title{Build a sample alignment and annotation template}
 \usage{
-buildTMP(file = NULL, out_dir = NULL, mz_err = 0.01, rt_err = 2,
-  bins = 0.05)
+buildTMP(
+  file = NULL,
+  out_dir = NULL,
+  mz_err = 0.01,
+  rt_err = 2,
+  bins = 0.05,
+  cutoff = 0,
+  realtime = FALSE
+)
 }
 \arguments{
 \item{file}{\code{character} for absolute path to the csv file, specifying samples filenames and their acquisition order.}
@@ -17,6 +24,10 @@ buildTMP(file = NULL, out_dir = NULL, mz_err = 0.01, rt_err = 2,
 \item{rt_err}{\code{numeric} specifying the window for peak matching in the RT dimension. Default set to 2 (sec).}
 
 \item{bins}{\code{numeric} defying step size used in component's spectra binning and vector generation. Step size represents MZ dimension (default set to 0.05).}
+
+\item{cutoff}{\code{numeric} for spectra similarity score threshold, set to 0 by default.}
+
+\item{realtime}{\code{logical} whether real-time implementation is required. If set to TRUE, alignment will wait for intermediate peakgroups files to be written.}
 }
 \value{
 A \code{massFlowTemplate} class object.

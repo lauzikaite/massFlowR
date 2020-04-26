@@ -5,5 +5,6 @@ Sys.setenv("R_TESTS" = "")
 
 library(testthat)
 library(massFlowR)
+library(xcms) # required to fix R CMD CHECK with xcms internal functions
 
 test_check("massFlowR")

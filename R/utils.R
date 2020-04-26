@@ -40,14 +40,20 @@ validFILE <- function(f) {
 #' @return Function returns \code{OnDiskMSnExp} class object.
 #'
 readDATA <- function(f) {
-  ## use try to catch mzML reading error that occurs only on macOS
+  ## use try to catch mzML reading error that occurs to random files
   raw <- NULL
+  n <- 0
   while (is.null(raw)) {
+    ## prevent endless loop for truly broken files
+    if (n > 10) {
+      return(NULL)
+    }
     raw <- try(MSnbase::readMSData(f, mode = "onDisk", msLevel. = 1),
                silent = TRUE)
     if (class(raw) == "try-error") {
       message("reruning file ...")
       raw <- NULL
+      n <- n + 1
     }
   }
   return(raw)

@@ -16,29 +16,3 @@ Function returns a \code{numeric} vector with normalised intensity values.
 Function normalises peaks' intensity values to the total magnitude of the vector,
 as decribed in Lam, Henry, et al. 2007
 }
-\details{
-#' @title Scale a vector representing peaks' intensity values
-#' 
-#' @description Function scales a vector representing peaks' intensity values before dot-product estimation of two vectors.
-#' Currently, scaling according to method in Stein & Scott, 1994 is supported.
-#'
-#' @param spec \code{data.frame} with columns 'into' and 'mz'.
-#' @param m \code{numeric}, mass power set to 3 by default.
-#' @param n \code{numeric}, intensity power set to 0.6 by default.
-#'
-#' @return Function returns a \code{numeric} vector with scaled intensity values.
-#' 
-#' @seealso \code{\link{getCOSmat}}
-#' 
-scaleSPEC <- function(spec,  m = 3, n = 0.6) {
-  ## Version A - scale to unit length (emphasises most intense peak)
-  spec$into / (sqrt(sum(spec$into * spec$into)))
-  
-  ## Version B - according to Stein & Scott, 1994
-  # scale the intensity of every mz ion separately
-  # use m and n weighting factors taken from Stein & Scott, 1994
-  # apply(spec, 1, function(x) {
-  #   x[["into"]] ^ n * x[["mz"]] ^ m
-  # })
-}
-}

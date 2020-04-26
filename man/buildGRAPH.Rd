@@ -4,8 +4,7 @@
 \alias{buildGRAPH}
 \title{Build a correlation network of peaks}
 \usage{
-buildGRAPH(pkg_cor, cor_thr, plot = TRUE, title = NULL,
-  out_dir = NULL)
+buildGRAPH(pkg_cor, cor_thr, plot = TRUE, title = NULL, out_dir = NULL)
 }
 \arguments{
 \item{pkg_cor}{\code{data.frame} containing a row for each unique peak-peak pair. Columns 'from' and 'to' specify peak identifiers, column 'weight' represents correlation coefficient.}

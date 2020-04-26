@@ -4,9 +4,25 @@ context("methods for massFlowTemplate")
 test_that("basic methods for massFlowTemplate", {
   tmp <- buildTMP(file = meta_fname, out_dir = data_dir)
   expect_true(validmassFlowTemplate(tmp))
+  ## with real-time implementation
+  # temporaly move one of the files away
+  dir.create(file.path(data_dir, "temp"), showWarnings = FALSE)
+  file.rename(from =   metadata$proc_filepath[2],
+              to = file.path(data_dir, "temp", basename(metadata$proc_filepath[2])))
+  # will not fail if realtime set to TRUE
+  tmp <- buildTMP(file = meta_fname, out_dir = data_dir, realtime = TRUE)
+  validmassFlowTemplate(tmp)
   expect_true(filepath(tmp) == meta_fname)
   expect_false(peaksVALIDATED(tmp))
-})
+  
+  # will fail with realtime not set
+  expect_error(buildTMP(file = meta_fname, out_dir = data_dir),
+               regexp = "Column 'proc_filepath' contains incorrect file paths")
+
+  # move the file back
+  file.rename(from =file.path(data_dir, "temp", basename(metadata$proc_filepath[2])),
+              to = metadata$proc_filepath[2])
+  })
 
 
 # checkNEXT ---------------------------------------------------------------------------------------------------
@@ -91,12 +107,9 @@ test_that("alignment of two ALMOST identical samples via alignPEAKS() is correct
   ## double checking whether the peakgroup-of-interest is what I expect
   pkg_grouped_1 <- tmp_data1[which(tmp_data1$tmp_peakgr == biggest_pkg),]
   pkg_grouped_2 <- tmp_data2[which(tmp_data2$tmp_peakgr == biggest_pkg),]
-  expect_equal(nrow(pkg_grouped_2), (nrow(pkg_grouped_1)/2 - 1))
+  # both noisy-pakgroups should be aligned to the original peak-group in tmp
+  expect_true(length(unique(pkg_grouped_2$peakgr)) == 2)
   expect_true(all(pkg_grouped_2$tmp_peakid %in% pkg_grouped_1$tmp_peakid))
-  
-  ## checking whether addDOI correctly "kicked-out" previously grouped noisy peakgr
-  expect_true(all(is.na(tmp_data2[which(tmp_data2$tmp_peakgr == noisy_pkg), "cos"])))
-  expect_false(any(tmp_tmp[which(tmp_tmp$peakgr == noisy_pkg), "peakid"] %in% tmp_data1$tmp_peakid))
 })
 
 # validPEAKS---------------------------------------------------------------------------------------------------
@@ -105,11 +118,16 @@ test_that("validPEAKS", {
   tmp <- buildTMP(file = meta_fname, out_dir = data_dir, rt_err = rt_err)
   tmp <- alignPEAKS(tmp, out_dir = data_dir)
   expect_error(validPEAKS(tmp, out_dir = data_dir, ncores = 2),
-               "object has 2 samples\n minimum 3 samples are required for validation.")
+               "object has 2 samples\n minimum number of samples requested is 3")
   
   ####---- use large study
   tmp <- buildTMP(file = large_meta_fname, out_dir = data_dir, rt_err = rt_err)
   tmp <- alignPEAKS(tmp, out_dir = data_dir)
+  
+  ## object with >2 samples will get warning 
+  expect_message(validPEAKS(tmp, out_dir = data_dir, ncores = 2),
+               "value for 'min_samples_prop' not provided. Setting the minimum number of samples to 3!")
+  
   validPEAKS_out <- validPEAKS(tmp, out_dir = data_dir, ncores = 2)
   expect_true(class(validPEAKS_out) == "massFlowTemplate")
   expect_true(peaksVALIDATED(validPEAKS_out))

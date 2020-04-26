@@ -4,8 +4,7 @@
 \alias{groupPEAKS}
 \title{Get peak-groups representing different chemical spectra in each LC-MS datafile}
 \usage{
-groupPEAKS(file = NULL, out_dir = NULL, cwt = NULL, ncores = 2,
-  thr = 0.95)
+groupPEAKS(file = NULL, out_dir = NULL, cwt = NULL, ncores = 2, thr = 0.95)
 }
 \arguments{
 \item{file}{\code{character} with path to metadata csv file, which must incluce columns 'filename', 'run_order' and 'raw_filepath'.}

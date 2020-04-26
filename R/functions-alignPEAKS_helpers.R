@@ -143,6 +143,7 @@ do_alignPEAKS <- function(ds,
     
     for (var in 1:length(ds_vars)) {
       ds_var <- ds_vars[var]
+      ## if this ds peakgroups was assigned to tmp peakgroup with cos > cutoff
       if (ds_var %in% ds_vars_assigned) {
         ## get the corresponding assigned tmp peagroup
         tmp_var <- tmp_vars_assigned[which(ds_vars_assigned == ds_var)]
@@ -462,9 +463,101 @@ normSPEC <- function(into) {
 
 
 # assignCOS ---------------------------------------------------------------------------------------------------------
+# assignCOS <- function(cos, cutoff) {
+#   
+#   if (missing(cutoff)) {
+#     cutoff <- 0 # temporal, for devel when running functions at lower level than alignPEAKS and unit tests
+#   }
+#   
+#   ## if a similarity threshold should be applied used for assignment
+#   if (cutoff > 0){
+#     cos[which(cos < cutoff)] <- 0
+#   }
+#   
+#   ## rank by row, i.e. the template vars
+#   tmp_rank <- t(apply(cos, 1, FUN = rankCOS))
+#   ## rank by column, i.e. the ds vars
+#   ds_rank <- apply(cos, 2, FUN = rankCOS)
+#   ## assign peakgroup pairs which have the highest rank both row-wise and column-wise
+#   assigned <- matrix(FALSE, nrow = nrow(cos), ncol = ncol(cos))
+#   assigned[which(cos == 0)] <- NA
+#   assigned[which(ds_rank == tmp_rank & ds_rank == 1)] <- TRUE
+#   
+#   while (FALSE %in% assigned) {
+#     ## add NA to tmp peakgroups that were already assigned with ds peakgroups
+#     assigned <- apply(assigned, 2, function(x) {
+#       if (any(na.omit(x))) {
+#         x[which(x == FALSE)] <- NA
+#       }
+#       return(x)
+#     }
+#     )
+#     ## which rows and columns have any un-assigned peakgroups
+#     tmp_not_assigned <- which(apply(assigned, 1, function(x) {
+#       if (all(is.na(x))) {
+#         FALSE
+#       } else {
+#         !TRUE %in% x
+#       }
+#     }))
+#     ds_not_assigned <- which(apply(assigned, 2, function(x) {
+#       if (all(is.na(x))) {
+#         FALSE
+#       } else {
+#         !TRUE %in% x
+#       }
+#     }))
+#     ## for every un-assigned ds peakgroup
+#     for (var in ds_not_assigned) {
+#       ## order matches by rank
+#       current_ds_var <- ds_rank[ , var]
+#       current_ds_var_ranks <- current_ds_var[order(current_ds_var)]
+#       for (rank in current_ds_var_ranks) {
+#         if (rank != 0) {
+#           current_tmp_var_ind <- which(ds_rank[ , var] == rank)
+#           ## check if this tmp peak-group is not assigned yet
+#           ## if this tmp peakgroup is already assigned, assign NA for the pair
+#           if (current_tmp_var_ind %in% tmp_not_assigned) {
+#             ## if still free, check if this is the highest rank among remaining ones
+#             current_tmp_var <- tmp_rank[current_tmp_var_ind, ]
+#             ## are higher ranks for this tmp var not assigned yet? 
+#             ## order matches and check every match
+#             current_tmp_ds_rank <- current_tmp_var[var]
+#             higher_ranks <- which(current_tmp_var < current_tmp_ds_rank & current_tmp_var != 0)
+#             higher_ranks <- higher_ranks[order(current_tmp_var[higher_ranks])]
+#             ## if any of the higher ranking ds are still un-assigned, leave this tmp ds un-assigned now
+#             if (length(higher_ranks) > 0) {
+#               if (any(higher_ranks %in% ds_not_assigned)) {
+#                 next
+#               } else {
+#                 assigned[current_tmp_var_ind, var] <- TRUE
+#                 tmp_not_assigned <- tmp_not_assigned[-c(which(tmp_not_assigned == current_tmp_var_ind))]
+#                 ## finish for this ds peakgroup
+#                 assigned[which(assigned[, var] == FALSE), var] <- NA
+#                 break
+#               }
+#             } else {
+#               ## if this is the highest match for this tmp var
+#               assigned[current_tmp_var_ind, var] <- TRUE
+#               tmp_not_assigned <- tmp_not_assigned[-c(which(tmp_not_assigned == current_tmp_var_ind))]
+#               ## finish for this ds peakgroup
+#               assigned[which(assigned[, var] == FALSE), var] <- NA
+#               break
+#             }
+#           } else {
+#             assigned[current_tmp_var_ind, var] <- NA
+#           }
+#         }
+#       }
+#     }
+#   }
+#   return(assigned)
+# }
+
+# assignCOS ---------------------------------------------------------------------------------------------------------
 #' @title Assign dataset's peak-groups to template peak-groups based on estimated cosine angles
 #' 
-#' @description Maximise peak-groups assignment by selecting highest-scoring match for each peak-group in the template.
+#' @description Each peak-group in the dataset is assigned to the highest-scoring template peak-groups.
 #' 
 #' @details Function is used for peak-group alignment by \code{\link{alignPEAKS}} method and for automatic annotation on \code{\link{massFlowAnno-class}} object.
 #'
@@ -477,95 +570,25 @@ normSPEC <- function(into) {
 #' Peak-groups which should be grouped/aligned into one are marked with TRUE in the output matrix.
 #' 
 assignCOS <- function(cos, cutoff) {
-  
+  # for development when running functions at lower level than alignPEAKS and unit tests
+  # if change it here, also change in the tests/setup.R
   if (missing(cutoff)) {
-    cutoff <- 0 # temporal, for devel when running functions at lower level than alignPEAKS and unit tests
+    cutoff <- 0.5 
   }
   
-  ## if a similarity threshold should be applied used for assignment
+  ## if a similarity threshold should be applied, remove all matches with cos below it
   if (cutoff > 0){
     cos[which(cos < cutoff)] <- 0
   }
-  
-  ## rank by row, i.e. the template vars
-  tmp_rank <- t(apply(cos, 1, FUN = rankCOS))
   ## rank by column, i.e. the ds vars
   ds_rank <- apply(cos, 2, FUN = rankCOS)
-  ## assign peakgroup pairs which have the highest rank both row-wise and column-wise
-  assigned <- matrix(FALSE, nrow = nrow(cos), ncol = ncol(cos))
-  assigned[which(cos == 0)] <- NA
-  assigned[which(ds_rank == tmp_rank & ds_rank == 1)] <- TRUE
   
-  while (FALSE %in% assigned) {
-    ## add NA to tmp peakgroups that were already assigned with ds peakgroups
-    assigned <- apply(assigned, 2, function(x) {
-      if (any(na.omit(x))) {
-        x[which(x == FALSE)] <- NA
-      }
-      return(x)
-    }
-    )
-    ## which rows and columns have any un-assigned peakgroups
-    tmp_not_assigned <- which(apply(assigned, 1, function(x) {
-      if (all(is.na(x))) {
-        FALSE
-      } else {
-        !TRUE %in% x
-      }
-    }))
-    ds_not_assigned <- which(apply(assigned, 2, function(x) {
-      if (all(is.na(x))) {
-        FALSE
-      } else {
-        !TRUE %in% x
-      }
-    }))
-    ## for every un-assigned ds peakgroup
-    for (var in ds_not_assigned) {
-      ## order matches by rank
-      current_ds_var <- ds_rank[ , var]
-      current_ds_var_ranks <- current_ds_var[order(current_ds_var)]
-      for (rank in current_ds_var_ranks) {
-        if (rank != 0) {
-          current_tmp_var_ind <- which(ds_rank[ , var] == rank)
-          ## check if this tmp peak-group is not assigned yet
-          ## if this tmp peakgroup is already assigned, assign NA for the pair
-          if (current_tmp_var_ind %in% tmp_not_assigned) {
-            ## if still free, check if this is the highest rank among remaining ones
-            current_tmp_var <- tmp_rank[current_tmp_var_ind, ]
-            ## are higher ranks for this tmp var not assigned yet? 
-            ## order matches and check every match
-            current_tmp_ds_rank <- current_tmp_var[var]
-            higher_ranks <- which(current_tmp_var < current_tmp_ds_rank & current_tmp_var != 0)
-            higher_ranks <- higher_ranks[order(current_tmp_var[higher_ranks])]
-            ## if any of the higher ranking ds are still un-assigned, leave this tmp ds un-assigned now
-            if (length(higher_ranks) > 0) {
-              if (any(higher_ranks %in% ds_not_assigned)) {
-                next
-              } else {
-                assigned[current_tmp_var_ind, var] <- TRUE
-                tmp_not_assigned <- tmp_not_assigned[-c(which(tmp_not_assigned == current_tmp_var_ind))]
-                ## finish for this ds peakgroup
-                assigned[which(assigned[, var] == FALSE), var] <- NA
-                break
-              }
-            } else {
-              ## if this is the highest match for this tmp var
-              assigned[current_tmp_var_ind, var] <- TRUE
-              tmp_not_assigned <- tmp_not_assigned[-c(which(tmp_not_assigned == current_tmp_var_ind))]
-              ## finish for this ds peakgroup
-              assigned[which(assigned[, var] == FALSE), var] <- NA
-              break
-            }
-          } else {
-            assigned[current_tmp_var_ind, var] <- NA
-          }
-        }
-      }
-    }
-  }
+  ## assign ds peakgroup to the highest ranking tmp peakgroup
+  assigned <- matrix(NA, nrow = nrow(cos), ncol = ncol(cos))
+  assigned[which(ds_rank == 1)] <- TRUE
   return(assigned)
 }
+
 
 # rankCOS ---------------------------------------------------------------------------------------------------------
 #' @title Rank cosines, assigning 1 to the highest cosine and 0s to cosine of 0.
@@ -580,10 +603,19 @@ rankCOS <- function(x) {
   cos_pos <- length(x) - cos_0
   if (cos_pos > 0) {
     cos_ranks <- rep(0, length(x))
-    cos_ranks[order(x, decreasing = T)] <- c(
-      seq(from = 1, to = cos_pos, by = 1),
-      rep(0, cos_0)
-    )
+    x_order <- order(x, decreasing = TRUE)
+    ## if the highest-ranking cos is identical to another cos value
+    ## this deals with imperfect order() function
+    if (any(x[x_order][-1] == x[x_order][1])) {
+      top_ranks <- which(x == x[x_order][1])
+      ## assign all of the top, identically-scoring vars to 1
+      cos_ranks[top_ranks] <- 1
+    } else {
+      cos_ranks[x_order] <- c(
+        seq(from = 1, to = cos_pos, by = 1),
+        rep(0, cos_0)
+      )
+    }
   } else {
     cos_ranks <- rep(0, cos_0)
   }
